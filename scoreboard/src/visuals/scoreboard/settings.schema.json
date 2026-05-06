@@ -1,37 +1,35 @@
 {
-  "fields": [
-    {
-      "key": "theme",
-      "label": "Theme",
-      "type": "select",
+  "type": "object",
+  "title": "Scoreboard Settings",
+  "properties": {
+    "theme": {
+      "type": "string",
+      "title": "Theme",
       "default": "app",
-      "options": [
-        { "value": "app", "label": "App Theme" },
-        { "value": "modern-dark", "label": "Modern Dark" },
-        { "value": "neon-cyber", "label": "Neon Cyber" },
-        { "value": "industrial-bakery", "label": "Industrial Bakery" },
-        { "value": "pro-streamer", "label": "Pro Streamer" },
-        { "value": "hacker-terminal", "label": "Hacker Terminal" },
-        { "value": "broadcast-clean", "label": "Broadcast Clean" }
+      "oneOf": [
+        { "const": "app", "title": "App Theme" },
+        { "const": "modern-dark", "title": "Modern Dark" },
+        { "const": "neon-cyber", "title": "Neon Cyber" },
+        { "const": "industrial-bakery", "title": "Industrial Bakery" },
+        { "const": "pro-streamer", "title": "Pro Streamer" },
+        { "const": "hacker-terminal", "title": "Hacker Terminal" },
+        { "const": "broadcast-clean", "title": "Broadcast Clean" }
       ]
     },
-    {
-      "key": "showClock",
-      "label": "Show Match Clock",
+    "showClock": {
       "type": "boolean",
+      "title": "Show Match Clock",
       "default": true
     },
-    {
-      "key": "showBoWhenTracking",
-      "label": "Show BO Tracker",
+    "showBoWhenTracking": {
       "type": "boolean",
+      "title": "Show BO Tracker",
       "default": true
     },
-    {
-      "key": "uppercaseNames",
-      "label": "Uppercase Team Names",
+    "uppercaseNames": {
       "type": "boolean",
+      "title": "Uppercase Team Names",
       "default": false
     }
-  ]
+  }
 }
