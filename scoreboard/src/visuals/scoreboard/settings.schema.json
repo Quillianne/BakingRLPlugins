@@ -1,0 +1,37 @@
+{
+  "fields": [
+    {
+      "key": "theme",
+      "label": "Theme",
+      "type": "select",
+      "default": "app",
+      "options": [
+        { "value": "app", "label": "App Theme" },
+        { "value": "modern-dark", "label": "Modern Dark" },
+        { "value": "neon-cyber", "label": "Neon Cyber" },
+        { "value": "industrial-bakery", "label": "Industrial Bakery" },
+        { "value": "pro-streamer", "label": "Pro Streamer" },
+        { "value": "hacker-terminal", "label": "Hacker Terminal" },
+        { "value": "broadcast-clean", "label": "Broadcast Clean" }
+      ]
+    },
+    {
+      "key": "showClock",
+      "label": "Show Match Clock",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "key": "showBoWhenTracking",
+      "label": "Show BO Tracker",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "key": "uppercaseNames",
+      "label": "Uppercase Team Names",
+      "type": "boolean",
+      "default": false
+    }
+  ]
+}

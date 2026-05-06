@@ -1,0 +1,19 @@
+{
+  "name": "bakingrl-plugins",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "scoreboard",
+    "bo-tracker"
+  ],
+  "scripts": {
+    "create": "create-bakingrl-plugin",
+    "build": "npm run build --workspaces --if-present",
+    "check": "npm run check --workspaces --if-present",
+    "validate": "npm run validate --workspaces --if-present",
+    "pack": "npm run pack --workspaces --if-present",
+    "install:local": "npm run install:local --workspaces --if-present"
+  },
+  "license": "MIT"
+}

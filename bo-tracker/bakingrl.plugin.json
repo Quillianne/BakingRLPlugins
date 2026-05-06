@@ -1,0 +1,55 @@
+{
+  "schema": "bakingrl.plugin/2",
+  "id": "com.bakingrl.bo-tracker",
+  "name": "BO Tracker",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "exports": {
+    "services": {
+      "boTracker": {
+        "entry": "dist/services/bo-tracker.js",
+        "methods": [
+          "snapshot",
+          "configure",
+          "start",
+          "stop",
+          "adjustScore",
+          "award",
+          "undo",
+          "reset"
+        ],
+        "schema": "src/services/bo-tracker/methods.schema.json"
+      }
+    }
+  },
+  "imports": {
+    "components": [],
+    "services": []
+  },
+  "permissions": {
+    "bus": {
+      "read": [
+        "MatchCreated",
+        "MatchInitialized",
+        "RoundStarted",
+        "MatchEnded"
+      ],
+      "publish": [
+        "plugin.com.bakingrl.bo-tracker.*"
+      ]
+    },
+    "registry": {
+      "read": [],
+      "write": [
+        "plugin.com.bakingrl.bo-tracker.*"
+      ]
+    },
+    "network": {
+      "http": [],
+      "websocket": []
+    },
+    "storage": [
+      "plugin://self/*"
+    ]
+  }
+}

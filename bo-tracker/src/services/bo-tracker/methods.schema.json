@@ -1,0 +1,103 @@
+{
+  "type": "object",
+  "methods": {
+    "snapshot": {
+      "input": true,
+      "output": true
+    },
+    "configure": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "bestOf": {
+            "type": "number",
+            "enum": [1, 3, 5, 7]
+          },
+          "leftTeamName": {
+            "type": "string"
+          },
+          "rightTeamName": {
+            "type": "string"
+          },
+          "leftTeamNum": {
+            "type": "number"
+          },
+          "rightTeamNum": {
+            "type": "number"
+          },
+          "start": {
+            "type": "string",
+            "enum": ["idle", "now", "nextMatch"]
+          },
+          "resetScore": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output": true
+    },
+    "start": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["now", "nextMatch"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "output": true
+    },
+    "stop": {
+      "input": true,
+      "output": true
+    },
+    "adjustScore": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "leftWins": {
+            "type": "number"
+          },
+          "rightWins": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output": true
+    },
+    "award": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "side": {
+            "type": "string",
+            "enum": ["left", "right"]
+          }
+        },
+        "required": ["side"],
+        "additionalProperties": false
+      },
+      "output": true
+    },
+    "undo": {
+      "input": true,
+      "output": true
+    },
+    "reset": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "keepConfig": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output": true
+    }
+  }
+}

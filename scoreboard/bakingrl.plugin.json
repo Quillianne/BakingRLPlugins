@@ -1,0 +1,40 @@
+{
+  "schema": "bakingrl.plugin/2",
+  "id": "com.bakingrl.scoreboard",
+  "name": "Scoreboard",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "exports": {
+    "visuals": {
+      "scoreboard": {
+        "entry": "dist/visuals/scoreboard.js",
+        "defaultSize": [760, 128],
+        "settings": "src/visuals/scoreboard/settings.schema.json"
+      }
+    }
+  },
+  "imports": {
+    "components": [],
+    "services": []
+  },
+  "permissions": {
+    "bus": {
+      "read": [
+        "UpdateState",
+        "plugin.com.bakingrl.bo-tracker.state"
+      ],
+      "publish": []
+    },
+    "registry": {
+      "read": [
+        "plugin.com.bakingrl.bo-tracker.state"
+      ],
+      "write": []
+    },
+    "network": {
+      "http": [],
+      "websocket": []
+    },
+    "storage": []
+  }
+}
