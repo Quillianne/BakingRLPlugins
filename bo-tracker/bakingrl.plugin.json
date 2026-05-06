@@ -5,6 +5,13 @@
   "version": "1.0.0",
   "author": "BakingRL",
   "exports": {
+    "visuals": {
+      "controlPanel": {
+        "entry": "dist/visuals/control-panel.js",
+        "defaultSize": [1200, 740],
+        "settings": "src/visuals/control-panel/settings.schema.json"
+      }
+    },
     "services": {
       "boTracker": {
         "entry": "dist/services/bo-tracker.js",
@@ -20,6 +27,13 @@
         ],
         "schema": "src/services/bo-tracker/methods.schema.json"
       }
+    },
+    "pages": {
+      "control": {
+        "path": "pages/control.json",
+        "title": "BO Tracker Control",
+        "description": "Configure team names, BO format, tracking state, and series score."
+      }
     }
   },
   "imports": {
@@ -32,7 +46,8 @@
         "MatchCreated",
         "MatchInitialized",
         "RoundStarted",
-        "MatchEnded"
+        "MatchEnded",
+        "plugin.com.bakingrl.bo-tracker.state"
       ],
       "publish": [
         "plugin.com.bakingrl.bo-tracker.*"

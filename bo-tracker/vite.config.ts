@@ -6,7 +6,8 @@ export default defineConfig({
     rollupOptions: {
       preserveEntrySignatures: "strict",
       input: {
-        "services/bo-tracker": "src/services/bo-tracker/index.ts"
+        "services/bo-tracker": "src/services/bo-tracker/index.ts",
+        "visuals/control-panel": "src/visuals/control-panel/index.ts"
       },
       output: {
         entryFileNames: "[name].js",

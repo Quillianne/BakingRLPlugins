@@ -1,0 +1,39 @@
+{
+  "type": "object",
+  "title": "BO Tracker Control Settings",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "Title",
+      "default": "BO Tracker"
+    },
+    "subtitle": {
+      "type": "string",
+      "title": "Subtitle",
+      "default": "Configuration et score de serie"
+    },
+    "defaultBestOf": {
+      "type": "integer",
+      "title": "Default BO Format",
+      "default": 5,
+      "oneOf": [
+        { "const": 1, "title": "BO1" },
+        { "const": 3, "title": "BO3" },
+        { "const": 5, "title": "BO5" },
+        { "const": 7, "title": "BO7" }
+      ]
+    },
+    "showHistory": {
+      "type": "boolean",
+      "title": "Show Match History",
+      "default": true
+    },
+    "historyLimit": {
+      "type": "integer",
+      "title": "History Rows",
+      "default": 6,
+      "minimum": 0,
+      "maximum": 12
+    }
+  }
+}

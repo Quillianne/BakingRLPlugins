@@ -1,15 +1,25 @@
 # BO Tracker
 
-Service-only BakingRL plugin used to track best-of series.
+BakingRL plugin used to track and control best-of series.
 
 ## Capabilities
 
 - Service export: `boTracker`
+- Visual export: `controlPanel`
+- Page template export: `control`
 - Publishes bus event: `plugin.com.bakingrl.bo-tracker.state`
 - Writes registry key: `plugin.com.bakingrl.bo-tracker.state`
 - Uses package-local storage for persistent BO configuration and history.
 
-It does not export visuals. A scoreboard plugin can consume it by reading:
+The `control` page template mounts the `controlPanel` visual. It can:
+
+- Configure team names for Rocket League side 0 and side 1.
+- Configure BO1, BO3, BO5, or BO7.
+- Start tracking immediately or from the next match.
+- Stop tracking without clearing the score.
+- Manually adjust, award, undo, or reset series scores.
+
+A scoreboard plugin can consume it by reading:
 
 - bus event: `plugin.com.bakingrl.bo-tracker.state`
 - registry key: `plugin.com.bakingrl.bo-tracker.state`
