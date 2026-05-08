@@ -46,7 +46,8 @@ function isCurrentPlayer(value: unknown): value is CurrentPlayer {
   return (
     typeof player.id === "string" &&
     typeof player.name === "string" &&
-    typeof player.teamNum === "number"
+    typeof player.teamNum === "number" &&
+    typeof player.previousMatchCount === "number"
   );
 }
 
@@ -83,7 +84,13 @@ function fallbackColor(teamNum: number) {
 
 function renderPlayer(player: CurrentPlayer) {
   const color = safeColor(player.teamColor, fallbackColor(player.teamNum));
-  return `<li class="player-name" style="--team-color:${escapeHtml(color)}">${escapeHtml(player.name)}</li>`;
+  const count = Math.max(0, Math.trunc(player.previousMatchCount));
+  return `
+    <li class="player-row" style="--team-color:${escapeHtml(color)}">
+      <span class="player-name">${escapeHtml(player.name)}</span>
+      <span class="seen-count">${count}</span>
+    </li>
+  `;
 }
 
 function renderState(state: DejaVuState | null, settings: DejaVuSettings) {
@@ -123,16 +130,30 @@ export default defineVisual({
           font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
           letter-spacing: 0;
         }
-        .player-name {
+        .player-row {
+          display: flex;
           max-width: 100%;
+          align-items: baseline;
+          gap: 14px;
           overflow: hidden;
           color: var(--team-color);
           font-size: 28px;
           font-weight: 800;
           line-height: 1.08;
+        }
+        .player-name {
+          min-width: 0;
+          flex: 1 1 auto;
+          max-width: 100%;
+          overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          text-shadow: 0 2px 7px rgba(0, 0, 0, 0.72);
+        }
+        .seen-count {
+          flex: none;
+          min-width: 2ch;
+          text-align: right;
+          font-variant-numeric: tabular-nums;
         }
       </style>
       <ul class="deja-vu"></ul>
