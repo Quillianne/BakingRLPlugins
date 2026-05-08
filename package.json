@@ -6,7 +6,8 @@
   "workspaces": [
     "scoreboard",
     "bo-tracker",
-    "cage-stats"
+    "cage-stats",
+    "deja-vu"
   ],
   "scripts": {
     "create": "create-bakingrl-plugin",

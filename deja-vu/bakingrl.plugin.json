@@ -1,0 +1,56 @@
+{
+  "schema": "bakingrl.plugin/2",
+  "id": "com.bakingrl.deja-vu",
+  "name": "Deja Vu",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "exports": {
+    "visuals": {
+      "dejaVu": {
+        "entry": "dist/visuals/deja-vu.js",
+        "defaultSize": [720, 420],
+        "settings": "src/visuals/deja-vu/settings.schema.json"
+      }
+    },
+    "services": {
+      "dejaVu": {
+        "entry": "dist/services/deja-vu.js",
+        "methods": ["snapshot", "reset"],
+        "schema": "src/services/deja-vu/methods.schema.json"
+      }
+    }
+  },
+  "imports": {
+    "components": [],
+    "services": []
+  },
+  "permissions": {
+    "bus": {
+      "read": [
+        "UpdateState",
+        "MatchCreated",
+        "MatchInitialized",
+        "MatchDestroyed",
+        "plugin.com.bakingrl.deja-vu.state"
+      ],
+      "publish": [
+        "plugin.com.bakingrl.deja-vu.*"
+      ]
+    },
+    "registry": {
+      "read": [
+        "plugin.com.bakingrl.deja-vu.*"
+      ],
+      "write": [
+        "plugin.com.bakingrl.deja-vu.*"
+      ]
+    },
+    "network": {
+      "http": [],
+      "websocket": []
+    },
+    "storage": [
+      "plugin://self/*"
+    ]
+  }
+}
