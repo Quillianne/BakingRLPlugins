@@ -47,9 +47,32 @@ jobs:
         working-directory: BakingRLPlugins
         run: npm run validate
 
-      - name: Pack plugin bundles
+      - name: Write plugin signing key
+        run: |
+          if [ -z "${BAKINGRL_PLUGIN_SIGNING_KEY_JSON}" ]; then
+            echo "Missing BAKINGRL_PLUGIN_SIGNING_KEY_JSON secret." >&2
+            exit 1
+          fi
+          key_path="${RUNNER_TEMP}/bakingrl-plugin-signing-key.json"
+          printf '%s' "${BAKINGRL_PLUGIN_SIGNING_KEY_JSON}" > "${key_path}"
+          chmod 600 "${key_path}"
+          echo "BAKINGRL_PLUGIN_SIGNING_KEY=${key_path}" >> "${GITHUB_ENV}"
+        env:
+          BAKINGRL_PLUGIN_SIGNING_KEY_JSON: ${{ secrets.BAKINGRL_PLUGIN_SIGNING_KEY_JSON }}
+
+      - name: Pack signed plugin bundles
         working-directory: BakingRLPlugins
-        run: npm run pack
+        run: |
+          npm run pack --workspace @bakingrl-plugins/scoreboard -- --sign "${BAKINGRL_PLUGIN_SIGNING_KEY}"
+          npm run pack --workspace @bakingrl-plugins/bo-tracker -- --sign "${BAKINGRL_PLUGIN_SIGNING_KEY}"
+          npm run pack --workspace @bakingrl-plugins/cage-stats -- --sign "${BAKINGRL_PLUGIN_SIGNING_KEY}"
+
+      - name: Remove plugin signing key
+        if: always()
+        run: |
+          if [ -n "${BAKINGRL_PLUGIN_SIGNING_KEY:-}" ]; then
+            rm -f "${BAKINGRL_PLUGIN_SIGNING_KEY}"
+          fi
 
       - name: List plugin bundles
         working-directory: BakingRLPlugins
