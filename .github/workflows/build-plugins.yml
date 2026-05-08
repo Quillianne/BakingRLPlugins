@@ -1,0 +1,64 @@
+name: Build BakingRL Plugins
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bakingrl-plugins-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-plugins:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout plugins
+        uses: actions/checkout@v6
+        with:
+          path: BakingRLPlugins
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: BakingRLPlugins/package-lock.json
+
+      - name: Install plugin dependencies
+        working-directory: BakingRLPlugins
+        run: npm ci
+
+      - name: Check plugins
+        working-directory: BakingRLPlugins
+        run: npm run check
+
+      - name: Build plugins
+        working-directory: BakingRLPlugins
+        run: npm run build
+
+      - name: Validate plugins
+        working-directory: BakingRLPlugins
+        run: npm run validate
+
+      - name: Pack plugin bundles
+        working-directory: BakingRLPlugins
+        run: npm run pack
+
+      - name: List plugin bundles
+        working-directory: BakingRLPlugins
+        run: find . -path "*/dist-bundles/*.brlp" -print
+
+      - name: Upload plugin bundles
+        uses: actions/upload-artifact@v7
+        with:
+          name: BakingRL-plugins-${{ github.ref_name }}
+          path: BakingRLPlugins/*/dist-bundles/*.brlp
+          if-no-files-found: error
+          retention-days: 14
