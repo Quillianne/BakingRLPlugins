@@ -4,8 +4,9 @@
 
 - Node.js 20 or newer.
 - npm 10 or newer.
-- Local sibling checkout of `BakingRLSDK` for SDK source and helper scripts.
 - Local sibling checkout of `BakingRL` for runtime testing.
+- Optional local sibling checkout of `BakingRLSDK` when developing unreleased
+  SDK, generator, or helper CLI changes.
 
 ## Standard Workflow
 
@@ -17,26 +18,27 @@ npm run validate
 npm run install:local
 ```
 
-Create a new package with the globally installed local SDK tools:
+Create a new package with the published helper CLI installed by this workspace:
 
 ```sh
-cd ../BakingRLSDK
-npm install -g .
-cd ../BakingRLPlugins
 npm run create -- my-package
 ```
 
-After SDK type or runtime-helper changes:
+When testing unreleased SDK type or runtime-helper changes:
 
 ```sh
 cd ../BakingRLSDK
+npm install
 npm run build
+npm install -g . --force
 ```
 
-After generator, helper, template, or global command changes:
+After unreleased generator, helper, template, or global command changes:
 
 ```sh
 cd ../BakingRLSDK
+npm install
+npm run build
 npm install -g . --force
 ```
 

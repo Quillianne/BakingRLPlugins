@@ -3,27 +3,29 @@
 This repository contains first-party and experimental BakingRL plugin packages.
 
 Use this repository when developing plugins. Use `BakingRL` to run the desktop
-host application and `BakingRLSDK` for SDK and package-author documentation.
+host application and `BakingRLSDK` for SDK source and package-author
+documentation.
 
 ## Repository Layout
 
 ```txt
 scoreboard/    Visual overlay package for live score display.
 bo-tracker/    Service package for best-of series state.
+cage-stats/    Service and visual package for cage stats.
 ```
 
 ## Local Workspace Setup
 
-Clone the three repositories side by side:
+Clone the host and plugin repositories side by side for runtime testing:
 
 ```txt
 perso/
   BakingRL/
-  BakingRLSDK/
   BakingRLPlugins/
 ```
 
-Install plugin workspace dependencies:
+Install plugin workspace dependencies. Published SDK and helper CLI packages are
+installed from npm:
 
 ```sh
 npm install
@@ -34,40 +36,27 @@ npm run validate
 
 ## Create A New Plugin
 
-Until the SDK is published, install the local SDK repository globally:
-
-```sh
-cd ../BakingRLSDK
-npm install
-npm install -g .
-```
-
-Then create plugins from this repository:
-
-```sh
-cd ../BakingRLPlugins
-create-bakingrl-plugin my-package
-```
-
-Equivalent npm script:
+Create plugins from this repository with the workspace script:
 
 ```sh
 npm run create -- my-package
 ```
 
-When you edit SDK types or runtime helpers, rebuild the SDK before rebuilding
+If `@bakingrl/create-plugin` is installed globally, the direct command is also
+available:
+
+```sh
+create-bakingrl-plugin my-package
+```
+
+If you are developing unreleased SDK or generator changes, use a sibling
+`BakingRLSDK` checkout and install it globally before creating or rebuilding
 plugins:
 
 ```sh
 cd ../BakingRLSDK
+npm install
 npm run build
-```
-
-If you changed the generator, package helper, templates, or global command
-metadata, refresh the global local install:
-
-```sh
-cd ../BakingRLSDK
 npm install -g . --force
 ```
 
@@ -97,3 +86,4 @@ npm run tauri dev
 
 - [Scoreboard](scoreboard/README.md)
 - [BO Tracker](bo-tracker/README.md)
+- [Cage Stats](cage-stats/README.md)
