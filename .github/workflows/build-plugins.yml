@@ -66,10 +66,7 @@ jobs:
 
       - name: Pack signed plugin bundles
         working-directory: BakingRLPlugins
-        run: |
-          npm run pack --workspace @bakingrl-plugins/scoreboard -- --sign "$env:BAKINGRL_PLUGIN_SIGNING_KEY"
-          npm run pack --workspace @bakingrl-plugins/bo-tracker -- --sign "$env:BAKINGRL_PLUGIN_SIGNING_KEY"
-          npm run pack --workspace @bakingrl-plugins/cage-stats -- --sign "$env:BAKINGRL_PLUGIN_SIGNING_KEY"
+        run: npm run pack --workspaces --if-present -- --sign "$env:BAKINGRL_PLUGIN_SIGNING_KEY"
 
       - name: Remove plugin signing key
         if: always()
