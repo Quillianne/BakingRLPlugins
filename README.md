@@ -13,6 +13,7 @@ scoreboard/    Visual overlay package for live score display.
 bo-tracker/    Service package for best-of series state.
 cage-stats/    Service and visual package for cage stats.
 deja-vu/       Service and visual package for player encounter counts.
+game-events/   Fullscreen goal and victory event visuals.
 ```
 
 ## Local Workspace Setup
@@ -89,3 +90,4 @@ npm run tauri dev
 - [BO Tracker](bo-tracker/README.md)
 - [Cage Stats](cage-stats/README.md)
 - [Deja Vu](deja-vu/README.md)
+- [Game Events](game-events/README.md)

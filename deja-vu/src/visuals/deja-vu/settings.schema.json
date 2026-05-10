@@ -5,9 +5,16 @@
     "maxPlayers": {
       "type": "integer",
       "title": "Max Players",
-      "default": 8,
+      "default": 4,
       "minimum": 1,
       "maximum": 16
+    },
+    "textSize": {
+      "type": "integer",
+      "title": "Text Size",
+      "default": 16,
+      "minimum": 10,
+      "maximum": 36
     }
   }
 }

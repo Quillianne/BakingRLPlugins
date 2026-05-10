@@ -5,10 +5,16 @@
   "version": "1.0.0",
   "author": "BakingRL",
   "exports": {
+    "components": {
+      "cageMap": {
+        "entry": "dist/components/cage-map.js",
+        "props": "src/components/cage-map/props.schema.json"
+      }
+    },
     "visuals": {
       "cageStats": {
         "entry": "dist/visuals/cage-stats.js",
-        "defaultSize": [920, 520],
+        "defaultSize": [760, 240],
         "settings": "src/visuals/cage-stats/settings.schema.json"
       }
     },

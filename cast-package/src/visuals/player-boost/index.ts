@@ -1,0 +1,131 @@
+import {
+  defineVisual,
+  type BakingRLEvent,
+  type RlPlayer,
+  type RlPlayerRef,
+  type RlTeam,
+  type RlUpdateStatePayload,
+  type VisualContext
+} from "@bakingrl/plugin-sdk";
+import templateHtml from "./template.html?raw";
+import styleCss from "./style.css?raw";
+
+type Side = "left" | "right";
+
+type PlayerBoostSettings = {
+  playerName: string;
+  side: Side;
+  showName: boolean;
+};
+
+function readSettings(settings: Record<string, unknown>): PlayerBoostSettings {
+  return {
+    playerName: typeof settings.playerName === "string" ? settings.playerName.trim() : "",
+    side: settings.side === "left" ? "left" : "right",
+    showName: settings.showName !== false
+  };
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function fillTemplate(template: string, values: Record<string, string>) {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => values[key] ?? "");
+}
+
+function normalName(player: RlPlayerRef) {
+  return player.Name.trim().toLowerCase();
+}
+
+function samePlayer(left: RlPlayerRef | null | undefined, right: RlPlayerRef | null | undefined) {
+  if (!left || !right || left.TeamNum !== right.TeamNum) return false;
+  if (typeof left.Shortcut === "number" && typeof right.Shortcut === "number") {
+    return left.Shortcut === right.Shortcut;
+  }
+  return normalName(left) === normalName(right);
+}
+
+function safeColor(value: string | undefined, fallback: string) {
+  const trimmed = (value ?? "").trim();
+  const hex = trimmed.startsWith("#") ? trimmed.slice(1) : trimmed;
+  if (/^[0-9a-fA-F]{6}$/.test(hex)) return `#${hex}`;
+  return fallback;
+}
+
+function fallbackTeamColor(teamNum: number) {
+  return teamNum === 0 ? "#47a3ff" : "#ff9a38";
+}
+
+function contrastColor(hexColor: string) {
+  const hex = hexColor.replace("#", "");
+  const red = Number.parseInt(hex.slice(0, 2), 16);
+  const green = Number.parseInt(hex.slice(2, 4), 16);
+  const blue = Number.parseInt(hex.slice(4, 6), 16);
+  const brightness = (red * 299 + green * 587 + blue * 114) / 1000;
+  return brightness > 150 ? "#101827" : "#ffffff";
+}
+
+function teamByNum(data: RlUpdateStatePayload | null, teamNum: number): RlTeam | null {
+  return data?.Game?.Teams?.find((team) => team.TeamNum === teamNum) ?? null;
+}
+
+function boostValue(player: RlPlayer | null) {
+  if (!player || typeof player.Boost !== "number" || !Number.isFinite(player.Boost)) return null;
+  return Math.min(100, Math.max(0, Math.round(player.Boost)));
+}
+
+function selectPlayer(data: RlUpdateStatePayload | null, settings: PlayerBoostSettings) {
+  if (!data) return null;
+  if (settings.playerName) {
+    const wanted = settings.playerName.toLowerCase();
+    return data.Players.find((player) => player.Name.trim().toLowerCase() === wanted) ?? null;
+  }
+  const target = data.Game?.bHasTarget ? data.Game.Target : undefined;
+  if (!target) return null;
+  return data.Players.find((player) => samePlayer(player, target)) ?? null;
+}
+
+function renderVisual(data: RlUpdateStatePayload | null, settings: PlayerBoostSettings) {
+  const player = selectPlayer(data, settings);
+  const teamNum = player?.TeamNum ?? 0;
+  const color = safeColor(teamByNum(data, teamNum)?.ColorPrimary, fallbackTeamColor(teamNum));
+  const boost = boostValue(player);
+  const boostAngle = boost === null ? 0 : boost * 3.6;
+
+  return `<style>${styleCss}</style>${fillTemplate(templateHtml, {
+    side: escapeHtml(settings.side),
+    stateClass: boost === null ? "missing" : "",
+    teamColor: color,
+    teamContrast: contrastColor(color),
+    boostAngle: String(boostAngle),
+    boostValue: boost === null ? "--" : String(boost),
+    playerName: escapeHtml(player?.Name || settings.playerName || "PLAYER"),
+    nameState: settings.showName ? "" : "hidden"
+  })}`;
+}
+
+export default defineVisual({
+  async mount(context: VisualContext) {
+    const settings = readSettings(context.settings);
+    let latestUpdate: RlUpdateStatePayload | null = null;
+
+    function render() {
+      context.root.innerHTML = renderVisual(latestUpdate, settings);
+    }
+
+    render();
+
+    const cleanup = context.bus.subscribe("UpdateState", (event: BakingRLEvent<RlUpdateStatePayload, "UpdateState">) => {
+      latestUpdate = event.Data;
+      render();
+    });
+
+    return cleanup;
+  }
+});

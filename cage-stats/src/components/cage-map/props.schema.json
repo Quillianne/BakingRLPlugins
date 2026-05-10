@@ -1,0 +1,46 @@
+{
+  "type": "object",
+  "title": "Cage Map Props",
+  "properties": {
+    "side": {
+      "type": "string",
+      "title": "Fallback Cage Side",
+      "oneOf": [
+        { "const": "negative", "title": "Negative / Blue" },
+        { "const": "positive", "title": "Positive / Orange" }
+      ]
+    },
+    "records": {
+      "type": "array",
+      "title": "Cage Records",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "string",
+            "oneOf": [
+              { "const": "goal", "title": "Goal" },
+              { "const": "crossbar", "title": "Crossbar" },
+              { "const": "save", "title": "Save" }
+            ]
+          },
+          "cageSide": {
+            "type": "string",
+            "oneOf": [
+              { "const": "negative", "title": "Negative / Blue" },
+              { "const": "positive", "title": "Positive / Orange" }
+            ]
+          },
+          "projection": {
+            "type": "object",
+            "properties": {
+              "horizontal": { "type": "number" },
+              "vertical": { "type": "number" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

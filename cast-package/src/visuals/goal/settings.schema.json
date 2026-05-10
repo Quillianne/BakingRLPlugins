@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "title": "Goal Event Settings",
+  "properties": {
+    "durationMs": {
+      "type": "integer",
+      "title": "Display Duration",
+      "default": 3200,
+      "minimum": 1200,
+      "maximum": 10000
+    },
+    "showAssist": {
+      "type": "boolean",
+      "title": "Show Assist",
+      "default": true
+    },
+    "showSpeed": {
+      "type": "boolean",
+      "title": "Show Goal Speed",
+      "default": true
+    },
+    "uppercaseNames": {
+      "type": "boolean",
+      "title": "Uppercase Names",
+      "default": true
+    }
+  }
+}

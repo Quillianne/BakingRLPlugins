@@ -1,0 +1,41 @@
+{
+  "type": "object",
+  "title": "Team Events Settings",
+  "properties": {
+    "teamNum": {
+      "type": "integer",
+      "title": "Team Number",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 1
+    },
+    "side": {
+      "type": "string",
+      "title": "Display Side",
+      "default": "left",
+      "oneOf": [
+        { "const": "left", "title": "Left" },
+        { "const": "right", "title": "Right" }
+      ]
+    },
+    "maxPlayers": {
+      "type": "integer",
+      "title": "Max Players",
+      "default": 4,
+      "minimum": 1,
+      "maximum": 8
+    },
+    "showBoost": {
+      "type": "boolean",
+      "title": "Show Boost",
+      "default": true
+    },
+    "eventDurationMs": {
+      "type": "integer",
+      "title": "Event Duration Ms",
+      "default": 2600,
+      "minimum": 500,
+      "maximum": 8000
+    }
+  }
+}

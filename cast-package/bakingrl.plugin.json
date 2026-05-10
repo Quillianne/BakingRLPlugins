@@ -1,0 +1,107 @@
+{
+  "schema": "bakingrl.plugin/2",
+  "id": "com.bakingrl.cast-package",
+  "name": "Cast Package",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "exports": {
+    "visuals": {
+      "scoreboard": {
+        "entry": "dist/visuals/scoreboard.js",
+        "defaultSize": [760, 128],
+        "settings": "src/visuals/scoreboard/settings.schema.json"
+      },
+      "controlPanel": {
+        "entry": "dist/visuals/control-panel.js",
+        "defaultSize": [1200, 740],
+        "settings": "src/visuals/control-panel/settings.schema.json"
+      },
+      "goal": {
+        "entry": "dist/visuals/goal.js",
+        "defaultSize": [1920, 1080],
+        "settings": "src/visuals/goal/settings.schema.json"
+      },
+      "victory": {
+        "entry": "dist/visuals/victory.js",
+        "defaultSize": [1920, 1080],
+        "settings": "src/visuals/victory/settings.schema.json"
+      },
+      "playerBoost": {
+        "entry": "dist/visuals/player-boost.js",
+        "defaultSize": [220, 120],
+        "settings": "src/visuals/player-boost/settings.schema.json"
+      },
+      "playerStats": {
+        "entry": "dist/visuals/player-stats.js",
+        "defaultSize": [360, 110],
+        "settings": "src/visuals/player-stats/settings.schema.json"
+      },
+      "teamEvents": {
+        "entry": "dist/visuals/team-events.js",
+        "defaultSize": [420, 170],
+        "settings": "src/visuals/team-events/settings.schema.json"
+      }
+    },
+    "services": {
+      "boTracker": {
+        "entry": "dist/services/bo-tracker.js",
+        "methods": [
+          "snapshot",
+          "configure",
+          "start",
+          "stop",
+          "adjustScore",
+          "award",
+          "undo",
+          "reset"
+        ],
+        "schema": "src/services/bo-tracker/methods.schema.json"
+      }
+    },
+    "pages": {
+      "control": {
+        "path": "pages/control.json",
+        "title": "BO Tracker Control",
+        "description": "Configure team names, BO format, tracking state, and series score."
+      }
+    }
+  },
+  "imports": {
+    "components": [],
+    "services": []
+  },
+  "permissions": {
+    "bus": {
+      "read": [
+        "UpdateState",
+        "ClockUpdatedSeconds",
+        "CountdownBegin",
+        "GoalScored",
+        "MatchCreated",
+        "MatchInitialized",
+        "MatchEnded",
+        "RoundStarted",
+        "StatfeedEvent",
+        "plugin.com.bakingrl.cast-package.state"
+      ],
+      "publish": [
+        "plugin.com.bakingrl.cast-package.*"
+      ]
+    },
+    "registry": {
+      "read": [
+        "plugin.com.bakingrl.cast-package.state"
+      ],
+      "write": [
+        "plugin.com.bakingrl.cast-package.*"
+      ]
+    },
+    "network": {
+      "http": [],
+      "websocket": []
+    },
+    "storage": [
+      "plugin://self/*"
+    ]
+  }
+}

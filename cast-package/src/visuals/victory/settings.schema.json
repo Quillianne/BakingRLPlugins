@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "title": "Victory Event Settings",
+  "properties": {
+    "showMatchWins": {
+      "type": "boolean",
+      "title": "Show Match Wins",
+      "default": true
+    },
+    "showBoWins": {
+      "type": "boolean",
+      "title": "Show BO Wins",
+      "default": true
+    },
+    "matchDurationMs": {
+      "type": "integer",
+      "title": "Match Win Duration",
+      "default": 3600,
+      "minimum": 1200,
+      "maximum": 12000
+    },
+    "seriesDurationMs": {
+      "type": "integer",
+      "title": "BO Win Duration",
+      "default": 5600,
+      "minimum": 1800,
+      "maximum": 15000
+    },
+    "uppercaseNames": {
+      "type": "boolean",
+      "title": "Uppercase Names",
+      "default": true
+    }
+  }
+}

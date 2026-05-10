@@ -1,0 +1,72 @@
+<div class="bo-control">
+  <div class="topbar">
+    <div class="title-block">
+      <h1>{{title}}</h1>
+      <span class="subtitle">{{subtitle}}</span>
+    </div>
+    <div class="status">
+      <span class="chip phase-chip">Inactif</span>
+      <span class="chip bo-chip">BO5</span>
+      <span class="chip leader-chip">0 - 0</span>
+    </div>
+  </div>
+  <div class="grid">
+    <section class="panel">
+      <h2>Configuration</h2>
+      <div class="team-fields">
+        <div class="field">
+          <label for="side0-name">Equipe Side 0</label>
+          <input id="side0-name" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="side1-name">Equipe Side 1</label>
+          <input id="side1-name" autocomplete="off" />
+        </div>
+      </div>
+      <div class="field">
+        <span class="field-label">Format BO</span>
+        <div class="segmented bo-buttons">
+          {{bestOfButtons}}
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="primary apply-config">Appliquer</button>
+        <button type="button" class="reset-series">Reset</button>
+        <button type="button" class="green tracking-toggle">Start</button>
+      </div>
+      <div class="message"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Score</h2>
+      <div class="matchup">
+        <div class="side-score left">
+          <span class="field-label side0-label">Side 0</span>
+          <span class="side-name side0-display">Blue</span>
+          <div class="score-row">
+            <button type="button" data-adjust="0:-1">-</button>
+            <span class="score-value side0-wins">0</span>
+            <button type="button" data-adjust="0:1">+</button>
+          </div>
+        </div>
+        <div class="versus">
+          <span class="bo-badge matchup-bo">BO5</span>
+          <span class="required">First to 3</span>
+        </div>
+        <div class="side-score right">
+          <span class="field-label side1-label">Side 1</span>
+          <span class="side-name side1-display">Orange</span>
+          <div class="score-row">
+            <button type="button" data-adjust="1:-1">-</button>
+            <span class="score-value side1-wins">0</span>
+            <button type="button" data-adjust="1:1">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="score-actions">
+        <button type="button" class="undo">Undo</button>
+      </div>
+      {{history}}
+    </section>
+  </div>
+</div>

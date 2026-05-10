@@ -1,0 +1,161 @@
+.team-events {
+  --panel: rgba(15, 15, 20, 0.9);
+  --border: rgba(255, 255, 255, 0.14);
+  --text: #f8fafc;
+  --muted: rgba(226, 232, 240, 0.62);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.player-list {
+  height: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  align-content: center;
+}
+
+.player-entry {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 68px;
+  gap: 8px;
+  align-items: center;
+}
+
+.side-right .player-entry {
+  grid-template-columns: 68px minmax(0, 1fr);
+}
+
+.player-row {
+  min-width: 0;
+  display: block;
+  padding: 8px 10px;
+  border: 2px solid var(--border);
+  border-left: 5px solid var(--team-color);
+  border-radius: 2px;
+  background: var(--panel);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.36);
+}
+
+.side-right .player-row {
+  grid-column: 2;
+  grid-row: 1;
+  border-left-width: 2px;
+  border-right: 5px solid var(--team-color);
+}
+
+.event-slot {
+  min-width: 0;
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.side-right .event-slot {
+  grid-column: 1;
+  grid-row: 1;
+  justify-content: flex-end;
+}
+
+.player-info {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.side-right .player-info {
+  justify-items: end;
+}
+
+.player-row.target {
+  border-color: var(--team-color);
+  background: var(--team-color);
+}
+
+.player-name {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--team-color);
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.player-row.target .player-name {
+  max-width: 100%;
+  color: var(--team-contrast);
+}
+
+.boost-line {
+  min-width: 0;
+  width: 100%;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.boost-line.missing {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.boost-fill {
+  width: var(--boost, 0%);
+  height: 100%;
+  background: var(--team-color);
+}
+
+.player-row.target .boost-line {
+  background: color-mix(in srgb, var(--team-contrast) 30%, transparent);
+}
+
+.player-row.target .boost-fill {
+  background: var(--team-contrast);
+}
+
+.side-right .boost-fill {
+  margin-left: auto;
+}
+
+.event-marker {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 5px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.event-marker.save { color: #bbf7d0; }
+.event-marker.shot { color: #bfdbfe; }
+.event-marker.goal { color: #fef3c7; }
+.event-marker.assist { color: #ddd6fe; }
+.event-marker.demo { color: #fed7aa; }
+.event-marker.demoed { color: #fecaca; }
+
+.empty {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}

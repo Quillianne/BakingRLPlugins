@@ -1,4 +1,6 @@
 import { defineVisual, type BakingRLEvent, type VisualContext } from "@bakingrl/plugin-sdk";
+import templateHtml from "./template.html?raw";
+import styleCss from "./style.css?raw";
 
 type CurrentPlayer = {
   id: string;
@@ -24,6 +26,7 @@ type DejaVuState = {
 
 type DejaVuSettings = {
   maxPlayers: number;
+  textSize: number;
 };
 
 const STATE_EVENT = "plugin.com.bakingrl.deja-vu.state";
@@ -31,7 +34,8 @@ const STATE_KEY = "plugin.com.bakingrl.deja-vu.state";
 
 function readSettings(settings: Record<string, unknown>): DejaVuSettings {
   return {
-    maxPlayers: clampInt(settings.maxPlayers, 8, 1, 16)
+    maxPlayers: clampInt(settings.maxPlayers, 4, 1, 16),
+    textSize: clampInt(settings.textSize, 16, 10, 36)
   };
 }
 
@@ -82,7 +86,7 @@ function fallbackColor(teamNum: number) {
   return "#94a3b8";
 }
 
-function renderPlayer(player: CurrentPlayer) {
+function renderPlayerTemplate(player: CurrentPlayer) {
   const color = safeColor(player.teamColor, fallbackColor(player.teamNum));
   const count = Math.max(0, Math.trunc(player.previousMatchCount));
   return `
@@ -93,13 +97,15 @@ function renderPlayer(player: CurrentPlayer) {
   `;
 }
 
-function renderState(state: DejaVuState | null, settings: DejaVuSettings) {
+function renderDejaVuTemplate(state: DejaVuState | null, settings: DejaVuSettings) {
   const players = (state?.currentPlayers ?? []).slice(0, settings.maxPlayers);
-  return `
-    <ul class="deja-vu">
-      ${players.map((player) => renderPlayer(player)).join("")}
-    </ul>
-  `;
+  return templateHtml
+    .replace("{{textSize}}", String(settings.textSize))
+    .replace("{{players}}", players.map((player) => renderPlayerTemplate(player)).join(""));
+}
+
+function renderDejaVuShellTemplate() {
+  return `<style>${styleCss}</style>${renderDejaVuTemplate(null, { maxPlayers: 0, textSize: 16 })}`;
 }
 
 export default defineVisual({
@@ -107,61 +113,11 @@ export default defineVisual({
     const settings = readSettings(context.settings);
     let state: DejaVuState | null = null;
 
-    context.root.innerHTML = `
-      <style>
-        :root,
-        body {
-          margin: 0;
-          background: transparent;
-        }
-        .deja-vu {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          gap: 6px;
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-          overflow: hidden;
-          list-style: none;
-          background: transparent;
-          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-          letter-spacing: 0;
-        }
-        .player-row {
-          display: flex;
-          max-width: 100%;
-          align-items: baseline;
-          gap: 14px;
-          overflow: hidden;
-          color: var(--team-color);
-          font-size: 28px;
-          font-weight: 800;
-          line-height: 1.08;
-        }
-        .player-name {
-          min-width: 0;
-          flex: 1 1 auto;
-          max-width: 100%;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-        .seen-count {
-          flex: none;
-          min-width: 2ch;
-          text-align: right;
-          font-variant-numeric: tabular-nums;
-        }
-      </style>
-      <ul class="deja-vu"></ul>
-    `;
+    context.root.innerHTML = renderDejaVuShellTemplate();
 
     function render() {
       const style = context.root.querySelector("style")?.outerHTML ?? "";
-      context.root.innerHTML = `${style}${renderState(state, settings)}`;
+      context.root.innerHTML = `${style}${renderDejaVuTemplate(state, settings)}`;
     }
 
     const cleanup = context.bus.subscribe(STATE_EVENT, (event: BakingRLEvent<unknown>) => {

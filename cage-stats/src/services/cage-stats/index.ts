@@ -63,6 +63,16 @@ type BallHitRecord = {
   sequence: number;
 };
 
+type PendingCrossbarRecord = Omit<CageRecord, "id" | "createdAtMs"> & {
+  seenAtMs: number;
+};
+
+type RecentGoalRecord = {
+  matchGuid: string | null;
+  cageSide: CageSide;
+  seenAtMs: number;
+};
+
 type InternalState = {
   version: 1;
   config: ProjectionConfig;
@@ -84,6 +94,8 @@ const REGISTRY_KEY = `plugin.${PACKAGE_ID}.state`;
 const STORAGE_URI = "plugin://self/cage-stats-state.json";
 const MAX_RECORDS = 300;
 const MAX_BALL_HITS = 40;
+const CROSSBAR_DEBOUNCE_MS = 1000;
+const RECENT_GOAL_TTL_MS = 1000;
 const DEFAULT_GOAL_DEPTH = 5120;
 const DEFAULT_GOAL_HEIGHT = 320;
 
@@ -91,6 +103,8 @@ let serviceContext: ServiceContext | null = null;
 let state: InternalState = createDefaultState();
 let pendingGoal: RlGoalScoredPayload | null = null;
 let lastBallHits: BallHitRecord[] = [];
+let pendingCrossbars: PendingCrossbarRecord[] = [];
+let recentGoals: RecentGoalRecord[] = [];
 let sequence = 0;
 let saveChain: Promise<void> = Promise.resolve();
 
@@ -220,7 +234,7 @@ function restoreState(value: unknown): InternalState {
           speed: typeof item.speed === "number" && Number.isFinite(item.speed) ? item.speed : null,
           impactForce: typeof item.impactForce === "number" && Number.isFinite(item.impactForce) ? item.impactForce : null,
           goalTime: typeof item.goalTime === "number" && Number.isFinite(item.goalTime) ? item.goalTime : null,
-          ownGoal: Boolean(item.ownGoal),
+          ownGoal: false,
           confidence: item.confidence === "playerBallHit" || item.confidence === "latestBallHit" || item.confidence === "teamFallback" ? item.confidence : "exact",
           createdAtMs: normalizeNumber(item.createdAtMs, Date.now())
         };
@@ -332,6 +346,10 @@ function playerMatches(a: RlPlayerRef, b: RlPlayerRef) {
   return a.Name.trim().toLowerCase() === b.Name.trim().toLowerCase();
 }
 
+function sameMatch(a: string | null, b: string | null) {
+  return a === b || a === null || b === null;
+}
+
 function addRecord(record: Omit<CageRecord, "id" | "createdAtMs">) {
   state.records = [
     ...state.records,
@@ -344,17 +362,95 @@ function addRecord(record: Omit<CageRecord, "id" | "createdAtMs">) {
   markUpdated();
 }
 
+function clearPendingCrossbars() {
+  pendingCrossbars = [];
+}
+
+async function flushPendingCrossbars(now = Date.now()) {
+  pruneRecentGoals(now);
+  const ready: Array<Omit<CageRecord, "id" | "createdAtMs">> = [];
+  const waiting: PendingCrossbarRecord[] = [];
+
+  for (const pending of pendingCrossbars) {
+    if (now - pending.seenAtMs < CROSSBAR_DEBOUNCE_MS) {
+      waiting.push(pending);
+      continue;
+    }
+    if (!hasRecentGoalForCrossbar(pending, now)) {
+      const { seenAtMs: _seenAtMs, ...record } = pending;
+      ready.push(record);
+    }
+  }
+
+  pendingCrossbars = waiting;
+  if (!ready.length) return false;
+
+  for (const record of ready) {
+    addRecord(record);
+  }
+  await publishState();
+  return true;
+}
+
+function pruneRecentGoals(now = Date.now()) {
+  recentGoals = recentGoals.filter((goal) => now - goal.seenAtMs <= RECENT_GOAL_TTL_MS);
+}
+
+function hasRecentGoalForCrossbar(record: Omit<CageRecord, "id" | "createdAtMs">, now = Date.now()) {
+  pruneRecentGoals(now);
+  return recentGoals.some((goal) => sameMatch(goal.matchGuid, record.matchGuid) && goal.cageSide === record.cageSide);
+}
+
+async function queueCrossbar(record: Omit<CageRecord, "id" | "createdAtMs">) {
+  const now = Date.now();
+  await flushPendingCrossbars(now);
+  if (hasRecentGoalForCrossbar(record, now)) return;
+
+  const existing = pendingCrossbars.find(
+    (pending) =>
+      sameMatch(pending.matchGuid, record.matchGuid) &&
+      pending.cageSide === record.cageSide &&
+      now - pending.seenAtMs <= CROSSBAR_DEBOUNCE_MS
+  );
+  if (existing) {
+    Object.assign(existing, record, { seenAtMs: now });
+    return;
+  }
+
+  const pending: PendingCrossbarRecord = {
+    ...record,
+    seenAtMs: now
+  };
+  pendingCrossbars = [...pendingCrossbars, pending];
+}
+
+function cancelCrossbarsForGoal(goal: RlGoalScoredPayload, cageSide: CageSide) {
+  const now = Date.now();
+  const matchGuid = goal.MatchGuid ?? state.currentMatchGuid;
+  recentGoals = [...recentGoals, { matchGuid, cageSide, seenAtMs: now }];
+  pruneRecentGoals(now);
+
+  for (const pending of pendingCrossbars) {
+    if (sameMatch(pending.matchGuid, matchGuid) && pending.cageSide === cageSide && now - pending.seenAtMs <= CROSSBAR_DEBOUNCE_MS) {
+      pendingCrossbars = pendingCrossbars.filter((item) => item !== pending);
+    }
+  }
+}
+
 function resetRecords(matchGuid: string | null = state.currentMatchGuid) {
   state.currentMatchGuid = matchGuid;
   state.records = [];
   pendingGoal = null;
   lastBallHits = [];
+  clearPendingCrossbars();
+  recentGoals = [];
   markUpdated();
 }
 
 async function maybeResetForMatch(event: BakingRLEvent<RlSimpleMatchPayload, string>) {
   const matchGuid = event.Data?.MatchGuid ?? null;
   if (!state.config.resetOnMatch) {
+    await flushPendingCrossbars();
     state.currentMatchGuid = matchGuid ?? state.currentMatchGuid;
     markUpdated();
     await publishState();
@@ -367,6 +463,7 @@ async function maybeResetForMatch(event: BakingRLEvent<RlSimpleMatchPayload, str
 }
 
 async function handleUpdateState(event: BakingRLEvent<RlUpdateStatePayload, "UpdateState">) {
+  await flushPendingCrossbars();
   let changed = false;
   const matchGuid = event.Data?.MatchGuid ?? null;
   if (matchGuid && matchGuid !== state.currentMatchGuid && !state.config.resetOnMatch) {
@@ -387,7 +484,8 @@ async function handleUpdateState(event: BakingRLEvent<RlUpdateStatePayload, "Upd
   }
 }
 
-function handleBallHit(event: BakingRLEvent<RlBallHitPayload, "BallHit">) {
+async function handleBallHit(event: BakingRLEvent<RlBallHitPayload, "BallHit">) {
+  await flushPendingCrossbars();
   const location = event.Data?.Ball?.Location;
   if (!location) return;
   const cageSide = sideFromLocation(location);
@@ -412,7 +510,7 @@ async function handleCrossbarHit(event: BakingRLEvent<RlCrossbarHitPayload, "Cro
   if (!player) return;
   const cageSide = sideFromLocation(location, sideForTeamNum(opponentTeamNum(player.TeamNum)));
   const defendingTeamNum = teamNumForSide(cageSide);
-  addRecord({
+  await queueCrossbar({
     metric: "crossbar",
     matchGuid: event.Data.MatchGuid ?? state.currentMatchGuid,
     cageSide,
@@ -425,18 +523,20 @@ async function handleCrossbarHit(event: BakingRLEvent<RlCrossbarHitPayload, "Cro
     speed: event.Data.BallSpeed ?? event.Data.BallLastTouch?.Speed ?? null,
     impactForce: event.Data.ImpactForce ?? null,
     goalTime: null,
-    ownGoal: player.TeamNum === defendingTeamNum,
+    ownGoal: false,
     confidence: "exact"
   });
-  await publishState();
 }
 
 function goalFallbackSide(goal: RlGoalScoredPayload) {
   return sideForTeamNum(opponentTeamNum(goal.Scorer.TeamNum));
 }
 
-function handleGoalScored(event: BakingRLEvent<RlGoalScoredPayload, "GoalScored">) {
+async function handleGoalScored(event: BakingRLEvent<RlGoalScoredPayload, "GoalScored">) {
   if (!event.Data?.ImpactLocation || !event.Data?.Scorer) return;
+  const cageSide = sideFromLocation(event.Data.ImpactLocation, goalFallbackSide(event.Data));
+  await flushPendingCrossbars();
+  cancelCrossbarsForGoal(event.Data, cageSide);
   pendingGoal = event.Data;
 }
 
@@ -459,7 +559,7 @@ async function commitPendingGoal() {
     speed: goal.GoalSpeed ?? goal.BallLastTouch?.Speed ?? null,
     impactForce: null,
     goalTime: goal.GoalTime ?? null,
-    ownGoal: goal.Scorer.TeamNum === defendingTeamNum,
+    ownGoal: false,
     confidence: "exact"
   });
   await publishState();
@@ -482,6 +582,7 @@ function findBallHitForSave(matchGuid: string | null, player: RlPlayerRef) {
 }
 
 async function handleStatfeedEvent(event: BakingRLEvent<RlStatfeedEventPayload, "StatfeedEvent">) {
+  await flushPendingCrossbars();
   const payload = event.Data;
   if (!payload || !isSaveEvent(payload) || !payload.MainTarget) return;
   const player = payload.MainTarget;
@@ -511,6 +612,7 @@ async function handleStatfeedEvent(event: BakingRLEvent<RlStatfeedEventPayload, 
 }
 
 async function configure(input: ConfigureInput = {}) {
+  clearPendingCrossbars();
   state.config = normalizeConfig(input, state.config);
   state.records = state.records.map((record) => {
     const cageSide = sideFromLocation(record.location, record.cageSide);
@@ -521,7 +623,7 @@ async function configure(input: ConfigureInput = {}) {
       defendingTeamNum,
       attackingTeamNum: record.metric === "save" ? opponentTeamNum(defendingTeamNum) : record.player.TeamNum,
       projection: project(record.location),
-      ownGoal: record.metric !== "save" && record.player.TeamNum === defendingTeamNum
+      ownGoal: false
     };
   });
   markUpdated();
@@ -549,8 +651,16 @@ export default defineService({
     context.bus.subscribe("StatfeedEvent", handleStatfeedEvent);
     await publishState();
   },
+  unmount() {
+    clearPendingCrossbars();
+    recentGoals = [];
+    pendingGoal = null;
+    lastBallHits = [];
+    serviceContext = null;
+  },
   methods: {
     async snapshot() {
+      await flushPendingCrossbars();
       return publicState();
     },
     async configure(input) {

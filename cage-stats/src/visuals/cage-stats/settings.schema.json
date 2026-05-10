@@ -43,27 +43,10 @@
         ]
       }
     },
-    "showMap": {
-      "type": "boolean",
-      "title": "Show Map",
-      "default": true
-    },
     "showControls": {
       "type": "boolean",
       "title": "Show Demo Controls",
       "default": false
-    },
-    "showEvents": {
-      "type": "boolean",
-      "title": "Show Events",
-      "default": true
-    },
-    "maxEvents": {
-      "type": "integer",
-      "title": "Max Events",
-      "default": 8,
-      "minimum": 0,
-      "maximum": 20
     }
   }
 }

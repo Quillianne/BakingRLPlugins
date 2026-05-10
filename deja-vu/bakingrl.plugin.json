@@ -8,7 +8,7 @@
     "visuals": {
       "dejaVu": {
         "entry": "dist/visuals/deja-vu.js",
-        "defaultSize": [720, 420],
+        "defaultSize": [300, 100],
         "settings": "src/visuals/deja-vu/settings.schema.json"
       }
     },

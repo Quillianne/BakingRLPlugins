@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "scoreboard",
-    "bo-tracker",
+    "cast-package",
     "cage-stats",
     "deja-vu"
   ],

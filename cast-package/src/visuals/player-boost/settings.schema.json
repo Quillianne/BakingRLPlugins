@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "title": "Player Boost Settings",
+  "properties": {
+    "playerName": {
+      "type": "string",
+      "title": "Player Name",
+      "default": ""
+    },
+    "side": {
+      "type": "string",
+      "title": "Display Side",
+      "default": "right",
+      "oneOf": [
+        { "const": "left", "title": "Left" },
+        { "const": "right", "title": "Right" }
+      ]
+    },
+    "showName": {
+      "type": "boolean",
+      "title": "Show Player Name",
+      "default": true
+    }
+  }
+}
