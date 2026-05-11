@@ -4,6 +4,10 @@
   "name": "Cage Stats",
   "version": "1.0.0",
   "author": "BakingRL",
+  "compatibility": {
+    "runtimeApi": "0.3.0",
+    "sdk": "0.3.0"
+  },
   "exports": {
     "components": {
       "cageMap": {
