@@ -2,7 +2,7 @@
   "schema": "bakingrl.plugin/2",
   "id": "com.bakingrl.cage-stats",
   "name": "Cage Stats",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "BakingRL",
   "compatibility": {
     "runtimeApi": "0.4.0",

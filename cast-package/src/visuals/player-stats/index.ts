@@ -7,6 +7,7 @@ import {
   type RlUpdateStatePayload,
   type VisualContext
 } from "@bakingrl/plugin-sdk";
+import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 
@@ -18,6 +19,12 @@ type PlayerStatsSettings = {
   showName: boolean;
 };
 
+type PlayerStatsInstance = {
+  root: HTMLElement;
+  settings: PlayerStatsSettings;
+  latestUpdate: RlUpdateStatePayload | null;
+};
+
 const STATS: Array<{ key: keyof RlPlayer; label: string }> = [
   { key: "Goals", label: "Goal" },
   { key: "Shots", label: "Shots" },
@@ -25,6 +32,8 @@ const STATS: Array<{ key: keyof RlPlayer; label: string }> = [
   { key: "Saves", label: "Save" },
   { key: "Demos", label: "Demos" }
 ];
+
+const instances = new Map<HTMLElement, PlayerStatsInstance>();
 
 function readSettings(settings: Record<string, unknown>): PlayerStatsSettings {
   return {
@@ -126,22 +135,37 @@ function renderVisual(data: RlUpdateStatePayload | null, settings: PlayerStatsSe
   })}`;
 }
 
+function renderInstance(instance: PlayerStatsInstance) {
+  instance.root.innerHTML = renderVisual(instance.latestUpdate, instance.settings);
+}
+
 export default defineVisual({
   async mount(context: VisualContext) {
-    const settings = readSettings(context.settings);
-    let latestUpdate: RlUpdateStatePayload | null = null;
+    const cleanupScale = fitVisualScale(context.root, 360, 110);
+    const instance: PlayerStatsInstance = {
+      root: context.root,
+      settings: readSettings(context.settings),
+      latestUpdate: null
+    };
+    instances.set(context.root, instance);
 
-    function render() {
-      context.root.innerHTML = renderVisual(latestUpdate, settings);
-    }
-
-    render();
+    renderInstance(instance);
 
     const cleanup = context.bus.subscribe("UpdateState", (event: BakingRLEvent<RlUpdateStatePayload, "UpdateState">) => {
-      latestUpdate = event.Data;
-      render();
+      instance.latestUpdate = event.Data;
+      renderInstance(instance);
     });
 
-    return cleanup;
+    return () => {
+      instances.delete(context.root);
+      cleanupScale();
+      cleanup();
+    };
+  },
+  update(context: VisualContext) {
+    const instance = instances.get(context.root);
+    if (!instance) return;
+    instance.settings = readSettings(context.settings);
+    renderInstance(instance);
   }
 });

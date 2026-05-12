@@ -1,4 +1,5 @@
 import { defineVisual, type BakingRLEvent, type VisualContext } from "@bakingrl/plugin-sdk";
+import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 
@@ -44,9 +45,14 @@ type ControlPanelSettings = {
   historyLimit: number;
 };
 
+type ControlPanelInstance = {
+  updateSettings(settings: Record<string, unknown>): void;
+};
+
 const SERVICE_REF = "com.bakingrl.cast-package/boTracker";
 const STATE_EVENT = "plugin.com.bakingrl.cast-package.state";
 const BEST_OF_VALUES: BestOf[] = [1, 3, 5, 7];
+const instances = new Map<HTMLElement, ControlPanelInstance>();
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -180,7 +186,8 @@ function renderControlPanelTemplate(settings: ControlPanelSettings) {
 
 export default defineVisual({
   async mount(context: VisualContext) {
-    const settings = readSettings(context.settings);
+    let settings = readSettings(context.settings);
+    const cleanupScale = fitVisualScale(context.root, 1200, 740);
     let state: BoTrackerState | null = null;
     let selectedBestOf: BestOf = settings.defaultBestOf;
     let configDirty = false;
@@ -195,7 +202,9 @@ export default defineVisual({
     const side0Wins = context.root.querySelector<HTMLElement>(".side0-wins");
     const side1Wins = context.root.querySelector<HTMLElement>(".side1-wins");
     const messageNode = context.root.querySelector<HTMLElement>(".message");
-    const historyNode = context.root.querySelector<HTMLElement>(".history");
+    const titleNode = context.root.querySelector<HTMLElement>("h1");
+    const subtitleNode = context.root.querySelector<HTMLElement>(".subtitle");
+    let historyNode = context.root.querySelector<HTMLElement>(".history");
     const phaseChip = context.root.querySelector<HTMLElement>(".phase-chip");
     const boChip = context.root.querySelector<HTMLElement>(".bo-chip");
     const leaderChip = context.root.querySelector<HTMLElement>(".leader-chip");
@@ -212,7 +221,20 @@ export default defineVisual({
     }
     const panel = root;
 
+    function syncSettingsChrome() {
+      if (titleNode) titleNode.textContent = settings.title;
+      if (subtitleNode) subtitleNode.textContent = settings.subtitle;
+      if (settings.showHistory && !historyNode) {
+        context.root.querySelector<HTMLElement>(".score-actions")?.insertAdjacentHTML("afterend", `<div class="history"></div>`);
+        historyNode = context.root.querySelector<HTMLElement>(".history");
+      } else if (!settings.showHistory && historyNode) {
+        historyNode.remove();
+        historyNode = null;
+      }
+    }
+
     function render() {
+      syncSettingsChrome();
       const disabled = busy || !state;
       const bestOf = configDirty ? selectedBestOf : state?.bestOf ?? selectedBestOf;
       const side0 = state ? sideForTeamNum(state, 0) : "left";
@@ -271,6 +293,14 @@ export default defineVisual({
       panel.toggleAttribute("aria-busy", busy);
       panel.toggleAttribute("data-disabled", disabled);
     }
+
+    instances.set(context.root, {
+      updateSettings(nextSettings) {
+        settings = readSettings(nextSettings);
+        if (!state && !configDirty) selectedBestOf = settings.defaultBestOf;
+        render();
+      }
+    });
 
     async function callService(method: string, input: unknown = {}) {
       busy = true;
@@ -368,7 +398,12 @@ export default defineVisual({
     await callService("snapshot");
 
     return () => {
+      instances.delete(context.root);
+      cleanupScale();
       cleanup();
     };
+  },
+  update(context: VisualContext) {
+    instances.get(context.root)?.updateSettings(context.settings);
   }
 });

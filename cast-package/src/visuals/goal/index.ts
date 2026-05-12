@@ -10,6 +10,7 @@ import {
   displayTeamForTeamNum,
   safeUppercase
 } from "../../shared/events";
+import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 
@@ -19,6 +20,12 @@ type GoalSettings = {
   showSpeed: boolean;
   uppercaseNames: boolean;
 };
+
+type GoalInstance = {
+  updateSettings(settings: Record<string, unknown>): void;
+};
+
+const instances = new Map<HTMLElement, GoalInstance>();
 
 function numberSetting(settings: Record<string, unknown>, key: string, fallback: number, min: number, max: number) {
   const value = settings[key];
@@ -46,8 +53,10 @@ function formatSpeed(value: number | undefined) {
 
 export default defineVisual({
   mount(context: VisualContext) {
-    const settings = readSettings(context.settings);
+    let settings = readSettings(context.settings);
+    const cleanupScale = fitVisualScale(context.root, 1920, 1080);
     let latestUpdate: RlUpdateStatePayload | null = null;
+    let activeGoal: RlGoalScoredPayload | null = null;
     let hideTimer: number | null = null;
     let goalArmed = false;
 
@@ -67,11 +76,13 @@ export default defineVisual({
       }
       root?.classList.remove("is-active");
       root?.classList.add("is-hidden");
+      activeGoal = null;
       context.setActive(false);
     }
 
     function showGoal(goal: RlGoalScoredPayload) {
       if (!root || !player || !team || !assist || !speed) return;
+      activeGoal = goal;
 
       const displayTeam = displayTeamForTeamNum(latestUpdate, goal.Scorer.TeamNum);
       root.style.setProperty("--event-team", displayTeam.color);
@@ -96,6 +107,13 @@ export default defineVisual({
       hideTimer = window.setTimeout(hide, settings.durationMs);
     }
 
+    instances.set(context.root, {
+      updateSettings(nextSettings) {
+        settings = readSettings(nextSettings);
+        if (activeGoal && root?.classList.contains("is-active")) showGoal(activeGoal);
+      }
+    });
+
     const cleanups = [
       context.bus.subscribe("UpdateState", (event: BakingRLEvent<RlUpdateStatePayload, "UpdateState">) => {
         latestUpdate = event.Data;
@@ -111,8 +129,13 @@ export default defineVisual({
     ];
 
     return () => {
+      instances.delete(context.root);
       hide();
+      cleanupScale();
       for (const cleanup of cleanups) cleanup();
     };
+  },
+  update(context: VisualContext) {
+    instances.get(context.root)?.updateSettings(context.settings);
   }
 });

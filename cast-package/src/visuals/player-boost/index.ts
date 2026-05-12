@@ -7,6 +7,7 @@ import {
   type RlUpdateStatePayload,
   type VisualContext
 } from "@bakingrl/plugin-sdk";
+import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 
@@ -17,6 +18,14 @@ type PlayerBoostSettings = {
   side: Side;
   showName: boolean;
 };
+
+type PlayerBoostInstance = {
+  root: HTMLElement;
+  settings: PlayerBoostSettings;
+  latestUpdate: RlUpdateStatePayload | null;
+};
+
+const instances = new Map<HTMLElement, PlayerBoostInstance>();
 
 function readSettings(settings: Record<string, unknown>): PlayerBoostSettings {
   return {
@@ -110,22 +119,37 @@ function renderVisual(data: RlUpdateStatePayload | null, settings: PlayerBoostSe
   })}`;
 }
 
+function renderInstance(instance: PlayerBoostInstance) {
+  instance.root.innerHTML = renderVisual(instance.latestUpdate, instance.settings);
+}
+
 export default defineVisual({
   async mount(context: VisualContext) {
-    const settings = readSettings(context.settings);
-    let latestUpdate: RlUpdateStatePayload | null = null;
+    const cleanupScale = fitVisualScale(context.root, 220, 120);
+    const instance: PlayerBoostInstance = {
+      root: context.root,
+      settings: readSettings(context.settings),
+      latestUpdate: null
+    };
+    instances.set(context.root, instance);
 
-    function render() {
-      context.root.innerHTML = renderVisual(latestUpdate, settings);
-    }
-
-    render();
+    renderInstance(instance);
 
     const cleanup = context.bus.subscribe("UpdateState", (event: BakingRLEvent<RlUpdateStatePayload, "UpdateState">) => {
-      latestUpdate = event.Data;
-      render();
+      instance.latestUpdate = event.Data;
+      renderInstance(instance);
     });
 
-    return cleanup;
+    return () => {
+      instances.delete(context.root);
+      cleanupScale();
+      cleanup();
+    };
+  },
+  update(context: VisualContext) {
+    const instance = instances.get(context.root);
+    if (!instance) return;
+    instance.settings = readSettings(context.settings);
+    renderInstance(instance);
   }
 });

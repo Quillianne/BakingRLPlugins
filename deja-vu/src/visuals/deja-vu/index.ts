@@ -1,4 +1,5 @@
 import { defineVisual, type BakingRLEvent, type VisualContext } from "@bakingrl/plugin-sdk";
+import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 
@@ -29,8 +30,13 @@ type DejaVuSettings = {
   textSize: number;
 };
 
+type DejaVuInstance = {
+  updateSettings(settings: Record<string, unknown>): void;
+};
+
 const STATE_EVENT = "plugin.com.bakingrl.deja-vu.state";
 const STATE_KEY = "plugin.com.bakingrl.deja-vu.state";
+const instances = new Map<HTMLElement, DejaVuInstance>();
 
 function readSettings(settings: Record<string, unknown>): DejaVuSettings {
   return {
@@ -110,7 +116,8 @@ function renderDejaVuShellTemplate() {
 
 export default defineVisual({
   async mount(context: VisualContext) {
-    const settings = readSettings(context.settings);
+    let settings = readSettings(context.settings);
+    const cleanupScale = fitVisualScale(context.root, 300, 100);
     let state: DejaVuState | null = null;
 
     context.root.innerHTML = renderDejaVuShellTemplate();
@@ -119,6 +126,13 @@ export default defineVisual({
       const style = context.root.querySelector("style")?.outerHTML ?? "";
       context.root.innerHTML = `${style}${renderDejaVuTemplate(state, settings)}`;
     }
+
+    instances.set(context.root, {
+      updateSettings(nextSettings) {
+        settings = readSettings(nextSettings);
+        render();
+      }
+    });
 
     const cleanup = context.bus.subscribe(STATE_EVENT, (event: BakingRLEvent<unknown>) => {
       if (isState(event.Data)) {
@@ -139,7 +153,12 @@ export default defineVisual({
     render();
 
     return () => {
+      instances.delete(context.root);
+      cleanupScale();
       cleanup();
     };
+  },
+  update(context: VisualContext) {
+    instances.get(context.root)?.updateSettings(context.settings);
   }
 });

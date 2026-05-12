@@ -1,4 +1,5 @@
 import { defineVisual, type BakingRLEvent, type VisualContext } from "@bakingrl/plugin-sdk";
+import { fitVisualScale } from "../fitVisualScale";
 import { cageMapStyles, renderCageMap } from "../../shared/cage-map";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
@@ -73,10 +74,15 @@ type VisualSettings = {
   showControls: boolean;
 };
 
+type CageStatsInstance = {
+  updateSettings(settings: Record<string, unknown>): void;
+};
+
 const PACKAGE_ID = "com.bakingrl.cage-stats";
 const STATE_EVENT = `plugin.${PACKAGE_ID}.state`;
 const STATE_KEY = `plugin.${PACKAGE_ID}.state`;
 const METRICS: Metric[] = ["goal", "crossbar", "save"];
+const instances = new Map<HTMLElement, CageStatsInstance>();
 
 function readSettings(settings: Record<string, unknown>): VisualSettings {
   const scope = typeof settings.scope === "string" ? settings.scope : "bothCages";
@@ -259,11 +265,12 @@ function fillTemplate(template: string, values: Record<string, string>) {
 }
 
 function renderCageStatsShellTemplate() {
-  return `<style>${styleCss.replace("{{cageMapStyles}}", cageMapStyles)}</style><div class="waiting">Waiting for Cage Stats service</div>`;
+  return `<style>${styleCss.replace("{{cageMapStyles}}", cageMapStyles)}</style><div class="cage-stats"><div class="waiting">Waiting for Cage Stats service</div></div>`;
 }
 
 export default defineVisual({
   async mount(context: VisualContext) {
+    const cleanupScale = fitVisualScale(context.root, 760, 240);
     let settings = readSettings(context.settings);
     let state: CageStatsState | null = null;
 
@@ -302,6 +309,13 @@ export default defineVisual({
       }
     }
 
+    instances.set(context.root, {
+      updateSettings(nextSettings) {
+        settings = readSettings(nextSettings);
+        render();
+      }
+    });
+
     context.root.addEventListener("change", handleSettingChange);
     context.root.addEventListener("keydown", handleSettingKeydown);
 
@@ -324,9 +338,14 @@ export default defineVisual({
     render();
 
     return () => {
+      instances.delete(context.root);
+      cleanupScale();
       cleanup();
       context.root.removeEventListener("change", handleSettingChange);
       context.root.removeEventListener("keydown", handleSettingKeydown);
     };
+  },
+  update(context: VisualContext) {
+    instances.get(context.root)?.updateSettings(context.settings);
   }
 });

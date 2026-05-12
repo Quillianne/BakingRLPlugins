@@ -6,6 +6,7 @@ import {
   type RlUpdateStatePayload,
   type VisualContext
 } from "@bakingrl/plugin-sdk";
+import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 
@@ -47,8 +48,13 @@ type ScoreboardSettings = {
   uppercaseNames: boolean;
 };
 
+type ScoreboardInstance = {
+  updateSettings(settings: Record<string, unknown>): void;
+};
+
 const BO_STATE_EVENT = "plugin.com.bakingrl.cast-package.state";
 const BO_STATE_KEY = "plugin.com.bakingrl.cast-package.state";
+const instances = new Map<HTMLElement, ScoreboardInstance>();
 
 const THEME_CLASS_BY_APP_THEME: Record<string, ThemeId> = {
   "modern-dark": "modern-dark",
@@ -165,7 +171,8 @@ function renderScoreboardTemplate() {
 
 export default defineVisual({
   async mount(context: VisualContext) {
-    const settings = readSettings(context.settings);
+    let settings = readSettings(context.settings);
+    const cleanupScale = fitVisualScale(context.root, 760, 128);
     let latestUpdate: RlUpdateStatePayload | null = null;
     let latestClock: RlClockUpdatedSecondsPayload | null = null;
     let hasDedicatedClock = false;
@@ -253,9 +260,20 @@ export default defineVisual({
     }
 
     render();
+    instances.set(context.root, {
+      updateSettings(nextSettings) {
+        settings = readSettings(nextSettings);
+        render();
+      }
+    });
 
     return () => {
+      instances.delete(context.root);
+      cleanupScale();
       for (const cleanup of cleanups) cleanup();
     };
+  },
+  update(context: VisualContext) {
+    instances.get(context.root)?.updateSettings(context.settings);
   }
 });

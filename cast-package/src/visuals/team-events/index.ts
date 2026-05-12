@@ -9,6 +9,7 @@ import {
   type RlUpdateStatePayload,
   type VisualContext
 } from "@bakingrl/plugin-sdk";
+import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 
@@ -29,6 +30,10 @@ type RecentEvent = {
   atMs: number;
 };
 
+type TeamEventsInstance = {
+  updateSettings(settings: Record<string, unknown>): void;
+};
+
 const EVENT_LABELS: Record<EventKind, string> = {
   save: "SAVE",
   shot: "SHOT",
@@ -37,6 +42,8 @@ const EVENT_LABELS: Record<EventKind, string> = {
   demo: "DEMO",
   demoed: "DEMOED"
 };
+
+const instances = new Map<HTMLElement, TeamEventsInstance>();
 
 function clampInt(value: unknown, fallback: number, min: number, max: number) {
   if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
@@ -223,7 +230,8 @@ function classifyStatfeed(event: RlStatfeedEventPayload): Array<{ player: RlPlay
 export default defineVisual({
   async mount(context: VisualContext) {
     let latestUpdate: RlUpdateStatePayload | null = null;
-    const settings = readSettings(context.settings);
+    let settings = readSettings(context.settings);
+    const cleanupScale = fitVisualScale(context.root, 420, 170);
     const recentEvents = new Map<string, RecentEvent>();
     const demolishedState = new Map<string, boolean>();
     let clearTimer: number | null = null;
@@ -263,6 +271,13 @@ export default defineVisual({
     }
 
     render();
+    instances.set(context.root, {
+      updateSettings(nextSettings) {
+        settings = readSettings(nextSettings);
+        render();
+        if (recentEvents.size) scheduleEventClear();
+      }
+    });
 
     const cleanups = [
       context.bus.subscribe("UpdateState", (event: BakingRLEvent<RlUpdateStatePayload, "UpdateState">) => {
@@ -285,8 +300,13 @@ export default defineVisual({
     ];
 
     return () => {
+      instances.delete(context.root);
       if (clearTimer !== null) window.clearTimeout(clearTimer);
+      cleanupScale();
       for (const cleanup of cleanups) cleanup();
     };
+  },
+  update(context: VisualContext) {
+    instances.get(context.root)?.updateSettings(context.settings);
   }
 });

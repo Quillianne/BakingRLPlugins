@@ -17,6 +17,7 @@ import {
   seriesScore,
   type BoTrackerState
 } from "../../shared/events";
+import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 
@@ -38,6 +39,12 @@ type VictoryPayload = {
   detail: string;
   durationMs: number;
 };
+
+type VictoryInstance = {
+  updateSettings(settings: Record<string, unknown>): void;
+};
+
+const instances = new Map<HTMLElement, VictoryInstance>();
 
 function numberSetting(settings: Record<string, unknown>, key: string, fallback: number, min: number, max: number) {
   const value = settings[key];
@@ -71,10 +78,12 @@ function completedKey(state: BoTrackerState) {
 
 export default defineVisual({
   async mount(context: VisualContext) {
-    const settings = readSettings(context.settings);
+    let settings = readSettings(context.settings);
+    const cleanupScale = fitVisualScale(context.root, 1920, 1080);
     let latestUpdate: RlUpdateStatePayload | null = null;
     let latestBoState: BoTrackerState | null = null;
     let lastBoCompletionKey = "";
+    let activePayload: VictoryPayload | null = null;
     let hideTimer: number | null = null;
 
     context.root.innerHTML = renderTemplate();
@@ -94,11 +103,13 @@ export default defineVisual({
       }
       root?.classList.remove("is-active");
       root?.classList.add("is-hidden");
+      activePayload = null;
       context.setActive(false);
     }
 
     function showVictory(payload: VictoryPayload) {
       if (!root || !kicker || !title || !team || !scoreline || !detail) return;
+      activePayload = payload;
 
       root.style.setProperty("--event-team", payload.teamColor);
       root.style.setProperty("--event-contrast", payload.teamContrast);
@@ -166,6 +177,13 @@ export default defineVisual({
       context.diagnostics.warn("Unable to read BO Tracker registry state.", error);
     }
 
+    instances.set(context.root, {
+      updateSettings(nextSettings) {
+        settings = readSettings(nextSettings);
+        if (activePayload && root?.classList.contains("is-active")) showVictory(activePayload);
+      }
+    });
+
     const cleanups = [
       context.bus.subscribe("UpdateState", (event: BakingRLEvent<RlUpdateStatePayload, "UpdateState">) => {
         latestUpdate = event.Data;
@@ -183,8 +201,13 @@ export default defineVisual({
     ];
 
     return () => {
+      instances.delete(context.root);
       hide();
+      cleanupScale();
       for (const cleanup of cleanups) cleanup();
     };
+  },
+  update(context: VisualContext) {
+    instances.get(context.root)?.updateSettings(context.settings);
   }
 });

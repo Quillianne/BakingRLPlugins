@@ -3,14 +3,20 @@
   --border: rgba(255, 255, 255, 0.14);
   --text: #f8fafc;
   --muted: rgba(226, 232, 240, 0.62);
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  container-type: size;
+  width: var(--brl-visual-design-width, 100%);
+  height: var(--brl-visual-design-height, 100%);
+  transform: translate(-50%, -50%) scale(var(--brl-visual-scale, 1));
+  transform-origin: center;
   min-width: 0;
   min-height: 0;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 6px;
+  padding: clamp(3px, 5cqh, 6px);
   box-sizing: border-box;
   overflow: hidden;
   color: var(--text);
@@ -25,7 +31,7 @@
   position: relative;
   z-index: 1;
   flex: 0 0 auto;
-  height: min(92px, calc(100% - 4px));
+  height: min(92px, calc(100% - 4px), 44cqw);
   aspect-ratio: 1;
   display: grid;
   place-items: center;
@@ -50,7 +56,7 @@
 
 .boost-value {
   color: var(--team-color);
-  font-size: 28px;
+  font-size: clamp(16px, min(9cqw, 32cqh), 28px);
   font-weight: 950;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -58,11 +64,11 @@
 
 .name-tag {
   min-width: 0;
-  max-width: calc(100% - 92px);
-  height: 42px;
+  max-width: calc(100% - min(92px, 44cqw));
+  height: clamp(28px, 38cqh, 42px);
   display: flex;
   align-items: center;
-  padding: 0 14px 0 18px;
+  padding: 0 clamp(8px, 4cqw, 14px) 0 clamp(10px, 5cqw, 18px);
   box-sizing: border-box;
   overflow: hidden;
   border: 2px solid var(--border);
@@ -73,7 +79,7 @@
 }
 
 .side-right .name-tag {
-  padding: 0 18px 0 14px;
+  padding: 0 clamp(10px, 5cqw, 18px) 0 clamp(8px, 4cqw, 14px);
   border-right: 0;
   border-left: 2px solid var(--border);
   border-radius: 2px 0 0 2px;
@@ -92,7 +98,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--team-color);
-  font-size: 15px;
+  font-size: clamp(10px, min(5cqw, 18cqh), 15px);
   font-weight: 900;
   line-height: 1;
 }
