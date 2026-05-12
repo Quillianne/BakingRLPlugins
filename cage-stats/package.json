@@ -14,7 +14,7 @@
     "install:local": "bakingrl-plugin install-local"
   },
   "dependencies": {
-    "@bakingrl/plugin-sdk": "file:../../BakingRLSDK/packages/plugin-sdk"
+    "@bakingrl/plugin-sdk": "^0.4.0"
   },
   "devDependencies": {
     "typescript": "~5.6.2",
