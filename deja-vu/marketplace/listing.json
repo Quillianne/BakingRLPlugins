@@ -1,0 +1,16 @@
+{
+  "schema": "bakingrl.plugin-listing/1",
+  "packageId": "com.bakingrl.deja-vu",
+  "displayName": "Deja Vu",
+  "shortDescription": "Show previous encounter counts for players in the current match.",
+  "longDescription": "Deja Vu keeps a local match encounter history and renders a compact transparent visual with current players and how often they have appeared before. It is useful for recurring lobbies, leagues, showmatches, and long broadcast sessions where previous meetings matter.",
+  "tags": ["history", "overlay", "telemetry"],
+  "repo": "https://github.com/Quillianne/BakingRLPlugins",
+  "iconUrl": null,
+  "bannerUrl": null,
+  "screenshots": [],
+  "links": {
+    "docs": "https://github.com/Quillianne/BakingRLPlugins/tree/main/deja-vu#readme",
+    "support": "https://github.com/Quillianne/BakingRLPlugins/issues"
+  }
+}

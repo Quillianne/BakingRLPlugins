@@ -13,6 +13,7 @@
     "build": "npm run build --workspaces --if-present",
     "check": "npm run check --workspaces --if-present",
     "validate": "npm run validate --workspaces --if-present",
+    "validate:listing": "npm run validate:listing --workspaces --if-present",
     "pack": "npm run pack --workspaces --if-present",
     "install:local": "npm run install:local --workspaces --if-present"
   },

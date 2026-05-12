@@ -7,7 +7,10 @@
     "build": "vite build",
     "check": "tsc -p tsconfig.json --noEmit",
     "validate": "bakingrl-plugin validate",
+    "validate:listing": "bakingrl-plugin validate-listing",
     "pack": "bakingrl-plugin pack",
+    "release:metadata": "bakingrl-plugin release-metadata",
+    "marketplace:entry": "bakingrl-plugin marketplace-entry",
     "install:local": "bakingrl-plugin install-local"
   },
   "dependencies": {
