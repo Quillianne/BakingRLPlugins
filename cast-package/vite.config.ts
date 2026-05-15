@@ -7,6 +7,7 @@ export default defineConfig({
       preserveEntrySignatures: "strict",
       input: {
         "services/bo-tracker": "src/services/bo-tracker/index.ts",
+        "services/game-sequence": "src/services/game-sequence/index.ts",
         "visuals/control-panel": "src/visuals/control-panel/index.ts",
         "visuals/goal": "src/visuals/goal/index.ts",
         "visuals/player-boost": "src/visuals/player-boost/index.ts",

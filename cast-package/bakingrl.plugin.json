@@ -55,6 +55,14 @@
           "reset"
         ],
         "schema": "src/services/bo-tracker/methods.schema.json"
+      },
+      "gameSequence": {
+        "entry": "dist/services/game-sequence.js",
+        "methods": [
+          "snapshot",
+          "reset"
+        ],
+        "schema": "src/services/game-sequence/methods.schema.json"
       }
     },
     "configuration": {
@@ -81,11 +89,19 @@
         "ClockUpdatedSeconds",
         "CountdownBegin",
         "GoalScored",
+        "GoalReplayEnd",
+        "GoalReplayStart",
         "MatchCreated",
+        "MatchDestroyed",
         "MatchInitialized",
         "MatchEnded",
+        "MatchPaused",
+        "MatchUnpaused",
+        "PodiumStart",
+        "ReplayCreated",
         "RoundStarted",
         "StatfeedEvent",
+        "plugin.com.bakingrl.cast-package.sequence",
         "plugin.com.bakingrl.cast-package.state"
       ],
       "publish": [
@@ -94,6 +110,7 @@
     },
     "registry": {
       "read": [
+        "plugin.com.bakingrl.cast-package.sequence",
         "plugin.com.bakingrl.cast-package.state"
       ],
       "write": [
