@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 concurrency:
   group: bakingrl-plugins-${{ github.ref }}
@@ -99,54 +98,3 @@ jobs:
         with:
           files: BakingRLPlugins/*/dist-bundles/*.brlp
           fail_on_unmatched_files: true
-
-      - name: Checkout marketplace
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/checkout@v6
-        with:
-          repository: Quillianne/BakingRLMarketplace
-          token: ${{ secrets.BAKINGRL_MARKETPLACE_UPDATE_TOKEN }}
-          path: BakingRLMarketplace
-
-      - name: Generate marketplace entries
-        if: startsWith(github.ref, 'refs/tags/')
-        working-directory: BakingRLPlugins
-        run: |
-          $marketplacePackages = Resolve-Path "..\BakingRLMarketplace\packages"
-          $repo = "${{ github.repository }}"
-          $tag = "${{ github.ref_name }}"
-          $pluginDirs = @("cast-package", "deja-vu")
-          $removedPackageIds = @("com.bakingrl.cage-stats")
-          foreach ($packageId in $removedPackageIds) {
-            $removedEntry = Join-Path $marketplacePackages "$packageId.json"
-            if (Test-Path $removedEntry) {
-              Remove-Item -Force $removedEntry
-            }
-          }
-          foreach ($pluginDir in $pluginDirs) {
-            $manifest = Get-Content -Raw -Path "$pluginDir\bakingrl.plugin.json" | ConvertFrom-Json
-            $bundleName = "$($manifest.id)-$($manifest.version).brlp"
-            $bundleUrl = "https://github.com/$repo/releases/download/$tag/$bundleName"
-            $listingUrl = "https://raw.githubusercontent.com/$repo/$tag/$pluginDir/marketplace/listing.json"
-            $output = Join-Path $marketplacePackages "$($manifest.id).json"
-            npm exec -- bakingrl-plugin marketplace-entry $pluginDir --developer quillianne --bundle-url $bundleUrl --listing-url $listingUrl --output $output
-          }
-
-      - name: Validate marketplace PR payload
-        if: startsWith(github.ref, 'refs/tags/')
-        working-directory: BakingRLMarketplace
-        run: npm ci; npm run validate
-
-      - name: Open marketplace update PR
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: peter-evans/create-pull-request@v7
-        with:
-          path: BakingRLMarketplace
-          token: ${{ secrets.BAKINGRL_MARKETPLACE_UPDATE_TOKEN }}
-          branch: update/bakingrl-plugins-${{ github.ref_name }}
-          title: "Update BakingRL plugin marketplace entries for ${{ github.ref_name }}"
-          commit-message: "chore: update plugin marketplace entries for ${{ github.ref_name }}"
-          body: |
-            Generated from BakingRLPlugins ${{ github.ref_name }}.
-
-            Review the bundle hashes, signing keys, permissions, and curation sections before merging.
