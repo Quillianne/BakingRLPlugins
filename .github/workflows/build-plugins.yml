@@ -115,7 +115,14 @@ jobs:
           $marketplacePackages = Resolve-Path "..\BakingRLMarketplace\packages"
           $repo = "${{ github.repository }}"
           $tag = "${{ github.ref_name }}"
-          $pluginDirs = @("cast-package", "cage-stats", "deja-vu")
+          $pluginDirs = @("cast-package", "deja-vu")
+          $removedPackageIds = @("com.bakingrl.cage-stats")
+          foreach ($packageId in $removedPackageIds) {
+            $removedEntry = Join-Path $marketplacePackages "$packageId.json"
+            if (Test-Path $removedEntry) {
+              Remove-Item -Force $removedEntry
+            }
+          }
           foreach ($pluginDir in $pluginDirs) {
             $manifest = Get-Content -Raw -Path "$pluginDir\bakingrl.plugin.json" | ConvertFrom-Json
             $bundleName = "$($manifest.id)-$($manifest.version).brlp"

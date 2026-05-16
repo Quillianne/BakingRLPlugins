@@ -2,7 +2,7 @@
   "schema": "bakingrl.plugin/2",
   "id": "com.bakingrl.cast-package",
   "name": "Cast Package",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "BakingRL",
   "compatibility": {
     "runtimeApi": "0.4.0",
