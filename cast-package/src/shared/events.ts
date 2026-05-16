@@ -16,6 +16,14 @@ export type BoTrackerState = {
   rightWins: number;
   tracking: boolean;
   phase: "idle" | "waiting_for_start" | "tracking" | "complete";
+  currentMatchGuid?: string | null;
+  history?: Array<{
+    matchGuid: string;
+    winnerSide: Side;
+    winnerTeamNum: number;
+    source: "auto" | "manual";
+    countedAtMs: number;
+  }>;
   teams: {
     left: {
       name: string;
@@ -32,8 +40,58 @@ export type BoTrackerState = {
   updatedAtMs?: number;
 };
 
+export type SequenceSource = "menu" | "training" | "match" | "replay";
+export type SequencePhase =
+  | "idle"
+  | "pre_match"
+  | "countdown"
+  | "live"
+  | "paused"
+  | "goal_replay"
+  | "post_goal"
+  | "ended"
+  | "podium";
+
+export type GameSequenceState = {
+  version: 1;
+  source: SequenceSource;
+  phase: SequencePhase;
+  mode: string;
+  flags: {
+    isMatchActive: boolean;
+    isOvertime: boolean;
+  };
+  updatedAtMs: number;
+};
+
+export type RegieCue = "statistics" | "teamDetail" | "teamSummary" | "headToHead" | "cageStats";
+
+export type RegieCommand = {
+  version: 1;
+  id: string;
+  action: "trigger" | "clear";
+  cue?: RegieCue;
+  payload: Record<string, unknown>;
+  durationMs: number;
+  updatedAtMs: number;
+};
+
+export type RegieState = {
+  version: 1;
+  active: RegieCommand[];
+  updatedAtMs: number;
+};
+
 export const BO_STATE_EVENT = "plugin.com.bakingrl.cast-package.state";
 export const BO_STATE_KEY = "plugin.com.bakingrl.cast-package.state";
+export const GAME_SEQUENCE_EVENT = "plugin.com.bakingrl.cast-package.sequence";
+export const GAME_SEQUENCE_KEY = "plugin.com.bakingrl.cast-package.sequence";
+export const PLAYER_STATS_EVENT = "plugin.com.bakingrl.cast-package.player-stats";
+export const PLAYER_STATS_KEY = "plugin.com.bakingrl.cast-package.player-stats";
+export const CAGE_STATS_EVENT = "plugin.com.bakingrl.cast-package.cage-stats";
+export const CAGE_STATS_KEY = "plugin.com.bakingrl.cast-package.cage-stats";
+export const REGIE_EVENT = "plugin.com.bakingrl.cast-package.regie";
+export const REGIE_KEY = "plugin.com.bakingrl.cast-package.regie";
 
 const FALLBACK_BLUE = "#0055ff";
 const FALLBACK_ORANGE = "#ff7700";
@@ -58,6 +116,33 @@ export function isBoState(value: unknown): value is BoTrackerState {
     typeof teams.right.name === "string" &&
     typeof teams.left.teamNum === "number" &&
     typeof teams.right.teamNum === "number"
+  );
+}
+
+export function isSequencePhase(value: unknown): value is SequencePhase {
+  return (
+    value === "idle" ||
+    value === "pre_match" ||
+    value === "countdown" ||
+    value === "live" ||
+    value === "paused" ||
+    value === "goal_replay" ||
+    value === "post_goal" ||
+    value === "ended" ||
+    value === "podium"
+  );
+}
+
+export function isGameSequenceState(value: unknown): value is GameSequenceState {
+  if (!isRecord(value) || !isRecord(value.flags)) return false;
+  return (
+    value.version === 1 &&
+    (value.source === "menu" || value.source === "training" || value.source === "match" || value.source === "replay") &&
+    isSequencePhase(value.phase) &&
+    typeof value.mode === "string" &&
+    typeof value.flags.isMatchActive === "boolean" &&
+    typeof value.flags.isOvertime === "boolean" &&
+    typeof value.updatedAtMs === "number"
   );
 }
 

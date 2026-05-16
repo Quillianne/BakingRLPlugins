@@ -1,6 +1,6 @@
 {
   "type": "object",
-  "title": "BO Tracker Control Settings",
+  "title": "BO Control Settings",
   "properties": {
     "title": {
       "type": "string",
@@ -10,7 +10,7 @@
     "subtitle": {
       "type": "string",
       "title": "Subtitle",
-      "default": "Configuration et score de serie"
+      "default": "Control et regie"
     },
     "defaultBestOf": {
       "type": "integer",

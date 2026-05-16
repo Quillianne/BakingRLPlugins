@@ -9,6 +9,7 @@ import {
   type RlUpdateStatePayload,
   type VisualContext
 } from "@bakingrl/plugin-sdk";
+import { editorUpdateState, isEditorMode } from "../editorPreviewData";
 import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
@@ -28,6 +29,7 @@ type RecentEvent = {
   kind: EventKind;
   label: string;
   atMs: number;
+  preview?: boolean;
 };
 
 type TeamEventsInstance = {
@@ -175,6 +177,7 @@ function recentEventFor(player: RlPlayer, recentEvents: Map<string, RecentEvent>
   for (const key of playerKeys(player)) {
     const event = recentEvents.get(key);
     if (!event) continue;
+    if (event.preview) return event;
     if (now - event.atMs <= durationMs) return event;
     recentEvents.delete(key);
   }
@@ -188,9 +191,10 @@ function renderVisual(
 ) {
   const color = teamColor(data, settings.teamNum);
   const players =
-    data?.Players.filter((player) => player.TeamNum === settings.teamNum)
+    (data?.Players ?? [])
+      .filter((player) => player.TeamNum === settings.teamNum)
       .sort(sortPlayers)
-      .slice(0, settings.maxPlayers) ?? [];
+      .slice(0, settings.maxPlayers);
 
   const playerRows = players.length
     ? players
@@ -229,6 +233,7 @@ function classifyStatfeed(event: RlStatfeedEventPayload): Array<{ player: RlPlay
 
 export default defineVisual({
   async mount(context: VisualContext) {
+    const editorMode = isEditorMode(context);
     let latestUpdate: RlUpdateStatePayload | null = null;
     let settings = readSettings(context.settings);
     const cleanupScale = fitVisualScale(context.root, 420, 170);
@@ -240,14 +245,30 @@ export default defineVisual({
       context.root.innerHTML = renderVisual(latestUpdate, settings, recentEvents);
     }
 
-    function markEvent(player: RlPlayerRef | null | undefined, kind: EventKind) {
-      const event = { kind, label: EVENT_LABELS[kind], atMs: Date.now() };
+    function markEvent(player: RlPlayerRef | null | undefined, kind: EventKind, preview = false) {
+      const event = { kind, label: EVENT_LABELS[kind], atMs: Date.now(), preview };
       for (const key of playerKeys(player)) recentEvents.set(key, event);
+    }
+
+    function clearPreviewEvents() {
+      for (const [key, event] of recentEvents.entries()) {
+        if (event.preview) recentEvents.delete(key);
+      }
+    }
+
+    function seedEditorPreview() {
+      if (!editorMode) return;
+      latestUpdate = editorUpdateState();
+      clearPreviewEvents();
+      const previewPlayer =
+        latestUpdate.Players.find((player) => player.TeamNum === settings.teamNum && player.Goals && player.Goals > 0) ??
+        latestUpdate.Players.find((player) => player.TeamNum === settings.teamNum);
+      markEvent(previewPlayer, settings.teamNum === 0 ? "goal" : "save", true);
     }
 
     function markDemolitionsFromUpdate(data: RlUpdateStatePayload) {
       let marked = false;
-      for (const player of data.Players) {
+      for (const player of data.Players ?? []) {
         const [key] = playerKeys(player);
         if (!key) continue;
         const isDemolished = player.bDemolished === true;
@@ -270,10 +291,13 @@ export default defineVisual({
       }, settings.eventDurationMs + 50);
     }
 
+    seedEditorPreview();
+
     render();
     instances.set(context.root, {
       updateSettings(nextSettings) {
         settings = readSettings(nextSettings);
+        seedEditorPreview();
         render();
         if (recentEvents.size) scheduleEventClear();
       }

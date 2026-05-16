@@ -7,6 +7,7 @@ import {
   type RlUpdateStatePayload,
   type VisualContext
 } from "@bakingrl/plugin-sdk";
+import { editorUpdateState, isEditorMode } from "../editorPreviewData";
 import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
@@ -91,13 +92,14 @@ function boostValue(player: RlPlayer | null) {
 
 function selectPlayer(data: RlUpdateStatePayload | null, settings: PlayerBoostSettings) {
   if (!data) return null;
+  const players = data.Players ?? [];
   if (settings.playerName) {
     const wanted = settings.playerName.toLowerCase();
-    return data.Players.find((player) => player.Name.trim().toLowerCase() === wanted) ?? null;
+    return players.find((player) => player.Name.trim().toLowerCase() === wanted) ?? null;
   }
   const target = data.Game?.bHasTarget ? data.Game.Target : undefined;
   if (!target) return null;
-  return data.Players.find((player) => samePlayer(player, target)) ?? null;
+  return players.find((player) => samePlayer(player, target)) ?? null;
 }
 
 function renderVisual(data: RlUpdateStatePayload | null, settings: PlayerBoostSettings) {
@@ -105,14 +107,14 @@ function renderVisual(data: RlUpdateStatePayload | null, settings: PlayerBoostSe
   const teamNum = player?.TeamNum ?? 0;
   const color = safeColor(teamByNum(data, teamNum)?.ColorPrimary, fallbackTeamColor(teamNum));
   const boost = boostValue(player);
-  const boostAngle = boost === null ? 0 : boost * 3.6;
+  const boostPercent = boost === null ? 0 : boost;
 
   return `<style>${styleCss}</style>${fillTemplate(templateHtml, {
     side: escapeHtml(settings.side),
     stateClass: boost === null ? "missing" : "",
     teamColor: color,
     teamContrast: contrastColor(color),
-    boostAngle: String(boostAngle),
+    boostPercent: String(boostPercent),
     boostValue: boost === null ? "--" : String(boost),
     playerName: escapeHtml(player?.Name || settings.playerName || "PLAYER"),
     nameState: settings.showName ? "" : "hidden"
@@ -129,7 +131,7 @@ export default defineVisual({
     const instance: PlayerBoostInstance = {
       root: context.root,
       settings: readSettings(context.settings),
-      latestUpdate: null
+      latestUpdate: isEditorMode(context) ? editorUpdateState() : null
     };
     instances.set(context.root, instance);
 

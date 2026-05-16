@@ -17,7 +17,12 @@
     "showSpeed": {
       "type": "boolean",
       "title": "Show Goal Speed",
-      "default": true
+      "default": false
+    },
+    "showTeam": {
+      "type": "boolean",
+      "title": "Show Team",
+      "default": false
     },
     "uppercaseNames": {
       "type": "boolean",

@@ -6,6 +6,7 @@ import {
   type RlUpdateStatePayload,
   type VisualContext
 } from "@bakingrl/plugin-sdk";
+import { editorUpdateState as editorPreviewUpdateState } from "../editorPreviewData";
 import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
@@ -50,6 +51,12 @@ type ScoreboardSettings = {
 
 type ScoreboardInstance = {
   updateSettings(settings: Record<string, unknown>): void;
+};
+
+type EditorVisualContext = VisualContext & {
+  editor?: {
+    emit(eventName: string, payload?: unknown): void;
+  };
 };
 
 const BO_STATE_EVENT = "plugin.com.bakingrl.cast-package.state";
@@ -169,6 +176,37 @@ function renderScoreboardTemplate() {
   return `<style>${styleCss}</style>${templateHtml}`;
 }
 
+function editorUpdateState(leftScore: number, rightScore: number): RlUpdateStatePayload {
+  return editorPreviewUpdateState({ leftScore, rightScore, timeSeconds: 213 });
+}
+
+function editorBoState(leftWins: number, rightWins: number): BoTrackerState {
+  return {
+    bestOf: 5,
+    leftWins,
+    rightWins,
+    tracking: true,
+    phase: "tracking",
+    teams: {
+      left: { name: "Blue", teamNum: 0 },
+      right: { name: "Orange", teamNum: 1 }
+    },
+    winsRequired: 3,
+    winner: null
+  };
+}
+
+function emitEditorScoreboardState(context: VisualContext, leftScore = 2, rightScore = 1, leftWins = 1, rightWins = 0) {
+  const editor = (context as EditorVisualContext).editor;
+  editor?.emit("UpdateState", editorUpdateState(leftScore, rightScore));
+  editor?.emit(BO_STATE_EVENT, editorBoState(leftWins, rightWins));
+  editor?.emit("ClockUpdatedSeconds", {
+    MatchGuid: "editor-preview",
+    TimeSeconds: 213,
+    bOvertime: false
+  } satisfies RlClockUpdatedSecondsPayload);
+}
+
 export default defineVisual({
   async mount(context: VisualContext) {
     let settings = readSettings(context.settings);
@@ -275,5 +313,33 @@ export default defineVisual({
   },
   update(context: VisualContext) {
     instances.get(context.root)?.updateSettings(context.settings);
+  },
+  editor: {
+    mount(context: VisualContext) {
+      emitEditorScoreboardState(context);
+    },
+    actions() {
+      return [
+        {
+          id: "default-score",
+          label: "Default Score",
+          run(context: VisualContext) {
+            emitEditorScoreboardState(context);
+          }
+        },
+        {
+          id: "overtime",
+          label: "Overtime",
+          run(context: VisualContext) {
+            emitEditorScoreboardState(context, 3, 3, 2, 2);
+            (context as EditorVisualContext).editor?.emit("ClockUpdatedSeconds", {
+              MatchGuid: "editor-preview",
+              TimeSeconds: 0,
+              bOvertime: true
+            } satisfies RlClockUpdatedSecondsPayload);
+          }
+        }
+      ];
+    }
   }
 });

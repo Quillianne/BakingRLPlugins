@@ -1,0 +1,68 @@
+{
+  "type": "object",
+  "title": "Cage Stats Settings",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "title": "Scope",
+      "default": "bothCages",
+      "oneOf": [
+        { "const": "bothCages", "title": "Both Cages" },
+        { "const": "teamDefense", "title": "Team Defense" },
+        { "const": "playerSaves", "title": "Player Saves" },
+        { "const": "playerOffense", "title": "Player Offense" }
+      ]
+    },
+    "teamNum": {
+      "type": "integer",
+      "title": "Team Number",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 1
+    },
+    "playerName": {
+      "type": "string",
+      "title": "Player Name",
+      "default": ""
+    },
+    "title": {
+      "type": "string",
+      "title": "Title",
+      "default": ""
+    },
+    "activationMode": {
+      "type": "string",
+      "title": "Activation",
+      "default": "regie",
+      "oneOf": [
+        { "const": "always", "title": "Always Visible" },
+        { "const": "regie", "title": "Regie Trigger" }
+      ]
+    },
+    "durationMs": {
+      "type": "integer",
+      "title": "Regie Duration Ms",
+      "default": 8000,
+      "minimum": 500,
+      "maximum": 60000
+    },
+    "metrics": {
+      "type": "array",
+      "title": "Metrics",
+      "default": ["goal", "crossbar", "save"],
+      "items": {
+        "type": "string",
+        "oneOf": [
+          { "const": "goal", "title": "Goals" },
+          { "const": "crossbar", "title": "Crossbars" },
+          { "const": "save", "title": "Saves" }
+        ]
+      }
+    },
+    "showControls": {
+      "type": "boolean",
+      "title": "Show Demo Controls",
+      "default": false
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "type": "object",
+  "methods": {
+    "snapshot": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": ["bo", "match"]
+          },
+          "matchGuid": {
+            "type": "string"
+          },
+          "matchIndex": {
+            "type": "number"
+          },
+          "playerId": {
+            "type": "string"
+          },
+          "playerName": {
+            "type": "string"
+          },
+          "teamNum": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output": true
+    },
+    "reset": {
+      "input": true,
+      "output": true
+    }
+  }
+}

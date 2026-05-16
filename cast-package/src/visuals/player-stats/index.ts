@@ -7,6 +7,7 @@ import {
   type RlUpdateStatePayload,
   type VisualContext
 } from "@bakingrl/plugin-sdk";
+import { editorUpdateState, isEditorMode } from "../editorPreviewData";
 import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
@@ -94,13 +95,14 @@ function teamByNum(data: RlUpdateStatePayload | null, teamNum: number): RlTeam |
 
 function selectPlayer(data: RlUpdateStatePayload | null, settings: PlayerStatsSettings) {
   if (!data) return null;
+  const players = data.Players ?? [];
   if (settings.playerName) {
     const wanted = settings.playerName.toLowerCase();
-    return data.Players.find((player) => player.Name.trim().toLowerCase() === wanted) ?? null;
+    return players.find((player) => player.Name.trim().toLowerCase() === wanted) ?? null;
   }
   const target = data.Game?.bHasTarget ? data.Game.Target : undefined;
   if (!target) return null;
-  return data.Players.find((player) => samePlayer(player, target)) ?? null;
+  return players.find((player) => samePlayer(player, target)) ?? null;
 }
 
 function statValue(player: RlPlayer | null, key: keyof RlPlayer) {
@@ -145,7 +147,7 @@ export default defineVisual({
     const instance: PlayerStatsInstance = {
       root: context.root,
       settings: readSettings(context.settings),
-      latestUpdate: null
+      latestUpdate: isEditorMode(context) ? editorUpdateState() : null
     };
     instances.set(context.root, instance);
 

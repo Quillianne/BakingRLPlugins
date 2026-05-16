@@ -3,7 +3,7 @@
   "packageId": "com.bakingrl.cast-package",
   "displayName": "Cast Package",
   "shortDescription": "Production-oriented Rocket League cast overlays and BO controls.",
-  "longDescription": "Cast Package combines a live scoreboard, goal and victory scenes, player boost and stats widgets, team event panels, and a private BO tracker control page. It is intended for stream operators who want a cohesive first-party overlay pack with host-mediated controls and a service-backed series state.",
+  "longDescription": "Cast Package combines a live scoreboard, goal and victory animations, player boost and live stat widgets, team preview panels, cage shot maps, fullscreen team detail and summary visuals, end-of-match statistics, head-to-head event visuals, and a BO/regie control page. It is intended for stream operators who want a cohesive first-party overlay pack with host-mediated controls and service-backed series state.",
   "tags": ["overlay", "broadcast", "scoreboard", "controls"],
   "repo": "https://github.com/Quillianne/BakingRLPlugins",
   "iconUrl": null,

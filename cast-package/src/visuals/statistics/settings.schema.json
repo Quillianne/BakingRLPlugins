@@ -1,0 +1,111 @@
+{
+  "type": "object",
+  "title": "Statistics Settings",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "title": "Scope",
+      "default": "lastMatch",
+      "oneOf": [
+        { "const": "lastMatch", "title": "Last Match" },
+        { "const": "match", "title": "Specific Match" },
+        { "const": "bo", "title": "BO" }
+      ]
+    },
+    "view": {
+      "type": "string",
+      "title": "View",
+      "default": "teamDetail",
+      "oneOf": [
+        { "const": "teamDetail", "title": "Team Detail" },
+        { "const": "teamSummary", "title": "Team Summary" },
+        { "const": "player", "title": "Player" }
+      ]
+    },
+    "visibleMetrics": {
+      "type": "array",
+      "title": "Visible Metrics",
+      "default": [
+        "score",
+        "goals",
+        "assists",
+        "shots",
+        "saves",
+        "touches",
+        "demos",
+        "demoDifferential",
+        "goalParticipation",
+        "shootingAccuracyPercent",
+        "averageSpeed"
+      ],
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "oneOf": [
+          { "const": "score", "title": "Score" },
+          { "const": "goals", "title": "Goals" },
+          { "const": "assists", "title": "Assists" },
+          { "const": "shots", "title": "Shots" },
+          { "const": "saves", "title": "Saves" },
+          { "const": "touches", "title": "Touches" },
+          { "const": "demos", "title": "Demos" },
+          { "const": "demoedCount", "title": "Times Demoed" },
+          { "const": "demoDifferential", "title": "Demo +/-" },
+          { "const": "goalParticipation", "title": "GPAR" },
+          { "const": "goalParticipationPercent", "title": "GPAR %" },
+          { "const": "shootingAccuracyPercent", "title": "Shooting Accuracy" },
+          { "const": "averageSpeed", "title": "Average Speed" },
+          { "const": "boostConsumed", "title": "Boost Consumption" },
+          { "const": "zeroBoostSeconds", "title": "Time At 0 Boost" },
+          { "const": "supersonicTimePercent", "title": "Supersonic Time %" },
+          { "const": "airTimePercent", "title": "Air Time %" }
+        ]
+      }
+    },
+    "activationMode": {
+      "type": "string",
+      "title": "Activation",
+      "default": "always",
+      "oneOf": [
+        { "const": "always", "title": "Always Visible" },
+        { "const": "regie", "title": "Regie Trigger" }
+      ]
+    },
+    "teamNum": {
+      "type": "integer",
+      "title": "Team",
+      "default": -1,
+      "minimum": -1,
+      "maximum": 1
+    },
+    "playerName": {
+      "type": "string",
+      "title": "Player Name",
+      "default": ""
+    },
+    "playerId": {
+      "type": "string",
+      "title": "Player Id",
+      "default": ""
+    },
+    "matchIndex": {
+      "type": "integer",
+      "title": "Match Index",
+      "default": 1,
+      "minimum": 1,
+      "maximum": 12
+    },
+    "matchGuid": {
+      "type": "string",
+      "title": "Match Guid",
+      "default": ""
+    },
+    "durationMs": {
+      "type": "integer",
+      "title": "Regie Duration Ms",
+      "default": 8000,
+      "minimum": 500,
+      "maximum": 60000
+    }
+  }
+}

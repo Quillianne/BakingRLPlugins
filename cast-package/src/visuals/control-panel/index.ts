@@ -1,4 +1,5 @@
 import { defineVisual, type BakingRLEvent, type VisualContext } from "@bakingrl/plugin-sdk";
+import { PLAYER_STATS_EVENT } from "../../shared/events";
 import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
@@ -49,7 +50,37 @@ type ControlPanelInstance = {
   updateSettings(settings: Record<string, unknown>): void;
 };
 
-const SERVICE_REF = "com.bakingrl.cast-package/boTracker";
+type PlayerStatsSummary = {
+  id: string;
+  primaryId: string | null;
+  name: string;
+  teamNum: number;
+  stats: {
+    score: number;
+  };
+};
+
+type TeamStatsSummary = {
+  teamNum: number;
+  name: string;
+};
+
+type PlayerStatsState = {
+  version: 1;
+  bo: {
+    teams: TeamStatsSummary[];
+    players: PlayerStatsSummary[];
+  };
+  matches: Array<{
+    matchIndex: number;
+    teams: TeamStatsSummary[];
+    players: PlayerStatsSummary[];
+  }>;
+};
+
+const BO_SERVICE_REF = "com.bakingrl.cast-package/boTracker";
+const STATS_SERVICE_REF = "com.bakingrl.cast-package/playerStatsTracker";
+const REGIE_SERVICE_REF = "com.bakingrl.cast-package/regieController";
 const STATE_EVENT = "plugin.com.bakingrl.cast-package.state";
 const BEST_OF_VALUES: BestOf[] = [1, 3, 5, 7];
 const instances = new Map<HTMLElement, ControlPanelInstance>();
@@ -65,7 +96,7 @@ function isBestOf(value: unknown): value is BestOf {
 function readSettings(settings: Record<string, unknown>): ControlPanelSettings {
   return {
     title: typeof settings.title === "string" && settings.title.trim() ? settings.title.trim() : "BO Tracker",
-    subtitle: typeof settings.subtitle === "string" ? settings.subtitle.trim() : "Configuration et score de serie",
+    subtitle: typeof settings.subtitle === "string" ? settings.subtitle.trim() : "Control et regie",
     defaultBestOf: isBestOf(settings.defaultBestOf) ? settings.defaultBestOf : 5,
     showHistory: settings.showHistory !== false,
     historyLimit: typeof settings.historyLimit === "number" && Number.isFinite(settings.historyLimit)
@@ -98,6 +129,10 @@ function isBoTrackerState(value: unknown): value is BoTrackerState {
     typeof value.tracking === "boolean" &&
     typeof value.winsRequired === "number"
   );
+}
+
+function isPlayerStatsState(value: unknown): value is PlayerStatsState {
+  return isRecord(value) && value.version === 1 && isRecord(value.bo) && Array.isArray(value.matches);
 }
 
 function sideForTeamNum(state: BoTrackerState, teamNum: number): Side {
@@ -171,6 +206,30 @@ function renderHistoryTemplate(rows: BoTrackerState["history"], state: BoTracker
     .join("");
 }
 
+function renderPlayerOptions(players: PlayerStatsSummary[], selected: string) {
+  const rows = [...players].sort((left, right) => left.teamNum - right.teamNum || right.stats.score - left.stats.score || left.name.localeCompare(right.name));
+  return [
+    `<option value="">Auto</option>`,
+    ...rows.map((player) => {
+      const value = escapeHtml(player.id);
+      const selectedAttr = player.id === selected ? " selected" : "";
+      return `<option value="${value}"${selectedAttr}>${escapeHtml(player.name)} - Team ${player.teamNum}</option>`;
+    })
+  ].join("");
+}
+
+function renderTeamOptions(teams: TeamStatsSummary[], selected: string) {
+  const rows = teams.length ? teams : [{ teamNum: 0, name: "Blue" }, { teamNum: 1, name: "Orange" }];
+  return rows
+    .sort((left, right) => left.teamNum - right.teamNum)
+    .map((team) => {
+      const value = String(team.teamNum);
+      const selectedAttr = value === selected ? " selected" : "";
+      return `<option value="${value}"${selectedAttr}>${escapeHtml(team.name || `Team ${team.teamNum}`)}</option>`;
+    })
+    .join("");
+}
+
 function fillTemplate(template: string, values: Record<string, string>) {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => values[key] ?? "");
 }
@@ -187,8 +246,9 @@ function renderControlPanelTemplate(settings: ControlPanelSettings) {
 export default defineVisual({
   async mount(context: VisualContext) {
     let settings = readSettings(context.settings);
-    const cleanupScale = fitVisualScale(context.root, 1200, 740);
+    const cleanupScale = fitVisualScale(context.root, 1200, 900);
     let state: BoTrackerState | null = null;
+    let statsState: PlayerStatsState | null = null;
     let selectedBestOf: BestOf = settings.defaultBestOf;
     let configDirty = false;
     let busy = false;
@@ -215,6 +275,12 @@ export default defineVisual({
     const side0Display = context.root.querySelector<HTMLElement>(".side0-display");
     const side1Display = context.root.querySelector<HTMLElement>(".side1-display");
     const trackingToggle = context.root.querySelector<HTMLButtonElement>(".tracking-toggle");
+    const regieStatus = context.root.querySelector<HTMLElement>(".regie-status");
+    const regieDuration = context.root.querySelector<HTMLInputElement>(".regie-duration");
+    const regieScope = context.root.querySelector<HTMLSelectElement>(".regie-scope");
+    const regieTeam = context.root.querySelector<HTMLSelectElement>(".regie-team");
+    const h2hLeft = context.root.querySelector<HTMLSelectElement>(".h2h-left");
+    const h2hRight = context.root.querySelector<HTMLSelectElement>(".h2h-right");
 
     if (!root) {
       throw new Error("BO Tracker control panel root was not rendered.");
@@ -290,6 +356,16 @@ export default defineVisual({
         historyNode.innerHTML = renderHistoryTemplate(rows, state, side0Text, side1Text);
       }
 
+      const players = statsState?.bo.players ?? [];
+      const teams = statsState?.bo.teams ?? [];
+      if (h2hLeft) h2hLeft.innerHTML = renderPlayerOptions(players, h2hLeft.value);
+      if (h2hRight) h2hRight.innerHTML = renderPlayerOptions(players, h2hRight.value);
+      if (regieTeam) regieTeam.innerHTML = renderTeamOptions(teams, regieTeam.value || "0");
+      if (regieStatus) {
+        const matchCount = statsState?.matches.length ?? 0;
+        regieStatus.textContent = `${players.length} players tracked · ${matchCount} matches`;
+      }
+
       panel.toggleAttribute("aria-busy", busy);
       panel.toggleAttribute("data-disabled", disabled);
     }
@@ -307,7 +383,7 @@ export default defineVisual({
       message = "";
       render();
       try {
-        const output = await context.services.call(SERVICE_REF, method, input);
+        const output = await context.services.call(BO_SERVICE_REF, method, input);
         if (isBoTrackerState(output)) {
           state = output;
           selectedBestOf = output.bestOf;
@@ -320,6 +396,68 @@ export default defineVisual({
         busy = false;
         render();
       }
+    }
+
+    async function refreshStats() {
+      try {
+        const output = await context.services.call(STATS_SERVICE_REF, "snapshot");
+        if (isPlayerStatsState(output)) {
+          statsState = output;
+          render();
+        }
+      } catch (error) {
+        context.diagnostics.warn("Unable to load player stats for control panel.", error);
+      }
+    }
+
+    function regieDurationMs() {
+      const value = Number(regieDuration?.value);
+      return Number.isFinite(value) ? Math.max(500, Math.min(60000, Math.trunc(value))) : 8000;
+    }
+
+    function regieScopeValue() {
+      return regieScope?.value === "bo" || regieScope?.value === "match" ? regieScope.value : "lastMatch";
+    }
+
+    async function callRegie(method: string, input: unknown = {}) {
+      busy = true;
+      message = "";
+      render();
+      try {
+        await context.services.call(REGIE_SERVICE_REF, method, input);
+      } catch (error) {
+        message = errorMessage(error);
+        context.diagnostics.error("Regie service call failed.", { method, error });
+      } finally {
+        busy = false;
+        render();
+      }
+    }
+
+    function triggerStatistics(view: "teamDetail" | "teamSummary" | "player", teamNum = -1) {
+      const cue = view === "teamDetail" ? "teamDetail" : view === "teamSummary" ? "teamSummary" : "statistics";
+      void callRegie("trigger", {
+        cue,
+        durationMs: regieDurationMs(),
+        payload: {
+          scope: regieScopeValue(),
+          view,
+          activationMode: "regie",
+          teamNum
+        }
+      });
+    }
+
+    function triggerHeadToHead() {
+      void callRegie("trigger", {
+        cue: "headToHead",
+        durationMs: regieDurationMs(),
+        payload: {
+          scope: regieScopeValue(),
+          leftPlayerId: h2hLeft?.value ?? "",
+          rightPlayerId: h2hRight?.value ?? ""
+        }
+      });
     }
 
     function configInput(resetScore = false) {
@@ -386,21 +524,45 @@ export default defineVisual({
     context.root.querySelector<HTMLButtonElement>(".undo")?.addEventListener("click", () => {
       void callService("undo");
     });
-
-    const cleanup = context.bus.subscribe(STATE_EVENT, (event: BakingRLEvent<unknown>) => {
-      if (isBoTrackerState(event.Data)) {
-        state = event.Data;
-        if (!configDirty) selectedBestOf = state.bestOf;
-        render();
-      }
+    context.root.querySelector<HTMLButtonElement>(".trigger-stats-detail")?.addEventListener("click", () => {
+      triggerStatistics("teamDetail", -1);
+    });
+    context.root.querySelector<HTMLButtonElement>(".trigger-stats-summary")?.addEventListener("click", () => {
+      triggerStatistics("teamSummary", -1);
+    });
+    context.root.querySelector<HTMLButtonElement>(".trigger-stats-team")?.addEventListener("click", () => {
+      triggerStatistics("teamDetail", Number(regieTeam?.value ?? 0));
+    });
+    context.root.querySelector<HTMLButtonElement>(".trigger-h2h")?.addEventListener("click", () => {
+      triggerHeadToHead();
+    });
+    context.root.querySelector<HTMLButtonElement>(".clear-regie")?.addEventListener("click", () => {
+      void callRegie("clear", {});
     });
 
+    const cleanups = [
+      context.bus.subscribe(STATE_EVENT, (event: BakingRLEvent<unknown>) => {
+        if (isBoTrackerState(event.Data)) {
+          state = event.Data;
+          if (!configDirty) selectedBestOf = state.bestOf;
+          render();
+        }
+      }),
+      context.bus.subscribe(PLAYER_STATS_EVENT, (event: BakingRLEvent<unknown>) => {
+        if (isPlayerStatsState(event.Data)) {
+          statsState = event.Data;
+          render();
+        }
+      })
+    ];
+
     await callService("snapshot");
+    await refreshStats();
 
     return () => {
       instances.delete(context.root);
       cleanupScale();
-      cleanup();
+      for (const cleanup of cleanups) cleanup();
     };
   },
   update(context: VisualContext) {

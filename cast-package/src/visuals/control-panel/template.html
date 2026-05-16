@@ -1,5 +1,5 @@
 <div class="bo-control">
-  <div class="topbar">
+  <header class="topbar">
     <div class="title-block">
       <h1>{{title}}</h1>
       <span class="subtitle">{{subtitle}}</span>
@@ -9,10 +9,14 @@
       <span class="chip bo-chip">BO5</span>
       <span class="chip leader-chip">0 - 0</span>
     </div>
-  </div>
-  <div class="grid">
-    <section class="panel">
-      <h2>Configuration</h2>
+  </header>
+
+  <div class="dashboard">
+    <section class="panel setup-panel">
+      <div class="panel-head">
+        <h2>BO Setup</h2>
+        <span>Match format</span>
+      </div>
       <div class="team-fields">
         <div class="field">
           <label for="side0-name">Equipe Side 0</label>
@@ -37,8 +41,11 @@
       <div class="message"></div>
     </section>
 
-    <section class="panel">
-      <h2>Score</h2>
+    <section class="panel score-panel">
+      <div class="panel-head">
+        <h2>Score</h2>
+        <span>Series state</span>
+      </div>
       <div class="matchup">
         <div class="side-score left">
           <span class="field-label side0-label">Side 0</span>
@@ -67,6 +74,69 @@
         <button type="button" class="undo">Undo</button>
       </div>
       {{history}}
+    </section>
+
+    <section class="panel regie-panel">
+      <div class="panel-head">
+        <h2>Regie</h2>
+        <span class="regie-status">0 players tracked · 0 matches</span>
+      </div>
+
+      <div class="regie-toolbar">
+        <div class="field">
+          <label for="regie-scope">Scope</label>
+          <select id="regie-scope" class="regie-scope">
+            <option value="lastMatch">Last match</option>
+            <option value="bo">BO</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="regie-duration">Duration ms</label>
+          <input id="regie-duration" class="regie-duration" type="number" value="8000" min="500" max="60000" step="500" />
+        </div>
+        <button type="button" class="red clear-regie">Clear Event</button>
+      </div>
+
+      <div class="regie-sections">
+        <article class="regie-card h2h-card">
+          <div class="regie-card-head">
+            <h3>Head to Head</h3>
+            <span>Player comparison</span>
+          </div>
+          <div class="team-fields">
+            <div class="field">
+              <label>Left Player</label>
+              <select class="h2h-left" aria-label="Left player"></select>
+            </div>
+            <div class="field">
+              <label>Right Player</label>
+              <select class="h2h-right" aria-label="Right player"></select>
+            </div>
+          </div>
+          <div class="actions single">
+            <button type="button" class="primary trigger-h2h">Trigger Head to Head</button>
+          </div>
+        </article>
+
+        <article class="regie-card statistics-card">
+          <div class="regie-card-head">
+            <h3>Statistics</h3>
+            <span>Team and player stats</span>
+          </div>
+          <div class="actions">
+            <button type="button" class="trigger-stats-detail">Team Details</button>
+            <button type="button" class="trigger-stats-summary">Summary</button>
+          </div>
+          <div class="team-fields action-row">
+            <div class="field">
+              <label for="regie-team">Team</label>
+              <select id="regie-team" class="regie-team"></select>
+            </div>
+            <button type="button" class="trigger-stats-team field-button">Show Team</button>
+          </div>
+        </article>
+
+      </div>
     </section>
   </div>
 </div>

@@ -1,0 +1,55 @@
+{
+  "type": "object",
+  "title": "Head To Head Settings",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "title": "Scope",
+      "default": "lastMatch",
+      "oneOf": [
+        { "const": "lastMatch", "title": "Last Match" },
+        { "const": "match", "title": "Specific Match" },
+        { "const": "bo", "title": "BO" }
+      ]
+    },
+    "leftPlayerName": {
+      "type": "string",
+      "title": "Left Player Name",
+      "default": ""
+    },
+    "rightPlayerName": {
+      "type": "string",
+      "title": "Right Player Name",
+      "default": ""
+    },
+    "leftPlayerId": {
+      "type": "string",
+      "title": "Left Player Id",
+      "default": ""
+    },
+    "rightPlayerId": {
+      "type": "string",
+      "title": "Right Player Id",
+      "default": ""
+    },
+    "matchIndex": {
+      "type": "integer",
+      "title": "Match Index",
+      "default": 1,
+      "minimum": 1,
+      "maximum": 12
+    },
+    "matchGuid": {
+      "type": "string",
+      "title": "Match Guid",
+      "default": ""
+    },
+    "durationMs": {
+      "type": "integer",
+      "title": "Regie Duration Ms",
+      "default": 8000,
+      "minimum": 500,
+      "maximum": 60000
+    }
+  }
+}

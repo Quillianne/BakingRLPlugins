@@ -5,6 +5,10 @@ import {
   type RlSimpleMatchPayload,
   type ServiceContext
 } from "@bakingrl/plugin-sdk";
+import {
+  BO_STATE_EVENT,
+  BO_STATE_KEY
+} from "../../shared/events";
 
 type BestOf = 1 | 3 | 5 | 7;
 type Side = "left" | "right";
@@ -74,9 +78,6 @@ type ResetInput = {
   keepConfig?: unknown;
 };
 
-const PACKAGE_ID = "com.bakingrl.cast-package";
-const STATE_EVENT = `plugin.${PACKAGE_ID}.state`;
-const REGISTRY_KEY = `plugin.${PACKAGE_ID}.state`;
 const STORAGE_URI = "plugin://self/series-state.json";
 
 let serviceContext: ServiceContext | null = null;
@@ -289,8 +290,8 @@ async function publishState() {
   const context = serviceContext;
   if (!context) return publicState();
   const snapshot = publicState();
-  context.registry.set(REGISTRY_KEY, snapshot);
-  context.bus.emit(STATE_EVENT, snapshot);
+  context.registry.set(BO_STATE_KEY, snapshot);
+  context.bus.emit(BO_STATE_EVENT, snapshot);
   saveChain = saveChain
     .catch(() => undefined)
     .then(() => context.storage.writeText(STORAGE_URI, JSON.stringify(state, null, 2)));

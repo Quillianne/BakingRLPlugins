@@ -8,18 +8,14 @@ import {
   type RlUpdateStatePayload,
   type ServiceContext
 } from "@bakingrl/plugin-sdk";
+import {
+  GAME_SEQUENCE_EVENT,
+  GAME_SEQUENCE_KEY,
+  type GameSequenceState,
+  type SequencePhase,
+  type SequenceSource
+} from "../../shared/events";
 
-type SequenceSource = "menu" | "training" | "match" | "replay";
-type SequencePhase =
-  | "idle"
-  | "pre_match"
-  | "countdown"
-  | "live"
-  | "paused"
-  | "goal_replay"
-  | "post_goal"
-  | "ended"
-  | "podium";
 type ReplayKind = "none" | "goal" | "game";
 
 type InternalState = {
@@ -42,22 +38,6 @@ type InternalState = {
   overtime: boolean;
   updatedAtMs: number;
 };
-
-type GameSequenceState = {
-  version: 1;
-  source: SequenceSource;
-  phase: SequencePhase;
-  mode: string;
-  flags: {
-    isMatchActive: boolean;
-    isOvertime: boolean;
-  };
-  updatedAtMs: number;
-};
-
-const PACKAGE_ID = "com.bakingrl.cast-package";
-const STATE_EVENT = `plugin.${PACKAGE_ID}.sequence`;
-const REGISTRY_KEY = `plugin.${PACKAGE_ID}.sequence`;
 
 let serviceContext: ServiceContext | null = null;
 let state: InternalState = createDefaultState();
@@ -219,8 +199,8 @@ function publishState(force = false) {
   lastPublishedSignature = signatureFor(nextSnapshot);
 
   if (context) {
-    context.registry.set(REGISTRY_KEY, nextSnapshot);
-    context.bus.emit(STATE_EVENT, nextSnapshot);
+    context.registry.set(GAME_SEQUENCE_KEY, nextSnapshot);
+    context.bus.emit(GAME_SEQUENCE_EVENT, nextSnapshot);
   }
 
   return nextSnapshot;

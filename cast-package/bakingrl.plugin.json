@@ -10,18 +10,23 @@
   },
   "exports": {
     "visuals": {
+      "boControl": {
+        "entry": "dist/visuals/bo-control.js",
+        "defaultSize": [1200, 900],
+        "settings": "src/visuals/control-panel/settings.schema.json"
+      },
       "scoreboard": {
         "entry": "dist/visuals/scoreboard.js",
         "defaultSize": [760, 128],
         "settings": "src/visuals/scoreboard/settings.schema.json"
       },
-      "goal": {
-        "entry": "dist/visuals/goal.js",
+      "goalAnimation": {
+        "entry": "dist/visuals/goal-animation.js",
         "defaultSize": [1920, 1080],
         "settings": "src/visuals/goal/settings.schema.json"
       },
-      "victory": {
-        "entry": "dist/visuals/victory.js",
+      "victoryAnimation": {
+        "entry": "dist/visuals/victory-animation.js",
         "defaultSize": [1920, 1080],
         "settings": "src/visuals/victory/settings.schema.json"
       },
@@ -30,15 +35,40 @@
         "defaultSize": [220, 120],
         "settings": "src/visuals/player-boost/settings.schema.json"
       },
-      "playerStats": {
-        "entry": "dist/visuals/player-stats.js",
+      "playerStatLive": {
+        "entry": "dist/visuals/player-stat-live.js",
         "defaultSize": [360, 110],
         "settings": "src/visuals/player-stats/settings.schema.json"
       },
-      "teamEvents": {
-        "entry": "dist/visuals/team-events.js",
+      "teamPreviewLive": {
+        "entry": "dist/visuals/team-preview-live.js",
         "defaultSize": [420, 170],
         "settings": "src/visuals/team-events/settings.schema.json"
+      },
+      "cageStats": {
+        "entry": "dist/visuals/cage-stats.js",
+        "defaultSize": [760, 260],
+        "settings": "src/visuals/cage-stats/settings.schema.json"
+      },
+      "statistics": {
+        "entry": "dist/visuals/statistics.js",
+        "defaultSize": [900, 420],
+        "settings": "src/visuals/statistics/settings.schema.json"
+      },
+      "teamDetail": {
+        "entry": "dist/visuals/team-detail.js",
+        "defaultSize": [1920, 1080],
+        "settings": "src/visuals/team-detail/settings.schema.json"
+      },
+      "teamSummary": {
+        "entry": "dist/visuals/team-summary.js",
+        "defaultSize": [1920, 1080],
+        "settings": "src/visuals/team-summary/settings.schema.json"
+      },
+      "headToHead": {
+        "entry": "dist/visuals/head-to-head.js",
+        "defaultSize": [1920, 1080],
+        "settings": "src/visuals/head-to-head/settings.schema.json"
       }
     },
     "services": {
@@ -63,18 +93,39 @@
           "reset"
         ],
         "schema": "src/services/game-sequence/methods.schema.json"
+      },
+      "playerStatsTracker": {
+        "entry": "dist/services/player-stats.js",
+        "methods": [
+          "snapshot",
+          "reset"
+        ],
+        "schema": "src/services/player-stats/methods.schema.json"
+      },
+      "cageStats": {
+        "entry": "dist/services/cage-stats.js",
+        "methods": [
+          "snapshot",
+          "configure",
+          "reset"
+        ],
+        "schema": "src/services/cage-stats/methods.schema.json"
+      },
+      "regieController": {
+        "entry": "dist/services/regie-controller.js",
+        "methods": [
+          "trigger",
+          "clear",
+          "snapshot"
+        ],
+        "schema": "src/services/regie-controller/methods.schema.json"
       }
     },
-    "configuration": {
-      "path": "pages/control.json",
-      "title": "BO Tracker Control",
-      "description": "Configure team names, BO format, tracking state, and series score.",
-      "visuals": {
-        "controlPanel": {
-          "entry": "dist/visuals/control-panel.js",
-          "defaultSize": [1200, 740],
-          "settings": "src/visuals/control-panel/settings.schema.json"
-        }
+    "pages": {
+      "control": {
+        "path": "pages/control.json",
+        "title": "Cast Control",
+        "description": "Control BO state and trigger cast package event visuals."
       }
     }
   },
@@ -86,8 +137,10 @@
     "bus": {
       "read": [
         "UpdateState",
+        "BallHit",
         "ClockUpdatedSeconds",
         "CountdownBegin",
+        "CrossbarHit",
         "GoalScored",
         "GoalReplayEnd",
         "GoalReplayStart",
@@ -101,6 +154,9 @@
         "ReplayCreated",
         "RoundStarted",
         "StatfeedEvent",
+        "plugin.com.bakingrl.cast-package.cage-stats",
+        "plugin.com.bakingrl.cast-package.player-stats",
+        "plugin.com.bakingrl.cast-package.regie",
         "plugin.com.bakingrl.cast-package.sequence",
         "plugin.com.bakingrl.cast-package.state"
       ],
@@ -110,6 +166,9 @@
     },
     "registry": {
       "read": [
+        "plugin.com.bakingrl.cast-package.cage-stats",
+        "plugin.com.bakingrl.cast-package.player-stats",
+        "plugin.com.bakingrl.cast-package.regie",
         "plugin.com.bakingrl.cast-package.sequence",
         "plugin.com.bakingrl.cast-package.state"
       ],

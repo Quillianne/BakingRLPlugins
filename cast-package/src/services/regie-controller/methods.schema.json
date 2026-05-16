@@ -1,0 +1,43 @@
+{
+  "type": "object",
+  "methods": {
+    "trigger": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "cue": {
+            "type": "string",
+            "enum": ["statistics", "teamDetail", "teamSummary", "headToHead", "cageStats"]
+          },
+          "payload": {
+            "type": "object"
+          },
+          "durationMs": {
+            "type": "number",
+            "minimum": 500,
+            "maximum": 60000
+          }
+        },
+        "additionalProperties": false
+      },
+      "output": true
+    },
+    "clear": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "cue": {
+            "type": "string",
+            "enum": ["statistics", "teamDetail", "teamSummary", "headToHead", "cageStats"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "output": true
+    },
+    "snapshot": {
+      "input": true,
+      "output": true
+    }
+  }
+}

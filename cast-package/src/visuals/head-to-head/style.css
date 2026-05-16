@@ -1,0 +1,162 @@
+.head-to-head-event {
+  --event-team: #94a3b8;
+  --event-contrast: #0f172a;
+}
+
+.head-to-head {
+  --panel: rgba(15, 15, 20, 0.94);
+  --border: rgba(255, 255, 255, 0.14);
+  --text: #f8fafc;
+  --muted: rgba(226, 232, 240, 0.66);
+  position: absolute;
+  inset: 0;
+  container-type: size;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 0.9fr) minmax(0, 1.35fr);
+  gap: clamp(6px, 2.4cqh, 12px);
+  padding: clamp(8px, 2.8cqh, 16px);
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--panel);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.head-to-head.hidden {
+  visibility: hidden;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+header span {
+  color: var(--muted);
+  font-size: clamp(10px, min(2.2cqw, 3cqh), 14px);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+header strong {
+  color: var(--text);
+  font-size: clamp(16px, min(4cqw, 7cqh), 30px);
+  font-weight: 950;
+}
+
+.players {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: clamp(6px, 2cqw, 12px);
+  align-items: stretch;
+}
+
+.player-card {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  gap: 5px;
+  align-content: center;
+  padding: clamp(8px, 2.4cqh, 12px);
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--team-color);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.player-card.right {
+  border-left-width: 1px;
+  border-right: 5px solid var(--team-color);
+  text-align: right;
+}
+
+.player-card span,
+.player-card em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
+  font-size: clamp(9px, min(1.8cqw, 2.6cqh), 13px);
+  font-style: normal;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.player-card strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--team-color);
+  font-size: clamp(18px, min(5cqw, 8cqh), 34px);
+  font-weight: 950;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.versus {
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: clamp(34px, min(8cqw, 18cqh), 64px);
+  height: clamp(34px, min(8cqw, 18cqh), 64px);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font-size: clamp(12px, min(2.4cqw, 4cqh), 18px);
+  font-weight: 950;
+}
+
+.comparison {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: clamp(4px, 1.4cqh, 7px);
+  overflow: hidden;
+}
+
+.stat-line {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(90px, auto) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: clamp(3px, 1.4cqh, 6px) 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-line span {
+  color: var(--text);
+  font-size: clamp(12px, min(2.6cqw, 3.8cqh), 20px);
+  font-weight: 950;
+}
+
+.stat-line span:first-child {
+  text-align: left;
+}
+
+.stat-line span:last-child {
+  text-align: right;
+}
+
+.stat-line strong {
+  color: var(--muted);
+  font-size: clamp(8px, min(1.6cqw, 2.4cqh), 12px);
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
