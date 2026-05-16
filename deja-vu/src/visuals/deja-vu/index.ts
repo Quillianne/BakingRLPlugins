@@ -3,25 +3,23 @@ import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 
-type CurrentPlayer = {
+type DejaVuPlayer = {
   id: string;
-  primaryId: string | null;
   name: string;
+  encounterCount: number;
+};
+
+type DejaVuTeam = {
   teamNum: number;
-  teamName: string;
-  teamColor: string;
-  matchGuid: string | null;
-  previousMatchCount: number;
-  totalMatchCount: number;
-  firstSeenAtMs: number;
-  lastSeenAtMs: number;
+  name: string;
+  color: string;
+  players: DejaVuPlayer[];
 };
 
 type DejaVuState = {
   version: 1;
   currentMatchGuid: string | null;
-  currentPlayers: CurrentPlayer[];
-  totalKnownPlayers: number;
+  teams: DejaVuTeam[];
   updatedAtMs: number;
 };
 
@@ -50,21 +48,28 @@ function clampInt(value: unknown, fallback: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.trunc(value)));
 }
 
-function isCurrentPlayer(value: unknown): value is CurrentPlayer {
+function isPlayer(value: unknown): value is DejaVuPlayer {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const player = value as Partial<CurrentPlayer>;
+  const player = value as Partial<DejaVuPlayer>;
+  return typeof player.id === "string" && typeof player.name === "string" && typeof player.encounterCount === "number";
+}
+
+function isTeam(value: unknown): value is DejaVuTeam {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const team = value as Partial<DejaVuTeam>;
   return (
-    typeof player.id === "string" &&
-    typeof player.name === "string" &&
-    typeof player.teamNum === "number" &&
-    typeof player.previousMatchCount === "number"
+    typeof team.teamNum === "number" &&
+    typeof team.name === "string" &&
+    typeof team.color === "string" &&
+    Array.isArray(team.players) &&
+    team.players.every(isPlayer)
   );
 }
 
 function isState(value: unknown): value is DejaVuState {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const state = value as Partial<DejaVuState>;
-  return state.version === 1 && Array.isArray(state.currentPlayers) && state.currentPlayers.every(isCurrentPlayer);
+  return state.version === 1 && Array.isArray(state.teams) && state.teams.every(isTeam);
 }
 
 function escapeHtml(value: unknown) {
@@ -92,9 +97,9 @@ function fallbackColor(teamNum: number) {
   return "#94a3b8";
 }
 
-function renderPlayerTemplate(player: CurrentPlayer) {
-  const color = safeColor(player.teamColor, fallbackColor(player.teamNum));
-  const count = Math.max(0, Math.trunc(player.previousMatchCount));
+function renderPlayerTemplate(team: DejaVuTeam, player: DejaVuPlayer) {
+  const color = safeColor(team.color, fallbackColor(team.teamNum));
+  const count = Math.max(0, Math.trunc(player.encounterCount));
   return `
     <li class="player-row" style="--team-color:${escapeHtml(color)}">
       <span class="player-name">${escapeHtml(player.name)}</span>
@@ -104,10 +109,12 @@ function renderPlayerTemplate(player: CurrentPlayer) {
 }
 
 function renderDejaVuTemplate(state: DejaVuState | null, settings: DejaVuSettings) {
-  const players = (state?.currentPlayers ?? []).slice(0, settings.maxPlayers);
+  const players = (state?.teams ?? [])
+    .flatMap((team) => team.players.map((player) => ({ team, player })))
+    .slice(0, settings.maxPlayers);
   return templateHtml
     .replace("{{textSize}}", String(settings.textSize))
-    .replace("{{players}}", players.map((player) => renderPlayerTemplate(player)).join(""));
+    .replace("{{players}}", players.map(({ team, player }) => renderPlayerTemplate(team, player)).join(""));
 }
 
 function renderDejaVuShellTemplate() {

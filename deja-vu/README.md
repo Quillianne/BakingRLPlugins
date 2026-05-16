@@ -16,6 +16,8 @@ Its default visual size is 300x100, with a configurable text size.
 - Uses `PrimaryId` when available, then falls back to normalized player name.
 - Stores unique match GUIDs per player in package-local storage.
 - Publishes public state to `plugin.com.bakingrl.deja-vu.state`.
+- Groups current players by team with the team color and each player's previous
+  encounter count.
 - Displays current player names with their previous encounter count, colored by
   team.
 
@@ -25,5 +27,5 @@ player has not been seen in any previously recorded match.
 ## Permissions
 
 - Reads Rocket League roster and match lifecycle events.
-- Writes one package registry namespace for live state.
+- Writes package-scoped registry state.
 - Uses `plugin://self/*` storage for the local encounter history.

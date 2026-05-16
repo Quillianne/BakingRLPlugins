@@ -26,18 +26,17 @@ type PlayerRecord = {
   lastTeamNum: number;
 };
 
-type CurrentPlayer = {
+type PublicPlayer = {
   id: string;
-  primaryId: string | null;
   name: string;
+  encounterCount: number;
+};
+
+type PublicTeam = {
   teamNum: number;
-  teamName: string;
-  teamColor: string;
-  matchGuid: string | null;
-  previousMatchCount: number;
-  totalMatchCount: number;
-  firstSeenAtMs: number;
-  lastSeenAtMs: number;
+  name: string;
+  color: string;
+  players: PublicPlayer[];
 };
 
 type InternalState = {
@@ -52,9 +51,7 @@ type InternalState = {
 type PublicState = {
   version: 1;
   currentMatchGuid: string | null;
-  currentPlayers: CurrentPlayer[];
-  teams: Record<string, TeamSnapshot>;
-  totalKnownPlayers: number;
+  teams: PublicTeam[];
   updatedAtMs: number;
 };
 
@@ -295,38 +292,44 @@ function rememberPlayer(player: RlPlayer, matchGuid: string | null, seenAtMs: nu
   return { id: identity.id, changed };
 }
 
-function publicPlayer(record: PlayerRecord, currentMatchGuid: string | null): CurrentPlayer {
-  const team = state.teams[String(record.lastTeamNum)];
-  const previousMatchCount = currentMatchGuid
+function publicPlayer(record: PlayerRecord, currentMatchGuid: string | null): PublicPlayer {
+  const encounterCount = currentMatchGuid
     ? record.matchGuids.filter((matchGuid) => matchGuid !== currentMatchGuid).length
     : record.matchGuids.length;
   return {
     id: record.id,
-    primaryId: record.primaryId,
     name: record.name,
-    teamNum: record.lastTeamNum,
-    teamName: team?.name ?? `Team ${record.lastTeamNum}`,
-    teamColor: team?.colorPrimary ?? fallbackColor(record.lastTeamNum),
-    matchGuid: currentMatchGuid,
-    previousMatchCount,
-    totalMatchCount: record.matchGuids.length,
-    firstSeenAtMs: record.firstSeenAtMs,
-    lastSeenAtMs: record.lastSeenAtMs
+    encounterCount
   };
 }
 
 function publicState(): PublicState {
-  const currentPlayers = state.currentPlayers
-    .map((playerId) => state.players[playerId])
-    .filter((record): record is PlayerRecord => Boolean(record))
-    .map((record) => publicPlayer(record, state.currentMatchGuid));
+  const teams = new Map<number, PublicTeam>();
+
+  function teamFor(teamNum: number) {
+    const knownTeam = state.teams[String(teamNum)];
+    const existingTeam = teams.get(teamNum);
+    if (existingTeam) return existingTeam;
+    const nextTeam: PublicTeam = {
+      teamNum,
+      name: knownTeam?.name ?? `Team ${teamNum}`,
+      color: knownTeam?.colorPrimary ?? fallbackColor(teamNum),
+      players: []
+    };
+    teams.set(teamNum, nextTeam);
+    return nextTeam;
+  }
+
+  for (const playerId of state.currentPlayers) {
+    const record = state.players[playerId];
+    if (!record) continue;
+    teamFor(record.lastTeamNum).players.push(publicPlayer(record, state.currentMatchGuid));
+  }
 
   return {
     version: 1,
     currentMatchGuid: state.currentMatchGuid,
-    currentPlayers,
-    teams: Object.fromEntries(Object.entries(state.teams).map(([key, team]) => [key, { ...team }])),
-    totalKnownPlayers: Object.keys(state.players).length,
+    teams: [...teams.values()].sort((a, b) => a.teamNum - b.teamNum),
     updatedAtMs: state.updatedAtMs
   };
 }
