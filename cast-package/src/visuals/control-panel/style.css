@@ -489,6 +489,10 @@ button.active {
   border-left: 5px solid var(--orange);
 }
 
+.cage-card {
+  border-left: 5px solid #22c55e;
+}
+
 .action-row {
   grid-template-columns: minmax(0, 1fr) 132px;
   align-items: end;

@@ -6,19 +6,16 @@ body {
 
 .deja-vu {
   position: absolute;
-  left: 50%;
-  top: 50%;
+  inset: 0;
   container-type: size;
-  width: var(--brl-visual-design-width, 100%);
-  height: var(--brl-visual-design-height, 100%);
-  transform: translate(-50%, -50%) scale(var(--brl-visual-scale, 1));
-  transform-origin: center;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: clamp(2px, 3cqh, 3px);
+  gap: clamp(2px, 3cqh, 6px);
   margin: 0;
-  padding: 0;
+  padding: clamp(2px, 4cqh, 8px) clamp(3px, 4cqw, 10px);
   box-sizing: border-box;
   overflow: hidden;
   list-style: none;
@@ -30,11 +27,12 @@ body {
 .player-row {
   display: flex;
   max-width: 100%;
+  min-height: 0;
   align-items: baseline;
   gap: clamp(4px, 2.6cqw, 8px);
   overflow: hidden;
   color: var(--team-color);
-  font-size: min(var(--deja-vu-text-size, 16px), clamp(10px, min(6cqw, 20cqh), 22px));
+  font-size: clamp(9px, min(7cqw, calc(72cqh / var(--deja-vu-row-count, 4))), 34px);
   font-weight: 800;
   line-height: 1.05;
 }

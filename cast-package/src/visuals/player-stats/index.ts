@@ -8,7 +8,6 @@ import {
   type VisualContext
 } from "@bakingrl/plugin-sdk";
 import { editorUpdateState, isEditorMode } from "../editorPreviewData";
-import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 
@@ -143,7 +142,6 @@ function renderInstance(instance: PlayerStatsInstance) {
 
 export default defineVisual({
   async mount(context: VisualContext) {
-    const cleanupScale = fitVisualScale(context.root, 360, 110);
     const instance: PlayerStatsInstance = {
       root: context.root,
       settings: readSettings(context.settings),
@@ -160,7 +158,6 @@ export default defineVisual({
 
     return () => {
       instances.delete(context.root);
-      cleanupScale();
       cleanup();
     };
   },

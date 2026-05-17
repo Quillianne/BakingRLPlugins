@@ -2,12 +2,13 @@
   "schema": "bakingrl.plugin/2",
   "id": "com.bakingrl.deja-vu",
   "name": "Deja Vu",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": "BakingRL",
   "compatibility": {
     "runtimeApi": "0.4.0",
     "sdk": "0.4.0"
   },
+  "settings": "src/settings.schema.json",
   "exports": {
     "visuals": {
       "dejaVu": {

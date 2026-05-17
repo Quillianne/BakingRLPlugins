@@ -32,21 +32,21 @@
   visibility: hidden;
 }
 
-header {
+.head-to-head header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-header span {
+.head-to-head header span {
   color: var(--muted);
   font-size: clamp(10px, min(2.2cqw, 3cqh), 14px);
   font-weight: 900;
   text-transform: uppercase;
 }
 
-header strong {
+.head-to-head header strong {
   color: var(--text);
   font-size: clamp(16px, min(4cqw, 7cqh), 30px);
   font-weight: 950;

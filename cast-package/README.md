@@ -4,7 +4,7 @@ Combined cast overlays and controls for BakingRL.
 
 ## Exports
 
-- Visuals: `boControl`, `scoreboard`, `goalAnimation`, `victoryAnimation`, `playerBoost`, `playerStatLive`, `teamPreviewLive`, `cageStats`, `statistics`, `teamDetail`, `teamSummary`, `headToHead`
+- Visuals: `boControl`, `scoreboard`, `goalAnimation`, `victoryAnimation`, `playerBoost`, `playerStatLive`, `teamPreviewLive`, `cageStats`, `statistics`, `fullscreenStats`
 - Services: `boTracker`, `gameSequence`, `playerStatsTracker`, `cageStats`, `regieController`
 - Page: `control`
 
@@ -27,7 +27,8 @@ goal participation, percent supersonic, and percent in the air
 (`bOnGround === false`). `snapshot` can return the full state or filter by
 `scope`, `matchGuid`, `matchIndex`, `playerId`, `playerName`, and `teamNum`.
 Boost consumption, speed, and time percentages are runtime measurements derived
-from successive `UpdateState` frames.
+from successive live gameplay `UpdateState` frames only, using the game sequence
+service to ignore replay, pause, menu, podium, and non-match phases.
 
 The cage stats service publishes `plugin.com.bakingrl.cast-package.cage-stats`.
 It tracks goals, crossbar hits, and saves as projected cage coordinates. The
@@ -35,12 +36,11 @@ It tracks goals, crossbar hits, and saves as projected cage coordinates. The
 the rest of the package and supports team-defense, player-saves, and
 player-offense scopes.
 
-Statistics elements are exposed as reusable render components internally. The
-fullscreen `headToHead`, `teamDetail`, and `teamSummary` visuals reuse the same
-player/team/stat blocks and the same claw transition as `goalAnimation` and
-`victoryAnimation`.
+`statistics` and `cageStats` are reusable visual elements intended to be placed
+and customized directly in layouts. `fullscreenStats` is the event-layer visual:
+the regie can trigger it as cage stats, head-to-head, team detail, or team
+summary using the same claw transition as `goalAnimation` and `victoryAnimation`.
 
 The regie controller publishes `plugin.com.bakingrl.cast-package.regie`.
-The control page calls it through RPC to trigger event-layer visuals such as
-`statistics` and `headToHead`; those visuals activate themselves with
-`context.setActive`.
+The control page calls it through RPC to trigger the `fullscreenStats` event
+visual; it activates itself with `context.setActive`.

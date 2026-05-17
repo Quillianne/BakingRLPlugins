@@ -1,0 +1,9 @@
+.fullscreen-stats-event {
+  --event-team: #94a3b8;
+  --event-contrast: #0f172a;
+}
+
+.fullscreen-stats-empty {
+  position: absolute;
+  inset: 0;
+}

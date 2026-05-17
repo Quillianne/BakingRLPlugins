@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "methods": {
+    "snapshot": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": ["session", "global", "all"]
+          },
+          "playerId": {
+            "type": "string"
+          },
+          "playerName": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output": true
+    },
+    "reset": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": ["session", "global", "all"],
+            "default": "session"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output": true
+    }
+  }
+}

@@ -2,7 +2,7 @@
   "schema": "bakingrl.plugin/2",
   "id": "com.bakingrl.cast-package",
   "name": "Cast Package",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": "BakingRL",
   "compatibility": {
     "runtimeApi": "0.4.0",
@@ -55,20 +55,10 @@
         "defaultSize": [900, 420],
         "settings": "src/visuals/statistics/settings.schema.json"
       },
-      "teamDetail": {
-        "entry": "dist/visuals/team-detail.js",
+      "fullscreenStats": {
+        "entry": "dist/visuals/fullscreen-stats.js",
         "defaultSize": [1920, 1080],
-        "settings": "src/visuals/team-detail/settings.schema.json"
-      },
-      "teamSummary": {
-        "entry": "dist/visuals/team-summary.js",
-        "defaultSize": [1920, 1080],
-        "settings": "src/visuals/team-summary/settings.schema.json"
-      },
-      "headToHead": {
-        "entry": "dist/visuals/head-to-head.js",
-        "defaultSize": [1920, 1080],
-        "settings": "src/visuals/head-to-head/settings.schema.json"
+        "settings": "src/visuals/fullscreen-stats/settings.schema.json"
       }
     },
     "services": {

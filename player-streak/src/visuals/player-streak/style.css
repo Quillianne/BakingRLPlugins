@@ -1,0 +1,255 @@
+:root,
+body {
+  margin: 0;
+  background: transparent;
+}
+
+.record {
+  position: absolute;
+  isolation: isolate;
+  inset: 0;
+  container-type: size;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(42%, 1.1fr);
+  align-items: stretch;
+  gap: clamp(4px, 2.6cqw, 12px);
+  overflow: hidden;
+  padding: clamp(5px, 6cqh, 14px) clamp(7px, 4cqw, 18px);
+  color: #f8fbff;
+  background: rgba(12, 17, 24, 0.86);
+  border: clamp(1px, 0.7cqw, 3px) solid color-mix(in srgb, var(--team-color) 78%, #ffffff 22%);
+  border-radius: clamp(3px, 2cqw, 8px);
+  box-shadow: 0 0 clamp(8px, 5cqw, 28px) rgba(0, 0, 0, 0.26);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+
+.record-header {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(1px, 1.2cqh, 5px);
+  overflow: hidden;
+}
+
+.player-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  font-size: clamp(10px, min(11cqw, 34cqh), 34px);
+  font-weight: 850;
+  line-height: 1;
+}
+
+.record-context {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: color-mix(in srgb, currentColor 72%, transparent);
+  font-size: clamp(7px, min(5.5cqw, 16cqh), 15px);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.record-stats {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(3px, 1.8cqw, 9px);
+  align-items: stretch;
+}
+
+.stat {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(1px, 1cqh, 4px);
+  overflow: hidden;
+  color: inherit;
+}
+
+.stat-value {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(12px, min(12cqw, 48cqh), 42px);
+  font-weight: 900;
+  line-height: 0.92;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: color-mix(in srgb, currentColor 68%, transparent);
+  font-size: clamp(6px, min(4.5cqw, 13cqh), 13px);
+  font-weight: 850;
+  line-height: 1;
+}
+
+.record--hide-name {
+  grid-template-columns: 1fr;
+}
+
+.record--hide-name .record-header {
+  display: none;
+}
+
+.record--hide-context .record-context {
+  display: none;
+}
+
+.record--missing {
+  opacity: 0.72;
+}
+
+.record--clean {
+  color: #141922;
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 clamp(3px, 3cqh, 12px) clamp(9px, 7cqw, 30px) rgba(7, 11, 18, 0.18);
+}
+
+.record--clean::before,
+.record--broadcast::before,
+.record--ribbon::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 0;
+}
+
+.record--clean::before {
+  width: clamp(4px, 2cqw, 10px);
+  background: var(--team-color);
+}
+
+.record--clean .stat {
+  background: rgba(12, 17, 24, 0.06);
+  border-radius: clamp(2px, 1.6cqw, 6px);
+}
+
+.record--broadcast {
+  color: #f9fbff;
+  background: linear-gradient(120deg, rgba(12, 18, 30, 0.98), rgba(32, 41, 54, 0.92));
+  border: 0;
+  border-radius: clamp(2px, 1.4cqw, 5px);
+  box-shadow: 0 clamp(2px, 3cqh, 9px) 0 rgba(0, 0, 0, 0.34);
+}
+
+.record--broadcast::before {
+  width: min(40%, 15rem);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--team-color) 88%, #000000 12%), transparent);
+}
+
+.record--broadcast .record-context {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.record--broadcast .stat {
+  background: rgba(255, 255, 255, 0.1);
+  border-top: clamp(1px, 0.5cqw, 2px) solid rgba(255, 255, 255, 0.18);
+}
+
+.record--neon {
+  color: #eaffff;
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--team-color) 34%, transparent) 0, transparent 45%),
+    #05070c;
+  border-color: #21e6c1;
+  box-shadow:
+    0 0 clamp(10px, 5cqw, 24px) rgba(33, 230, 193, 0.24),
+    inset 0 0 clamp(8px, 5cqw, 24px) rgba(58, 134, 255, 0.18);
+}
+
+.record--neon .player-name {
+  color: #faff81;
+}
+
+.record--neon .stat {
+  border: clamp(1px, 0.5cqw, 2px) solid rgba(33, 230, 193, 0.5);
+}
+
+.record--ribbon {
+  color: #18140f;
+  background: #fff7d1;
+  border: 0;
+  border-radius: 0;
+  box-shadow: clamp(3px, 3cqw, 14px) clamp(3px, 3cqh, 14px) 0 rgba(0, 0, 0, 0.24);
+}
+
+.record--ribbon::before {
+  width: min(42%, 16rem);
+  background: linear-gradient(90deg, var(--team-color), color-mix(in srgb, var(--team-color) 42%, #fff7d1 58%));
+}
+
+.record--ribbon .player-name {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+}
+
+.record--ribbon .record-context {
+  color: rgba(24, 20, 15, 0.68);
+}
+
+.record--ribbon .stat {
+  background: rgba(24, 20, 15, 0.09);
+}
+
+.record--terminal {
+  color: #d6ff77;
+  background: rgba(1, 9, 8, 0.94);
+  border-color: rgba(214, 255, 119, 0.78);
+  border-radius: clamp(1px, 0.9cqw, 4px);
+  box-shadow: inset 0 0 0 clamp(1px, 0.4cqw, 2px) rgba(45, 212, 191, 0.32);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+.record--terminal .player-name,
+.record--terminal .stat-value {
+  color: #2dd4bf;
+}
+
+.record--terminal .stat-label,
+.record--terminal .record-context {
+  color: rgba(214, 255, 119, 0.72);
+}
+
+@container (max-width: 210px) {
+  .record {
+    grid-template-columns: 1fr;
+    gap: clamp(3px, 2cqh, 8px);
+  }
+
+  .record-header {
+    align-items: center;
+    text-align: center;
+  }
+}
+
+@container (max-height: 70px) {
+  .record {
+    grid-template-columns: minmax(0, 0.9fr) minmax(56%, 1.2fr);
+    padding-block: clamp(3px, 4cqh, 8px);
+  }
+
+  .record-context {
+    display: none;
+  }
+}

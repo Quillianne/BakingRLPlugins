@@ -9,10 +9,9 @@ documentation.
 ## Repository Layout
 
 ```txt
-scoreboard/    Visual overlay package for live score display.
-bo-tracker/    Service package for best-of series state.
-deja-vu/       Service and visual package for player encounter counts.
-game-events/   Fullscreen goal and victory event visuals.
+cast-package/   Production cast overlays, BO controls, and shared cast stats.
+deja-vu/        Service and visual package for player encounter counts.
+player-streak/  Service and visual package for player win/loss streak records.
 ```
 
 ## Local Workspace Setup
@@ -85,7 +84,6 @@ npm run tauri dev
 
 ## Packages
 
-- [Scoreboard](scoreboard/README.md)
-- [BO Tracker](bo-tracker/README.md)
+- [Cast Package](cast-package/README.md)
 - [Deja Vu](deja-vu/README.md)
-- [Game Events](game-events/README.md)
+- [PlayerStreak](player-streak/README.md)

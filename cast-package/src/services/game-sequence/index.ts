@@ -26,6 +26,7 @@ type InternalState = {
   roundStarted: boolean;
   replayActive: boolean;
   replayKind: ReplayKind;
+  gameReplayContext: boolean;
   paused: boolean;
   podiumActive: boolean;
   hasWinner: boolean;
@@ -53,6 +54,7 @@ function createDefaultState(): InternalState {
     roundStarted: false,
     replayActive: false,
     replayKind: "none",
+    gameReplayContext: false,
     paused: false,
     podiumActive: false,
     hasWinner: false,
@@ -91,10 +93,30 @@ function cleanGuid(value: unknown) {
 function ensureMatch(matchGuid: string | null) {
   if (!matchGuid) return;
   if (state.matchGuid !== matchGuid) {
+    const keepGameReplay = state.gameReplayContext;
     resetMatchScopedState(matchGuid);
+    if (keepGameReplay) markGameReplayContext();
     return;
   }
+  if (state.gameReplayContext) return;
   state.source = "match";
+}
+
+function markGameReplayContext() {
+  state.source = "replay";
+  state.replayActive = true;
+  state.replayKind = "game";
+  state.gameReplayContext = true;
+  state.paused = false;
+  state.podiumActive = false;
+  state.hasWinner = false;
+  state.postGoal = false;
+}
+
+function clearReplayContext() {
+  state.replayActive = false;
+  state.replayKind = "none";
+  state.gameReplayContext = false;
 }
 
 function guidFromSimpleEvent(event: BakingRLEvent<RlSimpleMatchPayload, string>) {
@@ -129,6 +151,7 @@ function modeLabel(bluePlayers: number, orangePlayers: number) {
 }
 
 function derivedSource(): SequenceSource {
+  if (state.gameReplayContext) return "replay";
   if (state.replayActive && state.replayKind === "game") return "replay";
   if (state.matchGuid) return "match";
   return state.source;
@@ -143,13 +166,14 @@ function replayKind() {
 }
 
 function derivedPhase(source = derivedSource()): SequencePhase {
+  if (source === "replay") return "live";
   if (state.podiumActive) return "podium";
   if (state.paused && state.countdownStarted && !state.hasWinner) return "paused";
   if (isReplayActive() && replayKind() === "goal") return "goal_replay";
   if (state.hasWinner) return "ended";
   if (state.postGoal) return "post_goal";
   if (state.countdownStarted && !state.roundStarted) return "countdown";
-  if (source === "training" || source === "replay") return "live";
+  if (source === "training") return "live";
   if (state.countdownStarted || state.roundStarted) return "live";
   if (state.matchGuid || source === "match") return "pre_match";
   return "idle";
@@ -221,16 +245,25 @@ function handleUpdateState(event: BakingRLEvent<RlUpdateStatePayload, "UpdateSta
   if (data.Game?.bReplay === true) {
     state.replayActive = true;
     if (state.replayKind === "none") {
-      state.replayKind = state.postGoal || state.countdownStarted ? "goal" : "game";
+      state.replayKind = state.gameReplayContext || (!state.postGoal && !state.countdownStarted) ? "game" : "goal";
     }
     if (state.replayKind === "game") {
-      state.source = "replay";
+      if (state.gameReplayContext) {
+        markGameReplayContext();
+      } else {
+        state.source = "replay";
+      }
     }
     state.postGoal = false;
   } else if (data.Game?.bReplay === false) {
-    state.replayActive = false;
-    state.replayKind = "none";
-    if (state.source === "replay") {
+    if (state.gameReplayContext) {
+      state.source = "replay";
+      state.replayActive = false;
+      state.replayKind = "game";
+    } else {
+      clearReplayContext();
+    }
+    if (state.source === "replay" && !state.gameReplayContext) {
       state.source = state.matchGuid ? "match" : "menu";
     }
   }
@@ -247,54 +280,76 @@ function handleClockUpdated(event: BakingRLEvent<RlClockUpdatedSecondsPayload, "
 
 function handleMatchCreated(event: BakingRLEvent<RlSimpleMatchPayload, string>) {
   const matchGuid = guidFromSimpleEvent(event);
+  const keepGameReplay = state.gameReplayContext;
   if (matchGuid) {
     ensureMatch(matchGuid);
-  } else {
+  } else if (!keepGameReplay) {
     resetToSource("training");
   }
   state.paused = false;
   state.podiumActive = false;
   state.hasWinner = false;
   state.postGoal = false;
-  state.replayActive = false;
-  state.replayKind = "none";
+  if (keepGameReplay) {
+    markGameReplayContext();
+  } else {
+    clearReplayContext();
+  }
   publishState();
 }
 
 function handleCountdownBegin(event: BakingRLEvent<RlSimpleMatchPayload, "CountdownBegin">) {
+  const keepGameReplay = state.gameReplayContext;
   ensureMatch(guidFromSimpleEvent(event));
   state.paused = false;
   state.countdownStarted = true;
   state.roundStarted = false;
-  state.replayActive = false;
-  state.replayKind = "none";
   state.podiumActive = false;
   state.hasWinner = false;
   state.postGoal = false;
+  if (keepGameReplay) {
+    markGameReplayContext();
+  } else {
+    clearReplayContext();
+  }
   publishState();
 }
 
 function handleRoundStarted(event: BakingRLEvent<RlSimpleMatchPayload, "RoundStarted">) {
+  const keepGameReplay = state.gameReplayContext;
   ensureMatch(guidFromSimpleEvent(event));
   state.paused = false;
   state.countdownStarted = true;
   state.roundStarted = true;
-  state.replayActive = false;
-  state.replayKind = "none";
   state.podiumActive = false;
   state.postGoal = false;
+  if (keepGameReplay) {
+    markGameReplayContext();
+  } else {
+    clearReplayContext();
+  }
   publishState();
 }
 
 function handleGoalScored(event: BakingRLEvent<unknown, "GoalScored">) {
   const data = event.Data as Partial<RlSimpleMatchPayload> | null | undefined;
   ensureMatch(cleanGuid(data?.MatchGuid));
+  if (state.gameReplayContext) {
+    markGameReplayContext();
+    publishState();
+    return;
+  }
   state.postGoal = true;
   publishState();
 }
 
 function handleGoalReplayStart(event: BakingRLEvent<RlSimpleMatchPayload, "GoalReplayStart">) {
   ensureMatch(guidFromSimpleEvent(event));
+  if (state.gameReplayContext) {
+    markGameReplayContext();
+    publishState();
+    return;
+  }
   state.paused = false;
   state.replayActive = true;
   state.replayKind = "goal";
@@ -304,20 +359,20 @@ function handleGoalReplayStart(event: BakingRLEvent<RlSimpleMatchPayload, "GoalR
 
 function handleReplayEnd(event: BakingRLEvent<RlSimpleMatchPayload, "GoalReplayEnd">) {
   ensureMatch(guidFromSimpleEvent(event));
+  if (state.gameReplayContext) {
+    markGameReplayContext();
+    publishState();
+    return;
+  }
   state.paused = false;
-  state.replayActive = false;
-  state.replayKind = "none";
+  clearReplayContext();
   state.postGoal = !state.hasWinner;
   publishState();
 }
 
 function handleGameReplayStart(event: BakingRLEvent<RlSimpleMatchPayload, "ReplayCreated">) {
   ensureMatch(guidFromSimpleEvent(event));
-  state.source = "replay";
-  state.paused = false;
-  state.replayActive = true;
-  state.replayKind = "game";
-  state.postGoal = false;
+  markGameReplayContext();
   publishState();
 }
 
@@ -337,8 +392,9 @@ function handleMatchEnded(event: BakingRLEvent<RlMatchEndedPayload, "MatchEnded"
   ensureMatch(cleanGuid(event.Data?.MatchGuid));
   state.hasWinner = true;
   state.paused = false;
-  state.replayActive = false;
-  state.replayKind = "none";
+  if (!state.gameReplayContext) {
+    clearReplayContext();
+  }
   state.postGoal = false;
   publishState();
 }
@@ -348,8 +404,9 @@ function handlePodiumStart(event: BakingRLEvent<RlSimpleMatchPayload, "PodiumSta
   state.podiumActive = true;
   state.hasWinner = true;
   state.paused = false;
-  state.replayActive = false;
-  state.replayKind = "none";
+  if (!state.gameReplayContext) {
+    clearReplayContext();
+  }
   state.postGoal = false;
   publishState();
 }

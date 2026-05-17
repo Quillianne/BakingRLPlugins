@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "title": "Fullscreen Stats Settings",
+  "properties": {
+    "durationMs": {
+      "type": "integer",
+      "title": "Default Duration Ms",
+      "default": 8000,
+      "minimum": 500,
+      "maximum": 60000
+    }
+  }
+}

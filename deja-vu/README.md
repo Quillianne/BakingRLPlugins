@@ -3,7 +3,8 @@
 Deja Vu keeps a local encounter history for Rocket League players seen in live
 matches. The visual stays minimal: it renders current player names and previous
 encounter counts with their team color on a transparent background.
-Its default visual size is 300x100, with a configurable text size.
+Its default visual size is 300x100 and it scales to the assigned visual
+rectangle.
 
 ## Exports
 
@@ -23,6 +24,12 @@ Its default visual size is 300x100, with a configurable text size.
 
 The displayed count excludes the current match, so a value of `0` means the
 player has not been seen in any previously recorded match.
+
+## Settings
+
+- `Local Player Name`: removes the matching player from the visual. Matching is
+  exact after trimming whitespace and ignoring case. The player remains in the
+  stored encounter history; this only affects rendering.
 
 ## Permissions
 

@@ -62,15 +62,6 @@
         ]
       }
     },
-    "activationMode": {
-      "type": "string",
-      "title": "Activation",
-      "default": "always",
-      "oneOf": [
-        { "const": "always", "title": "Always Visible" },
-        { "const": "regie", "title": "Regie Trigger" }
-      ]
-    },
     "teamNum": {
       "type": "integer",
       "title": "Team",
@@ -99,13 +90,6 @@
       "type": "string",
       "title": "Match Guid",
       "default": ""
-    },
-    "durationMs": {
-      "type": "integer",
-      "title": "Regie Duration Ms",
-      "default": 8000,
-      "minimum": 500,
-      "maximum": 60000
     }
   }
 }

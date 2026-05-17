@@ -30,22 +30,6 @@
       "title": "Title",
       "default": ""
     },
-    "activationMode": {
-      "type": "string",
-      "title": "Activation",
-      "default": "regie",
-      "oneOf": [
-        { "const": "always", "title": "Always Visible" },
-        { "const": "regie", "title": "Regie Trigger" }
-      ]
-    },
-    "durationMs": {
-      "type": "integer",
-      "title": "Regie Duration Ms",
-      "default": 8000,
-      "minimum": 500,
-      "maximum": 60000
-    },
     "metrics": {
       "type": "array",
       "title": "Metrics",
@@ -58,11 +42,6 @@
           { "const": "save", "title": "Saves" }
         ]
       }
-    },
-    "showControls": {
-      "type": "boolean",
-      "title": "Show Demo Controls",
-      "default": false
     }
   }
 }

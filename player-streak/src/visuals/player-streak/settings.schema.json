@@ -1,0 +1,52 @@
+{
+  "type": "object",
+  "title": "PlayerStreak Settings",
+  "properties": {
+    "playerName": {
+      "type": "string",
+      "title": "Player Name",
+      "description": "Leave empty to use the package default player name, then the first current player from Cast Package stats.",
+      "default": ""
+    },
+    "scope": {
+      "type": "string",
+      "title": "Record Scope",
+      "default": "session",
+      "oneOf": [
+        { "const": "session", "title": "Session" },
+        { "const": "global", "title": "Global" }
+      ]
+    },
+    "modeScope": {
+      "type": "string",
+      "title": "Mode Tracking",
+      "default": "all",
+      "oneOf": [
+        { "const": "all", "title": "All Modes Together" },
+        { "const": "separate", "title": "Separate By Current Mode" }
+      ]
+    },
+    "theme": {
+      "type": "string",
+      "title": "Theme",
+      "default": "clean",
+      "oneOf": [
+        { "const": "clean", "title": "Clean" },
+        { "const": "broadcast", "title": "Broadcast" },
+        { "const": "neon", "title": "Neon" },
+        { "const": "ribbon", "title": "Ribbon" },
+        { "const": "terminal", "title": "Terminal" }
+      ]
+    },
+    "showPlayerName": {
+      "type": "boolean",
+      "title": "Show Player Name",
+      "default": true
+    },
+    "showContext": {
+      "type": "boolean",
+      "title": "Show Scope And Mode",
+      "default": true
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "schema": "bakingrl.plugin/2",
+  "id": "com.bakingrl.player-streak",
+  "name": "PlayerStreak",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "compatibility": {
+    "runtimeApi": "0.4.0",
+    "sdk": "0.4.0"
+  },
+  "settings": "src/settings.schema.json",
+  "exports": {
+    "visuals": {
+      "playerStreak": {
+        "entry": "dist/visuals/player-streak.js",
+        "defaultSize": [420, 120],
+        "settings": "src/visuals/player-streak/settings.schema.json"
+      }
+    },
+    "services": {
+      "playerStreak": {
+        "entry": "dist/services/player-streak.js",
+        "methods": ["snapshot", "reset"],
+        "schema": "src/services/player-streak/methods.schema.json"
+      }
+    }
+  },
+  "imports": {
+    "components": [],
+    "services": []
+  },
+  "permissions": {
+    "bus": {
+      "read": [
+        "MatchCreated",
+        "MatchInitialized",
+        "MatchEnded",
+        "MatchDestroyed",
+        "plugin.com.bakingrl.cast-package.sequence",
+        "plugin.com.bakingrl.cast-package.player-stats",
+        "plugin.com.bakingrl.player-streak.state"
+      ],
+      "publish": [
+        "plugin.com.bakingrl.player-streak.*"
+      ]
+    },
+    "registry": {
+      "read": [
+        "plugin.com.bakingrl.cast-package.sequence",
+        "plugin.com.bakingrl.cast-package.player-stats",
+        "plugin.com.bakingrl.player-streak.*"
+      ],
+      "write": [
+        "plugin.com.bakingrl.player-streak.*"
+      ]
+    },
+    "network": {
+      "http": [],
+      "websocket": []
+    },
+    "storage": [
+      "plugin://self/*"
+    ]
+  }
+}

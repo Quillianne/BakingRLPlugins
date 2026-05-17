@@ -1,6 +1,6 @@
 {
-  "name": "@bakingrl-plugins/deja-vu",
-  "version": "1.0.3",
+  "name": "@bakingrl-plugins/player-streak",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {

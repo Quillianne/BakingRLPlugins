@@ -12,10 +12,14 @@ import {
 import {
   BO_STATE_EVENT,
   BO_STATE_KEY,
+  GAME_SEQUENCE_EVENT,
+  GAME_SEQUENCE_KEY,
   PLAYER_STATS_EVENT,
   PLAYER_STATS_KEY,
   isBoState,
+  isGameSequenceState,
   type BoTrackerState,
+  type GameSequenceState,
   type Side
 } from "../../shared/events";
 
@@ -197,6 +201,7 @@ const MAX_DELTA_SECONDS = 5;
 
 let serviceContext: ServiceContext | null = null;
 let state: InternalState = createDefaultState();
+let sequenceState: GameSequenceState | null = null;
 let saveChain: Promise<void> = Promise.resolve();
 
 function nowMs() {
@@ -414,7 +419,17 @@ function teamFromTelemetry(team: RlTeam): TeamSnapshot {
   };
 }
 
-function createPlayer(player: RlPlayer, seenAtMs: number): PlayerRuntime {
+function readPlayerFlags(player: RlPlayer): PlayerFlags {
+  return {
+    boost: boostValue(player),
+    demoed: readBool(player.bDemolished),
+    supersonic: readBool(player.bSupersonic),
+    onGround: readBool(player.bOnGround),
+    speed: speedValue(player)
+  };
+}
+
+function createPlayer(player: RlPlayer, seenAtMs: number, countInitialMetrics = true): PlayerRuntime {
   return {
     id: playerIdentity(player),
     primaryId: cleanString(player.PrimaryId),
@@ -423,8 +438,8 @@ function createPlayer(player: RlPlayer, seenAtMs: number): PlayerRuntime {
     teamNum: readTeamNum(player.TeamNum),
     firstSeenAtMs: seenAtMs,
     lastSeenAtMs: seenAtMs,
-    metrics: metricFromPlayer(player),
-    lastFlags: emptyFlags()
+    metrics: countInitialMetrics ? metricFromPlayer(player) : emptyMetrics(),
+    lastFlags: readPlayerFlags(player)
   };
 }
 
@@ -451,23 +466,22 @@ function applyObservedDuration(runtime: PlayerRuntime, deltaSeconds: number) {
 function updatePlayerMetrics(runtime: PlayerRuntime, player: RlPlayer) {
   mergeCounterMetrics(runtime.metrics, metricFromPlayer(player));
 
-  const boost = boostValue(player);
+  const flags = readPlayerFlags(player);
+  const boost = flags.boost;
   if (boost !== null && runtime.lastFlags.boost !== null && boost < runtime.lastFlags.boost) {
     runtime.metrics.boostConsumed += runtime.lastFlags.boost - boost;
   }
 
-  const demoed = readBool(player.bDemolished);
+  const demoed = flags.demoed;
   if (demoed === true && runtime.lastFlags.demoed === false) {
     runtime.metrics.demoedCount += 1;
   }
 
-  runtime.lastFlags = {
-    boost,
-    demoed,
-    supersonic: readBool(player.bSupersonic),
-    onGround: readBool(player.bOnGround),
-    speed: speedValue(player)
-  };
+  runtime.lastFlags = flags;
+}
+
+function syncPlayerFlags(runtime: PlayerRuntime, player: RlPlayer) {
+  runtime.lastFlags = readPlayerFlags(player);
 }
 
 function createMatch(matchGuid: string): MatchRuntime {
@@ -534,6 +548,14 @@ function deltaSecondsFor(match: MatchRuntime, payload: RlUpdateStatePayload, see
   return 0;
 }
 
+function isGameplayUpdate(payload: RlUpdateStatePayload) {
+  if (payload.Game?.bReplay === true || payload.Game?.bHasWinner === true) return false;
+  if (sequenceState) {
+    return sequenceState.source === "match" && sequenceState.phase === "live" && sequenceState.flags.isMatchActive;
+  }
+  return true;
+}
+
 function updateTeams(match: MatchRuntime, teams: RlTeam[]) {
   for (const team of teams) {
     const snapshot = teamFromTelemetry(team);
@@ -543,16 +565,21 @@ function updateTeams(match: MatchRuntime, teams: RlTeam[]) {
 
 function updateMatchFromPayload(match: MatchRuntime, payload: RlUpdateStatePayload) {
   const seenAtMs = nowMs();
-  const deltaSeconds = payload.Game?.bReplay === true ? 0 : deltaSecondsFor(match, payload, seenAtMs);
+  const shouldCount = isGameplayUpdate(payload);
+  const deltaSeconds = shouldCount ? deltaSecondsFor(match, payload, seenAtMs) : 0;
 
   updateTeams(match, payload.Game?.Teams ?? []);
 
   for (const player of payload.Players ?? []) {
     const key = playerIdentity(player);
-    const runtime = match.players[key] ?? createPlayer(player, seenAtMs);
-    applyObservedDuration(runtime, deltaSeconds);
+    const runtime = match.players[key] ?? createPlayer(player, seenAtMs, shouldCount);
     updatePlayerIdentity(runtime, player, seenAtMs);
-    updatePlayerMetrics(runtime, player);
+    if (shouldCount) {
+      applyObservedDuration(runtime, deltaSeconds);
+      updatePlayerMetrics(runtime, player);
+    } else {
+      syncPlayerFlags(runtime, player);
+    }
     match.players[key] = runtime;
   }
 
@@ -1079,6 +1106,12 @@ async function handleBoStateEvent(event: BakingRLEvent<unknown, string>) {
   await publishState({ persist: true });
 }
 
+function handleSequenceEvent(event: BakingRLEvent<unknown, string>) {
+  if (isGameSequenceState(event.Data)) {
+    sequenceState = event.Data;
+  }
+}
+
 async function handleMatchStart(event: BakingRLEvent<RlSimpleMatchPayload, string>) {
   const matchGuid = matchGuidFromEvent(event);
   if (!matchGuid) return;
@@ -1127,12 +1160,23 @@ async function syncBoRegistry(context: ServiceContext) {
   }
 }
 
+async function syncSequenceRegistry(context: ServiceContext) {
+  try {
+    const value = await context.registry.get(GAME_SEQUENCE_KEY);
+    if (isGameSequenceState(value)) sequenceState = value;
+  } catch (error) {
+    context.diagnostics.warn("Unable to read sequence state for player stats.", error);
+  }
+}
+
 export default defineService({
   async mount(context: ServiceContext) {
     serviceContext = context;
     await loadState(context);
     await syncBoRegistry(context);
+    await syncSequenceRegistry(context);
     context.bus.subscribe(BO_STATE_EVENT, handleBoStateEvent);
+    context.bus.subscribe(GAME_SEQUENCE_EVENT, handleSequenceEvent);
     context.bus.subscribe("MatchCreated", handleMatchStart);
     context.bus.subscribe("MatchInitialized", handleMatchStart);
     context.bus.subscribe("RoundStarted", handleMatchStart);
@@ -1143,6 +1187,7 @@ export default defineService({
   },
   unmount() {
     serviceContext = null;
+    sequenceState = null;
   },
   methods: {
     async snapshot(input) {

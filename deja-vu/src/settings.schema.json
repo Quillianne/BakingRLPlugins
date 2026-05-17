@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "title": "Deja Vu Settings",
+  "properties": {
+    "localPlayerName": {
+      "type": "string",
+      "title": "Local Player Name",
+      "description": "Player name to remove from the Deja Vu visual.",
+      "default": ""
+    }
+  }
+}

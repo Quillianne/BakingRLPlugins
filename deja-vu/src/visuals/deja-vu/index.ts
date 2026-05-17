@@ -1,5 +1,4 @@
 import { defineVisual, type BakingRLEvent, type VisualContext } from "@bakingrl/plugin-sdk";
-import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 
@@ -25,11 +24,15 @@ type DejaVuState = {
 
 type DejaVuSettings = {
   maxPlayers: number;
-  textSize: number;
+  localPlayerName: string | null;
 };
 
 type DejaVuInstance = {
   updateSettings(settings: Record<string, unknown>): void;
+};
+
+type VisualContextWithMode = VisualContext & {
+  mode?: "runtime" | "editor";
 };
 
 const STATE_EVENT = "plugin.com.bakingrl.deja-vu.state";
@@ -39,13 +42,21 @@ const instances = new Map<HTMLElement, DejaVuInstance>();
 function readSettings(settings: Record<string, unknown>): DejaVuSettings {
   return {
     maxPlayers: clampInt(settings.maxPlayers, 4, 1, 16),
-    textSize: clampInt(settings.textSize, 16, 10, 36)
+    localPlayerName: cleanString(settings.localPlayerName)
   };
 }
 
 function clampInt(value: unknown, fallback: number, min: number, max: number) {
   if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
   return Math.max(min, Math.min(max, Math.trunc(value)));
+}
+
+function cleanString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function normalizedPlayerName(value: unknown) {
+  return cleanString(value)?.toLowerCase() ?? "";
 }
 
 function isPlayer(value: unknown): value is DejaVuPlayer {
@@ -109,23 +120,59 @@ function renderPlayerTemplate(team: DejaVuTeam, player: DejaVuPlayer) {
 }
 
 function renderDejaVuTemplate(state: DejaVuState | null, settings: DejaVuSettings) {
+  const localPlayerName = normalizedPlayerName(settings.localPlayerName);
   const players = (state?.teams ?? [])
     .flatMap((team) => team.players.map((player) => ({ team, player })))
+    .filter(({ player }) => !localPlayerName || normalizedPlayerName(player.name) !== localPlayerName)
     .slice(0, settings.maxPlayers);
   return templateHtml
-    .replace("{{textSize}}", String(settings.textSize))
+    .replace("{{rowCount}}", String(Math.max(1, players.length || settings.maxPlayers)))
     .replace("{{players}}", players.map(({ team, player }) => renderPlayerTemplate(team, player)).join(""));
 }
 
 function renderDejaVuShellTemplate() {
-  return `<style>${styleCss}</style>${renderDejaVuTemplate(null, { maxPlayers: 0, textSize: 16 })}`;
+  return `<style>${styleCss}</style>${renderDejaVuTemplate(null, { maxPlayers: 4, localPlayerName: null })}`;
+}
+
+function editorDejaVuState(): DejaVuState {
+  return {
+    version: 1,
+    currentMatchGuid: "editor-preview",
+    teams: [
+      {
+        teamNum: 0,
+        name: "Blue",
+        color: "#3b82f6",
+        players: [
+          { id: "editor-blue-1", name: "M0nkey M00n", encounterCount: 7 },
+          { id: "editor-blue-2", name: "ExoTiiK", encounterCount: 4 },
+          { id: "editor-blue-3", name: "Seikoo", encounterCount: 3 }
+        ]
+      },
+      {
+        teamNum: 1,
+        name: "Orange",
+        color: "#f97316",
+        players: [
+          { id: "editor-orange-1", name: "Vatira", encounterCount: 8 },
+          { id: "editor-orange-2", name: "Atow", encounterCount: 5 },
+          { id: "editor-orange-3", name: "Rise", encounterCount: 2 }
+        ]
+      }
+    ],
+    updatedAtMs: 1_710_000_000_000
+  };
+}
+
+function isEditorMode(context: VisualContext) {
+  return (context as VisualContextWithMode).mode === "editor";
 }
 
 export default defineVisual({
   async mount(context: VisualContext) {
     let settings = readSettings(context.settings);
-    const cleanupScale = fitVisualScale(context.root, 300, 100);
-    let state: DejaVuState | null = null;
+    const editorMode = isEditorMode(context);
+    let state: DejaVuState | null = editorMode ? editorDejaVuState() : null;
 
     context.root.innerHTML = renderDejaVuShellTemplate();
 
@@ -148,20 +195,21 @@ export default defineVisual({
       }
     });
 
-    try {
-      const registryState = await context.registry.get(STATE_KEY);
-      if (isState(registryState)) {
-        state = registryState;
+    if (!editorMode) {
+      try {
+        const registryState = await context.registry.get(STATE_KEY);
+        if (isState(registryState)) {
+          state = registryState;
+        }
+      } catch (error) {
+        context.diagnostics.warn("Unable to read Deja Vu registry state.", error);
       }
-    } catch (error) {
-      context.diagnostics.warn("Unable to read Deja Vu registry state.", error);
     }
 
     render();
 
     return () => {
       instances.delete(context.root);
-      cleanupScale();
       cleanup();
     };
   },

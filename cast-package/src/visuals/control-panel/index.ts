@@ -442,7 +442,6 @@ export default defineVisual({
         payload: {
           scope: regieScopeValue(),
           view,
-          activationMode: "regie",
           teamNum
         }
       });
@@ -456,6 +455,16 @@ export default defineVisual({
           scope: regieScopeValue(),
           leftPlayerId: h2hLeft?.value ?? "",
           rightPlayerId: h2hRight?.value ?? ""
+        }
+      });
+    }
+
+    function triggerCageStats() {
+      void callRegie("trigger", {
+        cue: "cageStats",
+        durationMs: regieDurationMs(),
+        payload: {
+          scope: "bothCages"
         }
       });
     }
@@ -535,6 +544,9 @@ export default defineVisual({
     });
     context.root.querySelector<HTMLButtonElement>(".trigger-h2h")?.addEventListener("click", () => {
       triggerHeadToHead();
+    });
+    context.root.querySelector<HTMLButtonElement>(".trigger-cage-stats")?.addEventListener("click", () => {
+      triggerCageStats();
     });
     context.root.querySelector<HTMLButtonElement>(".clear-regie")?.addEventListener("click", () => {
       void callRegie("clear", {});

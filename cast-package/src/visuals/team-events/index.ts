@@ -10,7 +10,6 @@ import {
   type VisualContext
 } from "@bakingrl/plugin-sdk";
 import { editorUpdateState, isEditorMode } from "../editorPreviewData";
-import { fitVisualScale } from "../fitVisualScale";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 
@@ -236,7 +235,6 @@ export default defineVisual({
     const editorMode = isEditorMode(context);
     let latestUpdate: RlUpdateStatePayload | null = null;
     let settings = readSettings(context.settings);
-    const cleanupScale = fitVisualScale(context.root, 420, 170);
     const recentEvents = new Map<string, RecentEvent>();
     const demolishedState = new Map<string, boolean>();
     let clearTimer: number | null = null;
@@ -326,7 +324,6 @@ export default defineVisual({
     return () => {
       instances.delete(context.root);
       if (clearTimer !== null) window.clearTimeout(clearTimer);
-      cleanupScale();
       for (const cleanup of cleanups) cleanup();
     };
   },

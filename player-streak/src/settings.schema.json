@@ -1,0 +1,52 @@
+{
+  "type": "object",
+  "title": "PlayerStreak Defaults",
+  "properties": {
+    "defaultPlayerName": {
+      "type": "string",
+      "title": "Default Player Name",
+      "description": "Used when a visual instance does not define its own Player Name.",
+      "default": ""
+    },
+    "scope": {
+      "type": "string",
+      "title": "Default Record Scope",
+      "default": "session",
+      "oneOf": [
+        { "const": "session", "title": "Session" },
+        { "const": "global", "title": "Global" }
+      ]
+    },
+    "modeScope": {
+      "type": "string",
+      "title": "Default Mode Tracking",
+      "default": "all",
+      "oneOf": [
+        { "const": "all", "title": "All Modes Together" },
+        { "const": "separate", "title": "Separate By Current Mode" }
+      ]
+    },
+    "theme": {
+      "type": "string",
+      "title": "Default Theme",
+      "default": "clean",
+      "oneOf": [
+        { "const": "clean", "title": "Clean" },
+        { "const": "broadcast", "title": "Broadcast" },
+        { "const": "neon", "title": "Neon" },
+        { "const": "ribbon", "title": "Ribbon" },
+        { "const": "terminal", "title": "Terminal" }
+      ]
+    },
+    "showPlayerName": {
+      "type": "boolean",
+      "title": "Show Player Name By Default",
+      "default": true
+    },
+    "showContext": {
+      "type": "boolean",
+      "title": "Show Scope And Mode By Default",
+      "default": true
+    }
+  }
+}
