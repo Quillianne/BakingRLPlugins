@@ -3,7 +3,7 @@
   "kind": "trusted",
   "id": "com.bakingrl.player-streak",
   "name": "PlayerStreak",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "author": "BakingRL",
   "compatibility": {
     "runtimeApi": "1.0.0",

@@ -3,7 +3,7 @@
   "kind": "trusted",
   "id": "com.bakingrl.cast-package",
   "name": "Cast Package",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": "BakingRL",
   "compatibility": {
     "runtimeApi": "1.0.0",

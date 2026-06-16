@@ -16,12 +16,8 @@ concurrency:
 
 jobs:
   build-plugins:
-    runs-on: [self-hosted, windows, x64]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
-
-    defaults:
-      run:
-        shell: powershell
 
     steps:
       - name: Checkout plugins
@@ -58,31 +54,31 @@ jobs:
 
       - name: Write plugin signing key
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:BAKINGRL_PLUGIN_SIGNING_KEY_JSON)) {
-            Write-Error "Missing BAKINGRL_PLUGIN_SIGNING_KEY_JSON secret."
+          if [ -z "${BAKINGRL_PLUGIN_SIGNING_KEY_JSON:-}" ]; then
+            echo "::error::Missing BAKINGRL_PLUGIN_SIGNING_KEY_JSON secret."
             exit 1
-          }
-          $keyPath = Join-Path $env:RUNNER_TEMP "bakingrl-plugin-signing-key.json"
-          $utf8NoBom = New-Object System.Text.UTF8Encoding $false
-          [System.IO.File]::WriteAllText($keyPath, $env:BAKINGRL_PLUGIN_SIGNING_KEY_JSON, $utf8NoBom)
-          Add-Content -Path $env:GITHUB_ENV -Value "BAKINGRL_PLUGIN_SIGNING_KEY=$keyPath"
+          fi
+          key_path="$RUNNER_TEMP/bakingrl-plugin-signing-key.json"
+          printf '%s' "$BAKINGRL_PLUGIN_SIGNING_KEY_JSON" > "$key_path"
+          chmod 600 "$key_path"
+          echo "BAKINGRL_PLUGIN_SIGNING_KEY=$key_path" >> "$GITHUB_ENV"
         env:
           BAKINGRL_PLUGIN_SIGNING_KEY_JSON: ${{ secrets.BAKINGRL_PLUGIN_SIGNING_KEY_JSON }}
 
       - name: Pack signed plugin bundles
         working-directory: BakingRLPlugins
-        run: npm run pack --workspaces --if-present -- --sign "$env:BAKINGRL_PLUGIN_SIGNING_KEY"
+        run: npm run pack --workspaces --if-present -- --sign "$BAKINGRL_PLUGIN_SIGNING_KEY"
 
       - name: Remove plugin signing key
         if: always()
         run: |
-          if (-not [string]::IsNullOrWhiteSpace($env:BAKINGRL_PLUGIN_SIGNING_KEY) -and (Test-Path $env:BAKINGRL_PLUGIN_SIGNING_KEY)) {
-            Remove-Item -Force $env:BAKINGRL_PLUGIN_SIGNING_KEY
-          }
+          if [ -n "${BAKINGRL_PLUGIN_SIGNING_KEY:-}" ] && [ -f "$BAKINGRL_PLUGIN_SIGNING_KEY" ]; then
+            rm -f -- "$BAKINGRL_PLUGIN_SIGNING_KEY"
+          fi
 
       - name: List plugin bundles
         working-directory: BakingRLPlugins
-        run: Get-ChildItem -Path . -Recurse -Filter *.brlp | Where-Object { $_.FullName -like "*dist-bundles*" } | ForEach-Object { $_.FullName }
+        run: find . -path "*/dist-bundles/*.brlp" -type f -print
 
       - name: Upload plugin bundles
         uses: actions/upload-artifact@v7
