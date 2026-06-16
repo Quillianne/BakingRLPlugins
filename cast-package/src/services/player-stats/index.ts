@@ -1,14 +1,13 @@
 import {
-  defineService,
   type BakingRLEvent,
   type RlMatchEndedPayload,
   type RlPlayer,
   type RlPlayerRef,
   type RlSimpleMatchPayload,
   type RlTeam,
-  type RlUpdateStatePayload,
-  type ServiceContext
+  type RlUpdateStatePayload
 } from "@bakingrl/plugin-sdk";
+import type { PluginRuntimeContext, RuntimeService } from "../../extension/runtimeService";
 import {
   BO_STATE_EVENT,
   BO_STATE_KEY,
@@ -199,7 +198,7 @@ const STORAGE_URI = "plugin://self/player-stats-state.json";
 const MAX_MATCHES = 12;
 const MAX_DELTA_SECONDS = 5;
 
-let serviceContext: ServiceContext | null = null;
+let serviceContext: PluginRuntimeContext | null = null;
 let state: InternalState = createDefaultState();
 let sequenceState: GameSequenceState | null = null;
 let saveChain: Promise<void> = Promise.resolve();
@@ -1075,14 +1074,14 @@ function restoreState(value: unknown): InternalState {
   };
 }
 
-function persistState(context: ServiceContext) {
+function persistState(context: PluginRuntimeContext) {
   const snapshot = storedState();
   saveChain = saveChain
     .catch(() => undefined)
     .then(() => context.storage.writeText(STORAGE_URI, JSON.stringify(snapshot, null, 2)));
 }
 
-async function loadState(context: ServiceContext) {
+async function loadState(context: PluginRuntimeContext) {
   try {
     state = restoreState(JSON.parse(await context.storage.readText(STORAGE_URI)));
   } catch {
@@ -1151,7 +1150,7 @@ async function reset() {
   return publishState({ persist: true });
 }
 
-async function syncBoRegistry(context: ServiceContext) {
+async function syncBoRegistry(context: PluginRuntimeContext) {
   try {
     const boState = await context.registry.get(BO_STATE_KEY);
     if (isBoState(boState)) syncBoState(boState);
@@ -1160,7 +1159,7 @@ async function syncBoRegistry(context: ServiceContext) {
   }
 }
 
-async function syncSequenceRegistry(context: ServiceContext) {
+async function syncSequenceRegistry(context: PluginRuntimeContext) {
   try {
     const value = await context.registry.get(GAME_SEQUENCE_KEY);
     if (isGameSequenceState(value)) sequenceState = value;
@@ -1169,8 +1168,8 @@ async function syncSequenceRegistry(context: ServiceContext) {
   }
 }
 
-export default defineService({
-  async mount(context: ServiceContext) {
+export default {
+  async mount(context: PluginRuntimeContext) {
     serviceContext = context;
     await loadState(context);
     await syncBoRegistry(context);
@@ -1198,4 +1197,4 @@ export default defineService({
       return reset();
     }
   }
-});
+} satisfies RuntimeService;

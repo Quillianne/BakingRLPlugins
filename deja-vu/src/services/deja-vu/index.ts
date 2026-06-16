@@ -1,12 +1,11 @@
 import {
-  defineService,
   type BakingRLEvent,
   type RlPlayer,
   type RlSimpleMatchPayload,
   type RlTeam,
-  type RlUpdateStatePayload,
-  type ServiceContext
+  type RlUpdateStatePayload
 } from "@bakingrl/plugin-sdk";
+import type { PluginRuntimeContext, RuntimeService } from "../../extension/runtimeService";
 
 type TeamSnapshot = {
   name: string;
@@ -61,7 +60,7 @@ const REGISTRY_KEY = `plugin.${PACKAGE_ID}.state`;
 const STORAGE_URI = "plugin://self/deja-vu-state.json";
 const MAX_MATCHES_PER_PLAYER = 500;
 
-let serviceContext: ServiceContext | null = null;
+let serviceContext: PluginRuntimeContext | null = null;
 let state: InternalState = createDefaultState();
 let saveChain: Promise<void> = Promise.resolve();
 
@@ -346,7 +345,7 @@ async function publishState() {
   return snapshot;
 }
 
-async function loadState(context: ServiceContext) {
+async function loadState(context: PluginRuntimeContext) {
   try {
     const raw = await context.storage.readText(STORAGE_URI);
     state = restoreState(JSON.parse(raw));
@@ -415,8 +414,8 @@ async function reset() {
   return publishState();
 }
 
-export default defineService({
-  async mount(context: ServiceContext) {
+export default {
+  async mount(context: PluginRuntimeContext) {
     serviceContext = context;
     await loadState(context);
     context.bus.subscribe("UpdateState", handleUpdateState);
@@ -433,4 +432,4 @@ export default defineService({
       return reset();
     }
   }
-});
+} satisfies RuntimeService;

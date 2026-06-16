@@ -6,6 +6,7 @@ export default defineConfig({
     rollupOptions: {
       preserveEntrySignatures: "strict",
       input: {
+        "extension/index": "src/extension/index.ts",
         "services/bo-tracker": "src/services/bo-tracker/index.ts",
         "services/cage-stats": "src/services/cage-stats/index.ts",
         "services/game-sequence": "src/services/game-sequence/index.ts",

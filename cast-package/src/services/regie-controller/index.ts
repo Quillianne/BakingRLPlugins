@@ -1,4 +1,4 @@
-import { defineService, type ServiceContext } from "@bakingrl/plugin-sdk";
+import type { PluginRuntimeContext, RuntimeService } from "../../extension/runtimeService";
 import {
   REGIE_EVENT,
   REGIE_KEY,
@@ -21,7 +21,7 @@ const DEFAULT_DURATION_MS = 8000;
 const MIN_DURATION_MS = 500;
 const MAX_DURATION_MS = 60000;
 
-let serviceContext: ServiceContext | null = null;
+let serviceContext: PluginRuntimeContext | null = null;
 let active = new Map<string, RegieCommand>();
 let timers = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -145,8 +145,8 @@ function trigger(input: TriggerInput = {}) {
   return publish(command);
 }
 
-export default defineService({
-  mount(context: ServiceContext) {
+export default {
+  mount(context: PluginRuntimeContext) {
     serviceContext = context;
     publish();
   },
@@ -168,4 +168,4 @@ export default defineService({
       return snapshot();
     }
   }
-});
+} satisfies RuntimeService;

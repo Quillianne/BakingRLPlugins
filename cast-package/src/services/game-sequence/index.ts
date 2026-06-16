@@ -1,13 +1,12 @@
 import {
-  defineService,
   type BakingRLEvent,
   type CleanupFn,
   type RlClockUpdatedSecondsPayload,
   type RlMatchEndedPayload,
   type RlSimpleMatchPayload,
-  type RlUpdateStatePayload,
-  type ServiceContext
+  type RlUpdateStatePayload
 } from "@bakingrl/plugin-sdk";
+import type { PluginRuntimeContext, RuntimeService } from "../../extension/runtimeService";
 import {
   GAME_SEQUENCE_EVENT,
   GAME_SEQUENCE_KEY,
@@ -40,7 +39,7 @@ type InternalState = {
   updatedAtMs: number;
 };
 
-let serviceContext: ServiceContext | null = null;
+let serviceContext: PluginRuntimeContext | null = null;
 let state: InternalState = createDefaultState();
 let cleanups: CleanupFn[] = [];
 let lastPublishedSignature = "";
@@ -423,7 +422,7 @@ function reset() {
   return publishState(true);
 }
 
-function subscribe(context: ServiceContext) {
+function subscribe(context: PluginRuntimeContext) {
   cleanups = [
     context.bus.subscribe("UpdateState", handleUpdateState),
     context.bus.subscribe("ClockUpdatedSeconds", handleClockUpdated),
@@ -443,8 +442,8 @@ function subscribe(context: ServiceContext) {
   ];
 }
 
-export default defineService({
-  mount(context: ServiceContext) {
+export default {
+  mount(context: PluginRuntimeContext) {
     serviceContext = context;
     subscribe(context);
     publishState(true);
@@ -462,4 +461,4 @@ export default defineService({
       return reset();
     }
   }
-});
+} satisfies RuntimeService;

@@ -1,11 +1,10 @@
 import {
-  defineService,
   type BakingRLEvent,
   type CleanupFn,
   type RlMatchEndedPayload,
-  type RlSimpleMatchPayload,
-  type ServiceContext
+  type RlSimpleMatchPayload
 } from "@bakingrl/plugin-sdk";
+import type { PluginRuntimeContext, RuntimeService } from "../../extension/runtimeService";
 import {
   STATE_EVENT,
   STATE_KEY,
@@ -98,7 +97,7 @@ const FALLBACK_BLUE = "#3b82f6";
 const FALLBACK_ORANGE = "#f97316";
 const FALLBACK_NEUTRAL = "#94a3b8";
 
-let serviceContext: ServiceContext | null = null;
+let serviceContext: PluginRuntimeContext | null = null;
 let state: InternalState = createDefaultState();
 let saveChain: Promise<void> = Promise.resolve();
 let cleanups: CleanupFn[] = [];
@@ -343,14 +342,14 @@ function markUpdated() {
   state.updatedAtMs = nowMs();
 }
 
-function persistState(context: ServiceContext) {
+function persistState(context: PluginRuntimeContext) {
   const snapshot = storedState();
   saveChain = saveChain
     .catch(() => undefined)
     .then(() => context.storage.writeText(STORAGE_URI, JSON.stringify(snapshot, null, 2)));
 }
 
-async function loadState(context: ServiceContext) {
+async function loadState(context: PluginRuntimeContext) {
   try {
     state = restoreState(JSON.parse(await context.storage.readText(STORAGE_URI)));
   } catch {
@@ -465,15 +464,15 @@ function syncSequenceState(value: unknown) {
   return changed;
 }
 
-function ensureLatestCastRegistries(context: ServiceContext, preferredMatchGuid: string | null = null) {
+async function ensureLatestCastRegistries(context: PluginRuntimeContext, preferredMatchGuid: string | null = null) {
   try {
-    syncSequenceState(context.registry.get(CAST_SEQUENCE_KEY));
+    syncSequenceState(await context.registry.get(CAST_SEQUENCE_KEY));
   } catch (error) {
     context.diagnostics.warn("Unable to read Cast Package sequence state for PlayerStreak.", error);
   }
 
   try {
-    const castState = castPlayerStatsStateFromValue(context.registry.get(CAST_PLAYER_STATS_KEY));
+    const castState = castPlayerStatsStateFromValue(await context.registry.get(CAST_PLAYER_STATS_KEY));
     if (castState) syncCurrentMatchFromCastStats(castState, preferredMatchGuid);
   } catch (error) {
     context.diagnostics.warn("Unable to read Cast Package player stats state for PlayerStreak.", error);
@@ -573,7 +572,7 @@ async function handleMatchStart(event: BakingRLEvent<RlSimpleMatchPayload, strin
 async function handleMatchEnded(event: BakingRLEvent<RlMatchEndedPayload, "MatchEnded">) {
   const context = serviceContext;
   const matchGuid = matchGuidFromEvent(event);
-  if (context) ensureLatestCastRegistries(context, matchGuid);
+  if (context) await ensureLatestCastRegistries(context, matchGuid);
 
   const match = ensureMatch(matchGuid);
   const winnerTeamNum = readTeamNum(event.Data?.WinnerTeamNum);
@@ -646,11 +645,11 @@ async function reset(input: ResetInput = {}) {
   return publishState({ persist: scope === "global" || scope === "all" });
 }
 
-export default defineService({
-  async mount(context: ServiceContext) {
+export default {
+  async mount(context: PluginRuntimeContext) {
     serviceContext = context;
     await loadState(context);
-    ensureLatestCastRegistries(context);
+    await ensureLatestCastRegistries(context);
 
     cleanups = [
       context.bus.subscribe(CAST_SEQUENCE_EVENT, handleCastSequence),
@@ -677,4 +676,4 @@ export default defineService({
       return reset(isRecord(input) ? input : {});
     }
   }
-});
+} satisfies RuntimeService;

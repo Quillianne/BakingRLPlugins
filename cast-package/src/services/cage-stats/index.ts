@@ -1,5 +1,4 @@
 import {
-  defineService,
   type BakingRLEvent,
   type RlBallHitPayload,
   type RlCrossbarHitPayload,
@@ -8,9 +7,9 @@ import {
   type RlPlayerRef,
   type RlSimpleMatchPayload,
   type RlStatfeedEventPayload,
-  type RlUpdateStatePayload,
-  type ServiceContext
+  type RlUpdateStatePayload
 } from "@bakingrl/plugin-sdk";
+import type { PluginRuntimeContext, RuntimeService } from "../../extension/runtimeService";
 import { CAGE_STATS_EVENT, CAGE_STATS_KEY } from "../../shared/events";
 
 type Axis = "X" | "Y" | "Z";
@@ -97,7 +96,7 @@ const RECENT_GOAL_TTL_MS = 1000;
 const DEFAULT_GOAL_DEPTH = 5120;
 const DEFAULT_GOAL_HEIGHT = 320;
 
-let serviceContext: ServiceContext | null = null;
+let serviceContext: PluginRuntimeContext | null = null;
 let state: InternalState = createDefaultState();
 let pendingGoal: RlGoalScoredPayload | null = null;
 let lastBallHits: BallHitRecord[] = [];
@@ -329,7 +328,7 @@ async function publishState() {
   return snapshot;
 }
 
-async function loadState(context: ServiceContext) {
+async function loadState(context: PluginRuntimeContext) {
   try {
     const raw = await context.storage.readText(STORAGE_URI);
     state = restoreState(JSON.parse(raw));
@@ -633,8 +632,8 @@ async function reset() {
   return publishState();
 }
 
-export default defineService({
-  async mount(context: ServiceContext) {
+export default {
+  async mount(context: PluginRuntimeContext) {
     serviceContext = context;
     await loadState(context);
     context.bus.subscribe("UpdateState", handleUpdateState);
@@ -668,4 +667,4 @@ export default defineService({
       return reset();
     }
   }
-});
+} satisfies RuntimeService;

@@ -1,14 +1,25 @@
 {
-  "schema": "bakingrl.plugin/2",
+  "schema": "bakingrl.plugin/3",
+  "kind": "trusted",
   "id": "com.bakingrl.cast-package",
   "name": "Cast Package",
   "version": "1.0.3",
   "author": "BakingRL",
   "compatibility": {
-    "runtimeApi": "0.4.0",
-    "sdk": "0.4.0"
+    "runtimeApi": "1.0.0",
+    "sdk": "1.0.1"
   },
-  "exports": {
+  "activation": {
+    "events": ["onStartup"]
+  },
+  "runtime": {
+    "extensionHost": {
+      "entry": "dist/extension/index.js"
+    },
+    "sidecars": {}
+  },
+  "contributes": {
+    "commands": {},
     "visuals": {
       "boControl": {
         "entry": "dist/visuals/bo-control.js",
@@ -117,61 +128,65 @@
         "title": "Cast Control",
         "description": "Control BO state and trigger cast package event visuals."
       }
+    },
+    "views": {},
+    "overlays": {},
+    "webviews": {},
+    "configuration": {},
+    "assets": {},
+    "schemas": {}
+  },
+  "capabilities": {
+    "permissions": {
+      "bus": {
+        "read": [
+          "UpdateState",
+          "BallHit",
+          "ClockUpdatedSeconds",
+          "CountdownBegin",
+          "CrossbarHit",
+          "GoalScored",
+          "GoalReplayEnd",
+          "GoalReplayStart",
+          "MatchCreated",
+          "MatchDestroyed",
+          "MatchInitialized",
+          "MatchEnded",
+          "MatchPaused",
+          "MatchUnpaused",
+          "PodiumStart",
+          "ReplayCreated",
+          "RoundStarted",
+          "StatfeedEvent",
+          "plugin.com.bakingrl.cast-package.cage-stats",
+          "plugin.com.bakingrl.cast-package.player-stats",
+          "plugin.com.bakingrl.cast-package.regie",
+          "plugin.com.bakingrl.cast-package.sequence",
+          "plugin.com.bakingrl.cast-package.state"
+        ],
+        "publish": [
+          "plugin.com.bakingrl.cast-package.*"
+        ]
+      },
+      "registry": {
+        "read": [
+          "plugin.com.bakingrl.cast-package.cage-stats",
+          "plugin.com.bakingrl.cast-package.player-stats",
+          "plugin.com.bakingrl.cast-package.regie",
+          "plugin.com.bakingrl.cast-package.sequence",
+          "plugin.com.bakingrl.cast-package.state"
+        ],
+        "write": [
+          "plugin.com.bakingrl.cast-package.*"
+        ]
+      },
+      "network": {
+        "http": [],
+        "websocket": []
+      },
+      "storage": [
+        "plugin://self/*"
+      ]
     }
-  },
-  "imports": {
-    "components": [],
-    "services": []
-  },
-  "permissions": {
-    "bus": {
-      "read": [
-        "UpdateState",
-        "BallHit",
-        "ClockUpdatedSeconds",
-        "CountdownBegin",
-        "CrossbarHit",
-        "GoalScored",
-        "GoalReplayEnd",
-        "GoalReplayStart",
-        "MatchCreated",
-        "MatchDestroyed",
-        "MatchInitialized",
-        "MatchEnded",
-        "MatchPaused",
-        "MatchUnpaused",
-        "PodiumStart",
-        "ReplayCreated",
-        "RoundStarted",
-        "StatfeedEvent",
-        "plugin.com.bakingrl.cast-package.cage-stats",
-        "plugin.com.bakingrl.cast-package.player-stats",
-        "plugin.com.bakingrl.cast-package.regie",
-        "plugin.com.bakingrl.cast-package.sequence",
-        "plugin.com.bakingrl.cast-package.state"
-      ],
-      "publish": [
-        "plugin.com.bakingrl.cast-package.*"
-      ]
-    },
-    "registry": {
-      "read": [
-        "plugin.com.bakingrl.cast-package.cage-stats",
-        "plugin.com.bakingrl.cast-package.player-stats",
-        "plugin.com.bakingrl.cast-package.regie",
-        "plugin.com.bakingrl.cast-package.sequence",
-        "plugin.com.bakingrl.cast-package.state"
-      ],
-      "write": [
-        "plugin.com.bakingrl.cast-package.*"
-      ]
-    },
-    "network": {
-      "http": [],
-      "websocket": []
-    },
-    "storage": [
-      "plugin://self/*"
-    ]
   }
 }

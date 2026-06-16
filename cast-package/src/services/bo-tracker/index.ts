@@ -1,10 +1,9 @@
 import {
-  defineService,
   type BakingRLEvent,
   type RlMatchEndedPayload,
-  type RlSimpleMatchPayload,
-  type ServiceContext
+  type RlSimpleMatchPayload
 } from "@bakingrl/plugin-sdk";
+import type { PluginRuntimeContext, RuntimeService } from "../../extension/runtimeService";
 import {
   BO_STATE_EVENT,
   BO_STATE_KEY
@@ -80,7 +79,7 @@ type ResetInput = {
 
 const STORAGE_URI = "plugin://self/series-state.json";
 
-let serviceContext: ServiceContext | null = null;
+let serviceContext: PluginRuntimeContext | null = null;
 let state: InternalState = createDefaultState();
 let saveChain: Promise<void> = Promise.resolve();
 
@@ -298,7 +297,7 @@ async function publishState() {
   return snapshot;
 }
 
-async function loadState(context: ServiceContext) {
+async function loadState(context: PluginRuntimeContext) {
   try {
     const raw = await context.storage.readText(STORAGE_URI);
     state = restoreState(JSON.parse(raw));
@@ -425,8 +424,8 @@ async function reset(input: ResetInput = {}) {
   return publishState();
 }
 
-export default defineService({
-  async mount(context: ServiceContext) {
+export default {
+  async mount(context: PluginRuntimeContext) {
     serviceContext = context;
     await loadState(context);
     context.bus.subscribe("MatchCreated", handleMatchStart);
@@ -461,4 +460,4 @@ export default defineService({
       return reset((input ?? {}) as ResetInput);
     }
   }
-});
+} satisfies RuntimeService;

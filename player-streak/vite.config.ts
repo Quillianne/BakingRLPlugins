@@ -6,6 +6,7 @@ export default defineConfig({
     rollupOptions: {
       preserveEntrySignatures: "strict",
       input: {
+        "extension/index": "src/extension/index.ts",
         "services/player-streak": "src/services/player-streak/index.ts",
         "visuals/player-streak": "src/visuals/player-streak/index.ts"
       },

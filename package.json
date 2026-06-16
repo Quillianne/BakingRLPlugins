@@ -18,7 +18,7 @@
     "install:local": "npm run install:local --workspaces --if-present"
   },
   "devDependencies": {
-    "@bakingrl/create-plugin": "^0.4.0"
+    "@bakingrl/create-plugin": "file:../BakingRLSDK/packages/create-bakingrl-plugin"
   },
   "license": "MIT"
 }

@@ -6,6 +6,7 @@ export default defineConfig({
     rollupOptions: {
       preserveEntrySignatures: "strict",
       input: {
+        "extension/index": "src/extension/index.ts",
         "services/deja-vu": "src/services/deja-vu/index.ts",
         "visuals/deja-vu": "src/visuals/deja-vu/index.ts"
       },
