@@ -7,7 +7,7 @@
   "author": "BakingRL",
   "compatibility": {
     "runtimeApi": "1.0.0",
-    "sdk": "1.0.1"
+    "sdk": "1.0.3"
   },
   "activation": {
     "events": ["onStartup"]
