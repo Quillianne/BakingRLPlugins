@@ -52,6 +52,64 @@ function pathExistsInside(packageDir, relPath, label) {
   }
 }
 
+function hasItem(items, expected) {
+  return Array.isArray(items) && items.includes(expected);
+}
+
+function requirePackage(packageId, label) {
+  const item = packages.get(packageId);
+  if (!item) {
+    fail(`Missing ${label}: ${packageId}`);
+  }
+  return item;
+}
+
+function requireDependency(source, targetPackageId, label) {
+  const dependencies = source?.manifest.dependencies ?? [];
+  if (!dependencies.some((dependency) => dependency.packageId === targetPackageId)) {
+    fail(`${label}: ${source?.dir ?? "unknown package"} must depend on ${targetPackageId}.`);
+  }
+}
+
+function requireExtensionPoint(source, id, label) {
+  const point = source?.manifest.contributes?.extensionPoints?.find((candidate) => candidate.id === id);
+  if (!point) {
+    fail(`${label}: missing extension point ${id}.`);
+  }
+  return point;
+}
+
+function requireContribution(source, id, target, label) {
+  const contribution = source?.manifest.contributes?.contributions?.find((candidate) => candidate.id === id);
+  if (!contribution) {
+    fail(`${label}: missing contribution ${id}.`);
+    return undefined;
+  }
+  if (contribution.target !== target) {
+    fail(`${label}: contribution ${id} must target ${target}.`);
+  }
+  return contribution;
+}
+
+function requireResource(source, id, expected, label) {
+  const resource = source?.manifest.contributes?.resources?.find((candidate) => candidate.id === id);
+  if (!resource) {
+    fail(`${label}: missing resource ${id}.`);
+    return undefined;
+  }
+  const visibility = resource.visibility ?? "private";
+  if (visibility !== expected.visibility) {
+    fail(`${label}: resource ${id} visibility must be ${expected.visibility}.`);
+  }
+  if (resource.type !== expected.type) {
+    fail(`${label}: resource ${id} type must be ${expected.type}.`);
+  }
+  if (!isRecord(resource.metadata) || resource.metadata.role !== expected.role) {
+    fail(`${label}: resource ${id} metadata.role must be ${expected.role}.`);
+  }
+  return resource;
+}
+
 const packages = new Map();
 
 for (const dir of pocDirs) {
@@ -96,8 +154,12 @@ for (const dir of pocDirs) {
     const hasPath = Object.prototype.hasOwnProperty.call(resource, "path");
     const hasPaths = Object.prototype.hasOwnProperty.call(resource, "paths");
     if (hasPath === hasPaths) fail(`${dir}: resource ${resource.id} must declare path XOR paths.`);
-    if (typeof resource.type !== "string" || resource.type.trim() === "") {
-      fail(`${dir}: resource ${resource.id} must declare type.`);
+    const visibility = resource.visibility ?? "private";
+    if (visibility !== "public" && visibility !== "private") {
+      fail(`${dir}: resource ${resource.id} visibility must be public or private when declared.`);
+    }
+    if (visibility === "public" && (typeof resource.type !== "string" || resource.type.trim() === "")) {
+      fail(`${dir}: public resource ${resource.id} must declare type.`);
     }
     if (hasPath) pathExistsInside(packageDir, resource.path, `${dir}: resource ${resource.id} path`);
     if (hasPaths) {
@@ -162,6 +224,78 @@ for (const { dir, manifest } of packages.values()) {
     }
   }
 }
+
+const overlayStudio = requirePackage("bakingrl.poc-overlay-studio", "Overlay Studio POC");
+const visualPack = requirePackage("bakingrl.poc-visual-pack", "Visual Pack POC");
+const contentPack = requirePackage("bakingrl.poc-content-pack", "Content Pack POC");
+
+const overlayPoint = requireExtensionPoint(overlayStudio, "overlay-studio.visual", "Overlay Studio POC");
+if (overlayPoint?.service !== "overlayStudio") {
+  fail("Overlay Studio POC: overlay-studio.visual must be backed by overlayStudio.");
+}
+
+requireDependency(visualPack, "bakingrl.poc-overlay-studio", "Visual Pack POC");
+const visualContentPoint = requireExtensionPoint(visualPack, "visual-pack.content", "Visual Pack POC");
+if (visualContentPoint?.service !== "visualPack") {
+  fail("Visual Pack POC: visual-pack.content must be backed by visualPack.");
+}
+const visualContribution = requireContribution(
+  visualPack,
+  "demo-score-widget",
+  "bakingrl.poc-overlay-studio/overlay-studio.visual",
+  "Visual Pack POC"
+);
+if (visualContribution) {
+  if (visualContribution.visual !== "demoWidget") fail("Visual Pack POC: demo-score-widget must expose demoWidget.");
+  if (visualContribution.service !== "visualPack") fail("Visual Pack POC: demo-score-widget must expose visualPack.");
+  if (!hasItem(visualContribution.resources, "widgetPreset")) {
+    fail("Visual Pack POC: demo-score-widget must reference widgetPreset.");
+  }
+  if (visualContribution.metadata?.contentTarget !== "bakingrl.poc-visual-pack/visual-pack.content") {
+    fail("Visual Pack POC: demo-score-widget metadata.contentTarget must point to visual-pack.content.");
+  }
+}
+requireResource(
+  visualPack,
+  "widgetPreset",
+  { visibility: "public", type: "application/json", role: "widget-preset" },
+  "Visual Pack POC"
+);
+
+requireDependency(contentPack, "bakingrl.poc-visual-pack", "Content Pack POC");
+if (contentPack?.manifest.runtime) {
+  fail("Content Pack POC: resource-only content pack must not declare runtime.");
+}
+for (const key of ["services", "visuals", "webviews", "extensionPoints"]) {
+  if ((contentPack?.manifest.contributes?.[key] ?? []).length > 0) {
+    fail(`Content Pack POC: resource-only content pack must not declare contributes.${key}.`);
+  }
+}
+const contentContribution = requireContribution(
+  contentPack,
+  "demo-overlay-content",
+  "bakingrl.poc-visual-pack/visual-pack.content",
+  "Content Pack POC"
+);
+if (contentContribution) {
+  for (const resourceId of ["overlayContent", "badgeSvgs"]) {
+    if (!hasItem(contentContribution.resources, resourceId)) {
+      fail(`Content Pack POC: demo-overlay-content must reference ${resourceId}.`);
+    }
+  }
+}
+requireResource(
+  contentPack,
+  "overlayContent",
+  { visibility: "public", type: "application/json", role: "overlay-content" },
+  "Content Pack POC"
+);
+requireResource(
+  contentPack,
+  "badgeSvgs",
+  { visibility: "public", type: "image/svg+xml", role: "team-badges" },
+  "Content Pack POC"
+);
 
 if (!process.exitCode) {
   console.log("POC plugin chain validation passed.");
