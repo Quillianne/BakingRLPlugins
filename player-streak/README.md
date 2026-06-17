@@ -48,9 +48,10 @@ instances that have not overridden the same fields:
 The visual default size is 420x120 and is responsive to its assigned overlay
 rectangle.
 
-## Permissions
+## Capabilities
 
 - Reads Rocket League match lifecycle events.
 - Reads Cast Package sequence and player-stats state.
 - Writes package-scoped registry state.
 - Uses `plugin://self/*` storage for global player records.
+- Declares capabilities in the plugin manifest via `services` and package-level `settings`.

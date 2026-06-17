@@ -49,7 +49,7 @@ page before opening a pull request.
 
 - The package must build without TypeScript errors.
 - The manifest must validate.
-- Runtime permissions must be justified by the package behavior.
+- In V4 trusted mode, requested capabilities must be justified by package behavior and declared explicitly in the manifest (`services` and `settings`).
 - README files must explain installation, exported capabilities, settings, and
   operational limits.
 - Public service methods must have schema files.

@@ -31,8 +31,9 @@ player has not been seen in any previously recorded match.
   exact after trimming whitespace and ignoring case. The player remains in the
   stored encounter history; this only affects rendering.
 
-## Permissions
+## Capabilities
 
 - Reads Rocket League roster and match lifecycle events.
 - Writes package-scoped registry state.
 - Uses `plugin://self/*` storage for the local encounter history.
+- Declares capabilities in the plugin manifest via `services` and package-level `settings`.

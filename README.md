@@ -11,6 +11,7 @@ documentation.
 ```txt
 cast-package/   Production cast overlays, BO controls, and shared cast stats.
 deja-vu/        Service and visual package for player encounter counts.
+obs-gateway/    Trusted OBS gateway service skeleton.
 player-streak/  Service and visual package for player win/loss streak records.
 ```
 
@@ -79,11 +80,13 @@ npm run tauri dev
 - Do not commit `dist/`, `dist-bundles/`, `manifest.hashes.json`, or signing
   keys unless a release process explicitly requires generated artifacts.
 - Keep package IDs stable after public release.
-- Keep requested permissions narrow and documented in each package README.
+- Keep requested capabilities narrow and declared in each package manifest
+  (`settings` and `services`).
 - Prefer reusable components and services over duplicated logic.
 
 ## Packages
 
 - [Cast Package](cast-package/README.md)
 - [Deja Vu](deja-vu/README.md)
+- [OBS Gateway](obs-gateway/README.md)
 - [PlayerStreak](player-streak/README.md)

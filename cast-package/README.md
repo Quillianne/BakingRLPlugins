@@ -10,7 +10,7 @@ Combined cast overlays and controls for BakingRL.
 
 The BO state event and registry key use
 `plugin.com.bakingrl.cast-package.state` so they stay within the package
-permission boundary. Consumers read the fields they need from that single state
+trusted V4 scope boundary. Consumers read only the fields they need from that
 payload.
 
 The game sequence helper publishes `plugin.com.bakingrl.cast-package.sequence`.
