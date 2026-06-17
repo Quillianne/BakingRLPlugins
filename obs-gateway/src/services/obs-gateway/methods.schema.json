@@ -26,9 +26,16 @@
           "streamPath": {
             "type": "string"
           },
+          "streamLayoutId": {
+            "type": "string"
+          },
           "secretKeyRef": {
             "type": "string",
             "description": "Host secret key reference. Keep secret material out of this field."
+          },
+          "requireToken": {
+            "type": "boolean",
+            "description": "Require the configured token even when listening on localhost."
           },
           "heartbeatMs": {
             "type": "integer",
@@ -42,6 +49,32 @@
           }
         },
         "additionalProperties": false
+      },
+      "output": true
+    },
+    "refreshHostData": {
+      "input": true,
+      "output": true
+    },
+    "updateHostData": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "layouts": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "snapshot": true,
+          "error": {
+            "type": "string"
+          },
+          "hostApiAvailable": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
       },
       "output": true
     },

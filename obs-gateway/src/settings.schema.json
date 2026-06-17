@@ -26,14 +26,25 @@
     },
     "streamPath": {
       "type": "string",
-      "title": "Stream Route Path",
+      "title": "Stream Overlay Path",
       "default": "/stream"
+    },
+    "streamLayoutId": {
+      "type": "string",
+      "title": "Stream Layout",
+      "default": ""
     },
     "secretKeyRef": {
       "type": "string",
       "title": "Secret reference used for OBS auth",
       "description": "The key name used by the host secret store (do not store the secret value here).",
       "default": "obs.gateway.accessToken"
+    },
+    "requireToken": {
+      "type": "boolean",
+      "title": "Require token on local URLs",
+      "description": "Non-local bind addresses require the configured token automatically. Enable this to also require it for local OBS URLs.",
+      "default": false
     },
     "allowedOrigins": {
       "type": "array",

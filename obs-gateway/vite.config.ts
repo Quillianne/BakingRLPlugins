@@ -6,7 +6,8 @@ export default defineConfig({
     rollupOptions: {
       preserveEntrySignatures: "strict",
       input: {
-        "extension/index": "src/extension/index.ts"
+        "extension/index": "src/extension/index.ts",
+        "visuals/config": "src/visuals/config/index.ts"
       },
       output: {
         entryFileNames: "[name].js",

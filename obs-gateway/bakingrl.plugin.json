@@ -19,16 +19,25 @@
     ]
   },
   "contributes": {
+    "visuals": [
+      {
+        "id": "obsGatewayConfig",
+        "kind": "config",
+        "entry": "dist/visuals/config.js",
+        "defaultSize": [980, 720]
+      }
+    ],
     "services": [
       {
         "id": "obsGateway",
-        "runtime": "sidecar:gateway",
-        "methods": ["snapshot", "configure", "setConnectionState"],
+        "runtime": "node",
+        "methods": ["snapshot", "configure", "setConnectionState", "refreshHostData", "updateHostData"],
         "schema": "src/services/obs-gateway/methods.schema.json"
       }
     ],
     "settings": {
-      "schema": "src/settings.schema.json"
+      "schema": "src/settings.schema.json",
+      "ui": "obsGatewayConfig"
     }
   }
 }
