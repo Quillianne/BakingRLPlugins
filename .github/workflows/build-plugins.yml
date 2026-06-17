@@ -32,6 +32,9 @@ jobs:
           cache: npm
           cache-dependency-path: BakingRLPlugins/package-lock.json
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Install plugin dependencies
         working-directory: BakingRLPlugins
         run: npm ci

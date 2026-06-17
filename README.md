@@ -11,7 +11,7 @@ documentation.
 ```txt
 cast-package/   Production cast overlays, BO controls, and shared cast stats.
 deja-vu/        Service and visual package for player encounter counts.
-obs-gateway/    Trusted OBS gateway service skeleton.
+obs-gateway/    Trusted Rust sidecar OBS gateway service.
 player-streak/  Service and visual package for player win/loss streak records.
 ```
 

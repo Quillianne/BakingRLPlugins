@@ -1,21 +1,23 @@
 # OBS Gateway
 
-Trusted first-party service package that runs the BakingRL OBS gateway.
+Trusted first-party sidecar package that runs the BakingRL OBS gateway.
 
-The current package exposes a V4 node runtime service named `obsGateway`. It
-starts a local HTTP gateway from package settings and keeps OBS-facing
-connection state inside the plugin boundary. It does not reintroduce OBS core
-logic in the host.
+The package exposes a V4 sidecar runtime service named `obsGateway`. A tiny
+Node activation module reads host-owned package settings and secrets, then
+configures the Rust sidecar. The Rust process owns the local HTTP gateway and
+keeps OBS-facing connection state inside the plugin boundary. It does not
+reintroduce OBS core logic in the host.
 
 ## Exports
 
-- Service `obsGateway`
+- Sidecar `gateway`
+- Service `obsGateway` backed by `sidecar:gateway`
 - Methods: `snapshot`, `configure`, `setConnectionState`
 - Package settings schema: `src/settings.schema.json`
 
 ## Runtime gateway
 
-When enabled, the service starts a Node HTTP server on `listenAddress` and
+When enabled, the sidecar starts a Rust HTTP server on `listenAddress` and
 `listenPort`.
 
 Default routes:
@@ -43,3 +45,15 @@ the host returns a token, all routes except health require
 
 Origins are checked before route handling. Exact origins are accepted; entries
 such as `http://localhost` also allow any port for that host.
+
+## Sidecar build
+
+The package builds the Rust sidecar before the extension bundle:
+
+```sh
+npm run build
+```
+
+The compiled binary is copied to `bin/obs-gateway-sidecar`, which is the path
+declared in `bakingrl.plugin.json`. Build outputs under `bin/` and
+`sidecar/target/` are intentionally not committed.

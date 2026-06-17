@@ -6,3 +6,6 @@ signature.ed25519
 bakingrl-signing-key.json
 .DS_Store
 *.local
+obs-gateway/bin/
+.cargo-target/
+obs-gateway/sidecar/target/

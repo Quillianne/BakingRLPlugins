@@ -1,32 +1,48 @@
-import obsGatewayService from "../services/obs-gateway";
-import {
-  registerRuntimeService,
-  type RuntimeServiceRegistration
-} from "./runtimeService";
 import type { ExtensionContext } from "@bakingrl/plugin-sdk";
 
-let registrations: RuntimeServiceRegistration[] = [];
+const SIDECAR_NAME = "gateway";
+const DEFAULT_SECRET_KEY_REF = "obs.gateway.accessToken";
 
-async function disposeRegistrations(items: RuntimeServiceRegistration[]) {
-  for (const registration of items.reverse()) {
-    await registration.dispose();
-  }
+type ObsGatewaySettings = {
+  enabled?: unknown;
+  listenAddress?: unknown;
+  listenPort?: unknown;
+  routePrefix?: unknown;
+  streamPath?: unknown;
+  secretKeyRef?: unknown;
+  heartbeatMs?: unknown;
+  allowedOrigins?: unknown;
+};
+
+function settingsObject(context: ExtensionContext): ObsGatewaySettings {
+  const values = context.settings?.all?.() ?? {};
+  return values && typeof values === "object" && !Array.isArray(values) ? values : {};
 }
 
 export async function activate(context: ExtensionContext): Promise<void> {
-  await deactivate();
+  await configureGateway(context);
+}
 
-  const nextRegistrations: RuntimeServiceRegistration[] = [];
-  nextRegistrations.push(await registerRuntimeService(context, "obsGateway", obsGatewayService));
+async function configureGateway(context: ExtensionContext) {
+  const settings = settingsObject(context);
+  const secretKeyRef = typeof settings.secretKeyRef === "string" && settings.secretKeyRef.trim()
+    ? settings.secretKeyRef.trim()
+    : DEFAULT_SECRET_KEY_REF;
+  const tokenConfigured = await context.secrets.configured(secretKeyRef).catch(() => false);
+  const accessToken = tokenConfigured ? await context.secrets.get(secretKeyRef).catch(() => undefined) : undefined;
 
-  registrations = nextRegistrations;
-  context.subscriptions?.push(...nextRegistrations);
+  await context.sidecars.start(SIDECAR_NAME);
+  await context.sidecars.call(SIDECAR_NAME, "configure", {
+    ...settings,
+    secretKeyRef,
+    tokenConfigured,
+    accessToken: accessToken ?? null
+  });
+  context.diagnostics.log("obs-gateway sidecar configured");
 }
 
 export async function deactivate(): Promise<void> {
-  const activeRegistrations = registrations;
-  registrations = [];
-  await disposeRegistrations(activeRegistrations);
+  // The host owns sidecar lifecycle; it sends bakingrl/shutdown during runtime stop.
 }
 
 export default {

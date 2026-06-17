@@ -3,7 +3,7 @@
   "bakingrlApi": "2.0.0",
   "id": "com.bakingrl.deja-vu",
   "name": "Deja Vu",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "author": "BakingRL",
   "runtime": {
     "node": {

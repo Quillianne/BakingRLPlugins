@@ -1,11 +1,12 @@
 {
   "name": "@bakingrl-plugins/obs-gateway",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
-    "check": "tsc -p tsconfig.json --noEmit",
+    "build": "npm run build:sidecar && vite build",
+    "build:sidecar": "cargo build --manifest-path sidecar/Cargo.toml --target-dir ../.cargo-target/obs-gateway --release && node scripts/copy-sidecar.mjs",
+    "check": "tsc -p tsconfig.json --noEmit && cargo check --manifest-path sidecar/Cargo.toml --target-dir ../.cargo-target/obs-gateway",
     "validate": "bakingrl-plugin validate",
     "validate:listing": "bakingrl-plugin validate-listing",
     "pack": "bakingrl-plugin pack",

@@ -3,19 +3,26 @@
   "bakingrlApi": "2.0.0",
   "id": "bakingrl.obs-gateway",
   "name": "OBS Gateway",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "author": "BakingRL",
   "runtime": {
     "node": {
       "entry": "dist/extension/index.js"
     },
-    "sidecars": []
+    "sidecars": [
+      {
+        "id": "gateway",
+        "bin": "bin/obs-gateway-sidecar",
+        "protocol": "jsonrpc-stdio",
+        "activation": "onStartup"
+      }
+    ]
   },
   "contributes": {
     "services": [
       {
         "id": "obsGateway",
-        "runtime": "node",
+        "runtime": "sidecar:gateway",
         "methods": ["snapshot", "configure", "setConnectionState"],
         "schema": "src/services/obs-gateway/methods.schema.json"
       }
