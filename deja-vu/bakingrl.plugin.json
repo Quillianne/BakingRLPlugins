@@ -1,77 +1,35 @@
 {
-  "schema": "bakingrl.plugin/3",
-  "kind": "trusted",
+  "schemaVersion": "bakingrl.plugin/4",
+  "bakingrlApi": "2.0.0",
   "id": "com.bakingrl.deja-vu",
   "name": "Deja Vu",
   "version": "1.0.4",
   "author": "BakingRL",
-  "compatibility": {
-    "runtimeApi": "1.0.0",
-    "sdk": "1.0.3"
-  },
-  "activation": {
-    "events": ["onStartup"]
-  },
   "runtime": {
-    "extensionHost": {
+    "node": {
       "entry": "dist/extension/index.js"
     },
-    "sidecars": {}
+    "sidecars": []
   },
   "contributes": {
-    "commands": {},
-    "visuals": {
-      "dejaVu": {
+    "visuals": [
+      {
+        "id": "dejaVu",
         "entry": "dist/visuals/deja-vu.js",
         "defaultSize": [300, 100],
-        "settings": "src/visuals/deja-vu/settings.schema.json"
+        "instanceSettings": "src/visuals/deja-vu/settings.schema.json"
       }
-    },
-    "services": {
-      "dejaVu": {
-        "entry": "dist/services/deja-vu.js",
+    ],
+    "services": [
+      {
+        "id": "dejaVu",
+        "runtime": "node",
         "methods": ["snapshot", "reset"],
         "schema": "src/services/deja-vu/methods.schema.json"
       }
-    },
-    "views": {},
-    "pages": {},
-    "overlays": {},
-    "webviews": {},
-    "configuration": {},
-    "assets": {},
-    "schemas": {}
-  },
-  "capabilities": {
-    "permissions": {
-      "bus": {
-        "read": [
-          "UpdateState",
-          "MatchCreated",
-          "MatchInitialized",
-          "MatchDestroyed",
-          "plugin.com.bakingrl.deja-vu.state"
-        ],
-        "publish": [
-          "plugin.com.bakingrl.deja-vu.*"
-        ]
-      },
-      "registry": {
-        "read": [
-          "plugin.com.bakingrl.deja-vu.*"
-        ],
-        "write": [
-          "plugin.com.bakingrl.deja-vu.*"
-        ]
-      },
-      "network": {
-        "http": [],
-        "websocket": []
-      },
-      "storage": [
-        "plugin://self/*"
-      ]
+    ],
+    "settings": {
+      "schema": "src/settings.schema.json"
     }
-  },
-  "settings": "src/settings.schema.json"
+  }
 }

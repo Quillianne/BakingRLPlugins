@@ -1,80 +1,83 @@
 {
-  "schema": "bakingrl.plugin/3",
-  "kind": "trusted",
+  "schemaVersion": "bakingrl.plugin/4",
+  "bakingrlApi": "2.0.0",
   "id": "com.bakingrl.cast-package",
   "name": "Cast Package",
   "version": "1.0.4",
   "author": "BakingRL",
-  "compatibility": {
-    "runtimeApi": "1.0.0",
-    "sdk": "1.0.3"
-  },
-  "activation": {
-    "events": ["onStartup"]
-  },
   "runtime": {
-    "extensionHost": {
+    "node": {
       "entry": "dist/extension/index.js"
     },
-    "sidecars": {}
+    "sidecars": []
   },
   "contributes": {
-    "commands": {},
-    "visuals": {
-      "boControl": {
+    "visuals": [
+      {
+        "id": "boControl",
         "entry": "dist/visuals/bo-control.js",
         "defaultSize": [1200, 900],
-        "settings": "src/visuals/control-panel/settings.schema.json"
+        "instanceSettings": "src/visuals/control-panel/settings.schema.json"
       },
-      "scoreboard": {
+      {
+        "id": "scoreboard",
         "entry": "dist/visuals/scoreboard.js",
         "defaultSize": [760, 128],
-        "settings": "src/visuals/scoreboard/settings.schema.json"
+        "instanceSettings": "src/visuals/scoreboard/settings.schema.json"
       },
-      "goalAnimation": {
+      {
+        "id": "goalAnimation",
         "entry": "dist/visuals/goal-animation.js",
         "defaultSize": [1920, 1080],
-        "settings": "src/visuals/goal/settings.schema.json"
+        "instanceSettings": "src/visuals/goal/settings.schema.json"
       },
-      "victoryAnimation": {
+      {
+        "id": "victoryAnimation",
         "entry": "dist/visuals/victory-animation.js",
         "defaultSize": [1920, 1080],
-        "settings": "src/visuals/victory/settings.schema.json"
+        "instanceSettings": "src/visuals/victory/settings.schema.json"
       },
-      "playerBoost": {
+      {
+        "id": "playerBoost",
         "entry": "dist/visuals/player-boost.js",
         "defaultSize": [220, 120],
-        "settings": "src/visuals/player-boost/settings.schema.json"
+        "instanceSettings": "src/visuals/player-boost/settings.schema.json"
       },
-      "playerStatLive": {
+      {
+        "id": "playerStatLive",
         "entry": "dist/visuals/player-stat-live.js",
         "defaultSize": [360, 110],
-        "settings": "src/visuals/player-stats/settings.schema.json"
+        "instanceSettings": "src/visuals/player-stats/settings.schema.json"
       },
-      "teamPreviewLive": {
+      {
+        "id": "teamPreviewLive",
         "entry": "dist/visuals/team-preview-live.js",
         "defaultSize": [420, 170],
-        "settings": "src/visuals/team-events/settings.schema.json"
+        "instanceSettings": "src/visuals/team-events/settings.schema.json"
       },
-      "cageStats": {
+      {
+        "id": "cageStats",
         "entry": "dist/visuals/cage-stats.js",
         "defaultSize": [760, 260],
-        "settings": "src/visuals/cage-stats/settings.schema.json"
+        "instanceSettings": "src/visuals/cage-stats/settings.schema.json"
       },
-      "statistics": {
+      {
+        "id": "statistics",
         "entry": "dist/visuals/statistics.js",
         "defaultSize": [900, 420],
-        "settings": "src/visuals/statistics/settings.schema.json"
+        "instanceSettings": "src/visuals/statistics/settings.schema.json"
       },
-      "fullscreenStats": {
+      {
+        "id": "fullscreenStats",
         "entry": "dist/visuals/fullscreen-stats.js",
         "defaultSize": [1920, 1080],
-        "settings": "src/visuals/fullscreen-stats/settings.schema.json"
+        "instanceSettings": "src/visuals/fullscreen-stats/settings.schema.json"
       }
-    },
-    "services": {
-      "boTracker": {
-        "entry": "dist/services/bo-tracker.js",
+    ],
+    "services": [
+      {
+        "id": "boTracker",
+        "runtime": "node",
         "methods": [
           "snapshot",
           "configure",
@@ -87,24 +90,27 @@
         ],
         "schema": "src/services/bo-tracker/methods.schema.json"
       },
-      "gameSequence": {
-        "entry": "dist/services/game-sequence.js",
+      {
+        "id": "gameSequence",
+        "runtime": "node",
         "methods": [
           "snapshot",
           "reset"
         ],
         "schema": "src/services/game-sequence/methods.schema.json"
       },
-      "playerStatsTracker": {
-        "entry": "dist/services/player-stats.js",
+      {
+        "id": "playerStatsTracker",
+        "runtime": "node",
         "methods": [
           "snapshot",
           "reset"
         ],
         "schema": "src/services/player-stats/methods.schema.json"
       },
-      "cageStats": {
-        "entry": "dist/services/cage-stats.js",
+      {
+        "id": "cageStats",
+        "runtime": "node",
         "methods": [
           "snapshot",
           "configure",
@@ -112,8 +118,9 @@
         ],
         "schema": "src/services/cage-stats/methods.schema.json"
       },
-      "regieController": {
-        "entry": "dist/services/regie-controller.js",
+      {
+        "id": "regieController",
+        "runtime": "node",
         "methods": [
           "trigger",
           "clear",
@@ -121,72 +128,6 @@
         ],
         "schema": "src/services/regie-controller/methods.schema.json"
       }
-    },
-    "pages": {
-      "control": {
-        "path": "pages/control.json",
-        "title": "Cast Control",
-        "description": "Control BO state and trigger cast package event visuals."
-      }
-    },
-    "views": {},
-    "overlays": {},
-    "webviews": {},
-    "configuration": {},
-    "assets": {},
-    "schemas": {}
-  },
-  "capabilities": {
-    "permissions": {
-      "bus": {
-        "read": [
-          "UpdateState",
-          "BallHit",
-          "ClockUpdatedSeconds",
-          "CountdownBegin",
-          "CrossbarHit",
-          "GoalScored",
-          "GoalReplayEnd",
-          "GoalReplayStart",
-          "MatchCreated",
-          "MatchDestroyed",
-          "MatchInitialized",
-          "MatchEnded",
-          "MatchPaused",
-          "MatchUnpaused",
-          "PodiumStart",
-          "ReplayCreated",
-          "RoundStarted",
-          "StatfeedEvent",
-          "plugin.com.bakingrl.cast-package.cage-stats",
-          "plugin.com.bakingrl.cast-package.player-stats",
-          "plugin.com.bakingrl.cast-package.regie",
-          "plugin.com.bakingrl.cast-package.sequence",
-          "plugin.com.bakingrl.cast-package.state"
-        ],
-        "publish": [
-          "plugin.com.bakingrl.cast-package.*"
-        ]
-      },
-      "registry": {
-        "read": [
-          "plugin.com.bakingrl.cast-package.cage-stats",
-          "plugin.com.bakingrl.cast-package.player-stats",
-          "plugin.com.bakingrl.cast-package.regie",
-          "plugin.com.bakingrl.cast-package.sequence",
-          "plugin.com.bakingrl.cast-package.state"
-        ],
-        "write": [
-          "plugin.com.bakingrl.cast-package.*"
-        ]
-      },
-      "network": {
-        "http": [],
-        "websocket": []
-      },
-      "storage": [
-        "plugin://self/*"
-      ]
-    }
+    ]
   }
 }

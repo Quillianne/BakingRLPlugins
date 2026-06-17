@@ -52,7 +52,7 @@ function runtimeDiagnostics(context: ExtensionContext): Diagnostics {
 }
 
 function runtimeSettings(context: ExtensionContext): PluginRuntimeContext["settings"] {
-  return context.settings ?? context.configuration ?? {
+  return context.settings ?? {
     get() {
       return undefined;
     },
