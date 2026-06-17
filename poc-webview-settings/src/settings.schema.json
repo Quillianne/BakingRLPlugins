@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enabled",
+      "default": true
+    },
+    "displayName": {
+      "type": "string",
+      "title": "Display name",
+      "default": "Settings POC"
+    },
+    "accentColor": {
+      "type": "string",
+      "title": "Accent color",
+      "default": "#16a34a"
+    },
+    "refreshSeconds": {
+      "type": "number",
+      "title": "Refresh seconds",
+      "default": 5,
+      "minimum": 1,
+      "maximum": 60
+    }
+  },
+  "additionalProperties": false
+}

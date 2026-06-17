@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "properties": {
+    "debugLabel": {
+      "type": "string",
+      "title": "Debug label",
+      "default": "Simple Node POC"
+    },
+    "writeDebugState": {
+      "type": "boolean",
+      "title": "Write debug state",
+      "default": true
+    }
+  },
+  "additionalProperties": false
+}

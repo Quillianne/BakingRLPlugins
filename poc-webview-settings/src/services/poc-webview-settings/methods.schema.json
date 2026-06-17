@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "methods": {
+    "openSettings": {
+      "input": true,
+      "output": true
+    },
+    "settingsSnapshot": {
+      "input": true,
+      "output": true
+    }
+  }
+}

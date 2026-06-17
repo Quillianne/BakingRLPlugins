@@ -1,0 +1,13 @@
+{
+  "name": "@bakingrl-plugins/poc-content-pack",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs",
+    "validate": "bakingrl-plugin validate",
+    "pack": "bakingrl-plugin pack",
+    "install:local": "bakingrl-plugin install-local"
+  }
+}

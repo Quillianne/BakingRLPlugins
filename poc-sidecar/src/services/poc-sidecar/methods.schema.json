@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "methods": {
+    "ping": {
+      "input": true,
+      "output": true
+    },
+    "health": {
+      "input": true,
+      "output": true
+    },
+    "crash": {
+      "input": true,
+      "output": true
+    }
+  }
+}

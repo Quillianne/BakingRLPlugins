@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "methods": {
+    "ping": {
+      "input": true,
+      "output": true
+    },
+    "snapshot": {
+      "input": true,
+      "output": true
+    },
+    "debugState": {
+      "input": true,
+      "output": true
+    }
+  }
+}

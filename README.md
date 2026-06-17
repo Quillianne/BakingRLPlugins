@@ -13,6 +13,13 @@ cast-package/   Production cast overlays, BO controls, and shared cast stats.
 deja-vu/        Service and visual package for player encounter counts.
 obs-gateway/    Trusted Rust sidecar OBS gateway service.
 player-streak/  Service and visual package for player win/loss streak records.
+
+poc-simple-node/        Runtime API 2.1 Node service and RL snapshot POC.
+poc-webview-settings/   Runtime API 2.1 settings and webview POC.
+poc-sidecar/            Runtime API 2.1 managed sidecar health/crash POC.
+poc-overlay-studio/     Runtime API 2.1 platform plugin POC.
+poc-visual-pack/        Runtime API 2.1 Overlay Studio contributor POC.
+poc-content-pack/       Runtime API 2.1 resource-only content contributor POC.
 ```
 
 ## Local Workspace Setup
@@ -33,7 +40,14 @@ npm install
 npm run check
 npm run build
 npm run validate
+npm run validate:poc-chain
 ```
+
+`validate:poc-chain` checks the Runtime API 2.1 POC dependency,
+contribution, resource, webview, and sidecar declarations locally. It should run
+after `npm run build` so built entries and sidecar binaries exist. The standard
+`npm run validate` command remains the SDK CLI validation gate and requires the
+SDK validator to understand the Runtime API 2.1 manifest fields.
 
 ## Create A New Plugin
 
@@ -90,3 +104,9 @@ npm run tauri dev
 - [Deja Vu](deja-vu/README.md)
 - [OBS Gateway](obs-gateway/README.md)
 - [PlayerStreak](player-streak/README.md)
+- [POC Simple Node](poc-simple-node/README.md)
+- [POC Webview Settings](poc-webview-settings/README.md)
+- [POC Sidecar](poc-sidecar/README.md)
+- [POC Overlay Studio](poc-overlay-studio/README.md)
+- [POC Visual Pack](poc-visual-pack/README.md)
+- [POC Content Pack](poc-content-pack/README.md)

@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "methods": {
+    "snapshot": {
+      "input": true,
+      "output": true
+    },
+    "content": {
+      "input": true,
+      "output": true
+    },
+    "renderWidget": {
+      "input": true,
+      "output": true
+    }
+  }
+}

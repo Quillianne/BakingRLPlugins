@@ -7,19 +7,26 @@
     "cast-package",
     "deja-vu",
     "player-streak",
-    "obs-gateway"
+    "obs-gateway",
+    "poc-simple-node",
+    "poc-webview-settings",
+    "poc-sidecar",
+    "poc-overlay-studio",
+    "poc-visual-pack",
+    "poc-content-pack"
   ],
   "scripts": {
     "create": "create-bakingrl-plugin",
     "build": "npm run build --workspaces --if-present",
     "check": "npm run check --workspaces --if-present",
     "validate": "npm run validate --workspaces --if-present",
+    "validate:poc-chain": "node scripts/validate-poc-chain.mjs",
     "validate:listing": "npm run validate:listing --workspaces --if-present",
     "pack": "npm run pack --workspaces --if-present",
     "install:local": "npm run install:local --workspaces --if-present"
   },
   "devDependencies": {
-    "@bakingrl/create-plugin": "2.0.0"
+    "@bakingrl/create-plugin": "2.1.0"
   },
   "license": "MIT"
 }

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "bakingrl.plugin/4",
+  "bakingrlApi": "2.1.0",
+  "id": "bakingrl.poc-visual-pack",
+  "name": "POC Visual Pack",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "dependencies": [
+    {
+      "packageId": "bakingrl.poc-overlay-studio",
+      "version": "^1.0.0"
+    }
+  ],
+  "runtime": {
+    "node": {
+      "entry": "dist/extension/index.js"
+    },
+    "sidecars": []
+  },
+  "contributes": {
+    "services": [
+      {
+        "id": "visualPack",
+        "runtime": "node",
+        "methods": ["snapshot", "content", "renderWidget"],
+        "schema": "src/services/visual-pack/methods.schema.json"
+      }
+    ],
+    "visuals": [
+      {
+        "id": "demoWidget",
+        "kind": "overlay",
+        "entry": "dist/visuals/demo-widget.js",
+        "defaultSize": [380, 160],
+        "remoteCompatible": true
+      }
+    ],
+    "resources": [
+      {
+        "id": "widgetPreset",
+        "path": "resources/widget-preset.json",
+        "type": "application/json",
+        "visibility": "public",
+        "metadata": {
+          "role": "widget-preset"
+        }
+      }
+    ],
+    "extensionPoints": [
+      {
+        "id": "visual-pack.content",
+        "version": "1.0.0",
+        "title": "Visual Pack content",
+        "description": "Accepts public content resources usable by the demo widget.",
+        "schema": "src/contracts/visual-pack-content.schema.json",
+        "service": "visualPack"
+      }
+    ],
+    "contributions": [
+      {
+        "id": "demo-score-widget",
+        "target": "bakingrl.poc-overlay-studio/overlay-studio.visual",
+        "kind": "widget",
+        "title": "Demo score widget",
+        "description": "A simple widget contributed to Overlay Studio.",
+        "dataSchema": "src/contracts/overlay-widget-contribution.schema.json",
+        "visual": "demoWidget",
+        "service": "visualPack",
+        "resources": ["widgetPreset"],
+        "metadata": {
+          "placement": "bottom-right",
+          "contentTarget": "bakingrl.poc-visual-pack/visual-pack.content"
+        }
+      }
+    ]
+  }
+}

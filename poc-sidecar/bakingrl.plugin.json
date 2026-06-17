@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "bakingrl.plugin/4",
+  "bakingrlApi": "2.1.0",
+  "id": "bakingrl.poc-sidecar",
+  "name": "POC Sidecar",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "runtime": {
+    "node": {
+      "entry": "dist/extension/index.js"
+    },
+    "sidecars": [
+      {
+        "id": "worker",
+        "bin": "bin/poc-sidecar",
+        "protocol": "jsonrpc-stdio",
+        "activation": "manual",
+        "healthCheck": {
+          "method": "health",
+          "intervalMs": 5000,
+          "timeoutMs": 1000
+        }
+      }
+    ]
+  },
+  "contributes": {
+    "services": [
+      {
+        "id": "pocSidecar",
+        "runtime": "node",
+        "methods": ["ping", "health", "crash"],
+        "schema": "src/services/poc-sidecar/methods.schema.json"
+      },
+      {
+        "id": "pocSidecarNative",
+        "runtime": "sidecar:worker",
+        "methods": ["ping", "health", "crash"],
+        "schema": "src/services/poc-sidecar/methods.schema.json"
+      }
+    ]
+  }
+}

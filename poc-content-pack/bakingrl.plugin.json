@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "bakingrl.plugin/4",
+  "bakingrlApi": "2.1.0",
+  "id": "bakingrl.poc-content-pack",
+  "name": "POC Content Pack",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "dependencies": [
+    {
+      "packageId": "bakingrl.poc-visual-pack",
+      "version": "^1.0.0"
+    }
+  ],
+  "contributes": {
+    "resources": [
+      {
+        "id": "overlayContent",
+        "path": "resources/overlay-content.json",
+        "type": "application/json",
+        "visibility": "public",
+        "metadata": {
+          "role": "overlay-content",
+          "locale": "en"
+        }
+      },
+      {
+        "id": "badgeSvgs",
+        "paths": [
+          "resources/badges/blue.svg",
+          "resources/badges/orange.svg"
+        ],
+        "type": "image/svg+xml",
+        "visibility": "public",
+        "metadata": {
+          "role": "team-badges"
+        }
+      }
+    ],
+    "contributions": [
+      {
+        "id": "demo-overlay-content",
+        "target": "bakingrl.poc-visual-pack/visual-pack.content",
+        "kind": "content-pack",
+        "title": "Demo overlay content",
+        "description": "Public JSON and SVG resources consumed by the POC Visual Pack.",
+        "dataSchema": "src/contracts/content-contribution.schema.json",
+        "resources": ["overlayContent", "badgeSvgs"],
+        "metadata": {
+          "preset": "demo",
+          "priority": 10
+        }
+      }
+    ]
+  }
+}

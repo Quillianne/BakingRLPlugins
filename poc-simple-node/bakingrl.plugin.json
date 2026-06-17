@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "bakingrl.plugin/4",
+  "bakingrlApi": "2.1.0",
+  "id": "bakingrl.poc-simple-node",
+  "name": "POC Simple Node",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "runtime": {
+    "node": {
+      "entry": "dist/extension/index.js"
+    },
+    "sidecars": []
+  },
+  "contributes": {
+    "services": [
+      {
+        "id": "pocSimpleNode",
+        "runtime": "node",
+        "methods": ["ping", "snapshot", "debugState"],
+        "schema": "src/services/poc-simple-node/methods.schema.json"
+      }
+    ],
+    "settings": {
+      "schema": "src/settings.schema.json"
+    }
+  }
+}

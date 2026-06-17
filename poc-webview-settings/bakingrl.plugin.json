@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "bakingrl.plugin/4",
+  "bakingrlApi": "2.1.0",
+  "id": "bakingrl.poc-webview-settings",
+  "name": "POC Webview Settings",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "runtime": {
+    "node": {
+      "entry": "dist/extension/index.js"
+    },
+    "sidecars": []
+  },
+  "contributes": {
+    "services": [
+      {
+        "id": "pocWebviewSettings",
+        "runtime": "node",
+        "methods": ["openSettings", "settingsSnapshot"],
+        "schema": "src/services/poc-webview-settings/methods.schema.json"
+      }
+    ],
+    "settings": {
+      "schema": "src/settings.schema.json"
+    },
+    "webviews": [
+      {
+        "id": "settings",
+        "entry": "dist/webviews/settings.js",
+        "title": "POC Settings",
+        "kind": "settings",
+        "defaultSize": [720, 520]
+      }
+    ]
+  }
+}

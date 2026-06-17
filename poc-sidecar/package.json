@@ -1,0 +1,21 @@
+{
+  "name": "@bakingrl-plugins/poc-sidecar",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm run build:sidecar && vite build",
+    "build:sidecar": "cargo build --manifest-path sidecar/Cargo.toml --target-dir ../.cargo-target/poc-sidecar --release && node scripts/copy-sidecar.mjs",
+    "check": "tsc -p tsconfig.json --noEmit && cargo check --manifest-path sidecar/Cargo.toml --target-dir ../.cargo-target/poc-sidecar",
+    "validate": "bakingrl-plugin validate",
+    "pack": "bakingrl-plugin pack",
+    "install:local": "bakingrl-plugin install-local"
+  },
+  "dependencies": {
+    "@bakingrl/plugin-sdk": "2.1.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.2",
+    "vite": "^6.0.3"
+  }
+}

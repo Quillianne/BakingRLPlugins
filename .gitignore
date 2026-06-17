@@ -7,5 +7,7 @@ bakingrl-signing-key.json
 .DS_Store
 *.local
 obs-gateway/bin/
+poc-sidecar/bin/
 .cargo-target/
 obs-gateway/sidecar/target/
+poc-sidecar/sidecar/target/

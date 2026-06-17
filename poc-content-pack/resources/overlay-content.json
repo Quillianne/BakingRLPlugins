@@ -1,0 +1,18 @@
+{
+  "title": "Demo Content Pack",
+  "messages": [
+    "Content Pack is active",
+    "Resources are served by the host",
+    "Visual Pack consumes this through a contribution chain"
+  ],
+  "teams": {
+    "blue": {
+      "label": "Blue demo",
+      "badge": "badgeSvgs:blue.svg"
+    },
+    "orange": {
+      "label": "Orange demo",
+      "badge": "badgeSvgs:orange.svg"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "bakingrl.plugin/4",
+  "bakingrlApi": "2.1.0",
+  "id": "bakingrl.poc-overlay-studio",
+  "name": "POC Overlay Studio",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "runtime": {
+    "node": {
+      "entry": "dist/extension/index.js"
+    },
+    "sidecars": []
+  },
+  "contributes": {
+    "services": [
+      {
+        "id": "overlayStudio",
+        "runtime": "node",
+        "methods": ["snapshot", "contributions", "renderState"],
+        "schema": "src/services/overlay-studio/methods.schema.json"
+      }
+    ],
+    "visuals": [
+      {
+        "id": "overlayPreview",
+        "kind": "overlay",
+        "entry": "dist/visuals/overlay-preview.js",
+        "defaultSize": [960, 540],
+        "remoteCompatible": true
+      }
+    ],
+    "webviews": [
+      {
+        "id": "studio",
+        "entry": "dist/webviews/studio.js",
+        "title": "POC Overlay Studio",
+        "kind": "tool",
+        "defaultSize": [1040, 720]
+      }
+    ],
+    "extensionPoints": [
+      {
+        "id": "overlay-studio.visual",
+        "version": "1.0.0",
+        "title": "Overlay Studio visual",
+        "description": "Accepts overlay widgets contributed by other plugins.",
+        "schema": "src/contracts/overlay-visual.schema.json",
+        "service": "overlayStudio"
+      }
+    ]
+  }
+}

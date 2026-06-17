@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "required": ["visual", "service"],
+  "properties": {
+    "visual": {
+      "type": "string"
+    },
+    "service": {
+      "type": "string"
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

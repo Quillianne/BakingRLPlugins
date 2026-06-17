@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "methods": {
+    "snapshot": {
+      "input": true,
+      "output": true
+    },
+    "contributions": {
+      "input": true,
+      "output": true
+    },
+    "renderState": {
+      "input": true,
+      "output": true
+    }
+  }
+}
