@@ -6,7 +6,8 @@
   "workspaces": [
     "cast-package",
     "deja-vu",
-    "player-streak"
+    "player-streak",
+    "obs-gateway"
   ],
   "scripts": {
     "create": "create-bakingrl-plugin",
@@ -18,7 +19,7 @@
     "install:local": "npm run install:local --workspaces --if-present"
   },
   "devDependencies": {
-    "@bakingrl/create-plugin": "^1.0.3"
+    "@bakingrl/create-plugin": "file:../BakingRLSDK/packages/create-bakingrl-plugin"
   },
   "license": "MIT"
 }

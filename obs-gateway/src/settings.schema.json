@@ -1,0 +1,53 @@
+{
+  "type": "object",
+  "title": "OBS Gateway",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable OBS Gateway",
+      "default": true
+    },
+    "listenAddress": {
+      "type": "string",
+      "title": "Listen Address",
+      "default": "127.0.0.1"
+    },
+    "listenPort": {
+      "type": "integer",
+      "title": "Listen Port",
+      "minimum": 1024,
+      "maximum": 65535,
+      "default": 4455
+    },
+    "routePrefix": {
+      "type": "string",
+      "title": "Overlay Route Prefix",
+      "default": "/overlay"
+    },
+    "streamPath": {
+      "type": "string",
+      "title": "Stream Route Path",
+      "default": "/stream"
+    },
+    "secretKeyRef": {
+      "type": "string",
+      "title": "Secret reference used for OBS auth",
+      "description": "The key name used by the host secret store (do not store the secret value here).",
+      "default": "obs.gateway.accessToken"
+    },
+    "allowedOrigins": {
+      "type": "array",
+      "title": "Allowed CORS Origins",
+      "items": {
+        "type": "string"
+      },
+      "default": ["http://localhost", "http://127.0.0.1"]
+    },
+    "heartbeatMs": {
+      "type": "integer",
+      "title": "Heartbeat interval (ms)",
+      "minimum": 1000,
+      "default": 15000
+    }
+  }
+}

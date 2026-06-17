@@ -1,0 +1,66 @@
+{
+  "type": "object",
+  "methods": {
+    "snapshot": {
+      "input": true,
+      "output": true
+    },
+    "configure": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "listenAddress": {
+            "type": "string"
+          },
+          "listenPort": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 65535
+          },
+          "routePrefix": {
+            "type": "string"
+          },
+          "streamPath": {
+            "type": "string"
+          },
+          "secretKeyRef": {
+            "type": "string",
+            "description": "Host secret key reference. Keep secret material out of this field."
+          },
+          "heartbeatMs": {
+            "type": "integer",
+            "minimum": 1000
+          },
+          "allowedOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "output": true
+    },
+    "setConnectionState": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["disconnected", "connecting", "connected", "error"]
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": ["state"],
+        "additionalProperties": false
+      },
+      "output": true
+    }
+  }
+}

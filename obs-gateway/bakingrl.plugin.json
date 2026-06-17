@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "bakingrl.plugin/4",
+  "bakingrlApi": "2.0.0",
+  "id": "bakingrl.obs-gateway",
+  "name": "OBS Gateway",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "runtime": {
+    "node": {
+      "entry": "dist/extension/index.js"
+    },
+    "sidecars": []
+  },
+  "contributes": {
+    "services": [
+      {
+        "id": "obsGateway",
+        "runtime": "node",
+        "methods": ["snapshot", "configure", "setConnectionState"],
+        "schema": "src/services/obs-gateway/methods.schema.json"
+      }
+    ],
+    "settings": {
+      "schema": "src/settings.schema.json"
+    }
+  }
+}
