@@ -3,7 +3,9 @@ import { defineConfig } from "vite";
 export default defineConfig({
   build: {
     emptyOutDir: true,
+    ssr: true,
     rollupOptions: {
+      external: [/^node:/],
       preserveEntrySignatures: "strict",
       input: {
         "extension/index": "src/extension/index.ts",

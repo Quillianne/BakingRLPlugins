@@ -26,6 +26,10 @@ export type PluginRuntimeContext = {
   services: {
     call<TOutput = unknown>(ref: string, method: string, input?: unknown): Promise<TOutput>;
   };
+  secrets: {
+    get(key: string): Promise<string | undefined>;
+    configured(key: string): Promise<boolean>;
+  };
   settings: {
     get<TValue = unknown>(key: string): TValue | undefined;
     all(): Record<string, unknown>;
@@ -92,6 +96,14 @@ function createPluginRuntimeContext(context: ExtensionContext) {
     services: {
       call(ref, method, input) {
         return context.services.call(ref, method, input);
+      }
+    },
+    secrets: context.secrets ?? {
+      async get() {
+        return undefined;
+      },
+      async configured() {
+        return false;
       }
     },
     settings: runtimeSettings(context),
