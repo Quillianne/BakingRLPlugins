@@ -5,12 +5,21 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const pocDirs = ["poc-simple-node", "poc-sidecar", "poc-overlay-studio", "poc-visual-pack", "poc-content-pack"];
+const pocDirs = [
+  "poc-simple-node",
+  "poc-webview-settings",
+  "poc-sidecar",
+  "poc-overlay-studio",
+  "poc-visual-pack",
+  "poc-content-pack"
+];
 const simplePackageId = "bakingrl.poc-simple-node";
+const webviewSettingsPackageId = "bakingrl.poc-webview-settings";
 const sidecarPackageId = "bakingrl.poc-sidecar";
 const overlayPackageId = "bakingrl.poc-overlay-studio";
 const visualPackageId = "bakingrl.poc-visual-pack";
 const contentPackageId = "bakingrl.poc-content-pack";
+const webviewSettingsServiceRef = `${webviewSettingsPackageId}/pocWebviewSettings`;
 const sidecarServiceRef = `${sidecarPackageId}/pocSidecar`;
 const nativeSidecarServiceRef = `${sidecarPackageId}/pocSidecarNative`;
 const overlayTarget = `${overlayPackageId}/overlay-studio.visual`;
@@ -167,11 +176,14 @@ function declaredResourcePaths(resource) {
 function createManifestRuntimeHost(
   packageList,
   initialActivePackageIds = packageList.map((pkg) => pkg.id),
-  latestTelemetryEvent = null
+  latestTelemetryEvent = null,
+  initialPackageSettings = {}
 ) {
   const packages = new Map(packageList.map((pkg) => [pkg.id, pkg]));
   const activePackageIds = new Set(initialActivePackageIds);
   const registeredServices = new Map();
+  const packageSettings = new Map(Object.entries(cloneJson(initialPackageSettings)));
+  const settingSubscribers = new Map();
   const sidecarServices = new Map();
   const sidecarStates = new Map();
   const calls = {
@@ -181,6 +193,8 @@ function createManifestRuntimeHost(
     readJson: [],
     readText: [],
     serviceCalls: [],
+    webviewOpens: [],
+    webviewCloses: [],
     sidecarStarts: [],
     sidecarStops: [],
     sidecarRestarts: [],
@@ -203,6 +217,51 @@ function createManifestRuntimeHost(
   function setActive(packageIds) {
     activePackageIds.clear();
     for (const packageId of packageIds) activePackageIds.add(packageId);
+  }
+
+  function settingsFor(packageId) {
+    if (!packageSettings.has(packageId)) packageSettings.set(packageId, {});
+    return packageSettings.get(packageId);
+  }
+
+  function setPackageSettings(packageId, values) {
+    const next = { ...settingsFor(packageId), ...cloneJson(values ?? {}) };
+    packageSettings.set(packageId, next);
+    for (const callback of settingSubscribers.get(packageId) ?? []) void callback(cloneJson(next));
+    return cloneJson(next);
+  }
+
+  function subscribePackageSettings(packageId, callback) {
+    if (!settingSubscribers.has(packageId)) settingSubscribers.set(packageId, new Set());
+    settingSubscribers.get(packageId).add(callback);
+    return () => settingSubscribers.get(packageId)?.delete(callback);
+  }
+
+  function declaredWebviews(packageId) {
+    return Object.fromEntries(
+      (packages.get(packageId)?.manifest.contributes?.webviews ?? []).map((webview) => [webview.id, cloneJson(webview)])
+    );
+  }
+
+  async function openWebview(packageId, webviewId, options = {}) {
+    if (!activePackageIds.has(packageId)) throw new Error(`Webview package is inactive: ${packageId}`);
+    const webview = packages.get(packageId)?.manifest.contributes?.webviews?.find((candidate) => candidate.id === webviewId);
+    if (!webview) throw new Error(`Unknown webview: ${packageId}/${webviewId}`);
+    const call = {
+      packageId,
+      webviewId,
+      options: cloneJson(options),
+      title: webview.title ?? webview.id,
+      entry: webview.entry
+    };
+    calls.webviewOpens.push(call);
+    return cloneJson(call);
+  }
+
+  async function closeWebview(packageId, webviewId) {
+    const call = { packageId, webviewId };
+    calls.webviewCloses.push(call);
+    return cloneJson(call);
   }
 
   function isTargetActive(target) {
@@ -438,6 +497,15 @@ function createManifestRuntimeHost(
         },
         call: callService
       },
+      webviews: {
+        declared: declaredWebviews(packageId),
+        open(id, options) {
+          return openWebview(packageId, id, options ?? {});
+        },
+        close(id) {
+          return closeWebview(packageId, id);
+        }
+      },
       sidecars: {
         declared: (packages.get(packageId)?.manifest.runtime?.sidecars ?? []).map((sidecar) => sidecar.id),
         start(name) {
@@ -497,11 +565,11 @@ function createManifestRuntimeHost(
         readText: readPublicText
       },
       settings: {
-        get() {
-          return undefined;
+        get(key) {
+          return settingsFor(packageId)[key];
         },
         all() {
-          return {};
+          return cloneJson(settingsFor(packageId));
         }
       },
       telemetryHub: {
@@ -560,6 +628,11 @@ function createManifestRuntimeHost(
     callService,
     listContributions,
     listResources,
+    settingsFor(packageId) {
+      return cloneJson(settingsFor(packageId));
+    },
+    setPackageSettings,
+    subscribePackageSettings,
     sidecarState(packageId, sidecarName) {
       return { ...sidecarState(packageId, sidecarName) };
     }
@@ -705,6 +778,8 @@ function installFakeDocument() {
 }
 
 function createFakeRoot() {
+  let submitHandler = null;
+  const inputs = new Map();
   return {
     innerHTML: "",
     append(node) {
@@ -713,8 +788,29 @@ function createFakeRoot() {
     replaceChildren(...nodes) {
       this.innerHTML = nodes.map((node) => node?.innerHTML ?? node?.textContent ?? "").join("");
     },
-    querySelector() {
+    querySelector(selector) {
+      if (selector === "form") {
+        return {
+          addEventListener(eventName, handler) {
+            if (eventName === "submit") submitHandler = handler;
+          }
+        };
+      }
+      if (typeof selector === "string" && selector.startsWith("#")) {
+        const id = selector.slice(1);
+        if (!inputs.has(id)) inputs.set(id, {});
+        return inputs.get(id);
+      }
       return null;
+    },
+    submitForm(values) {
+      for (const [key, value] of Object.entries(values)) {
+        if (!inputs.has(key)) inputs.set(key, {});
+        const input = inputs.get(key);
+        if (typeof value === "boolean") input.checked = value;
+        else input.value = String(value);
+      }
+      submitHandler?.({ preventDefault() {} });
     }
   };
 }
@@ -797,6 +893,74 @@ async function assertOverlayStudioWebviewTelemetry(pkg) {
   }
 }
 
+async function assertWebviewSettingsModule(pkg, host) {
+  const restoreDocument = installFakeDocument();
+  try {
+    const webview = await loadWebview(pkg, "settings");
+    const root = createFakeRoot();
+    let currentSettings = host.settingsFor(webviewSettingsPackageId);
+    const cleanup = await webview.mount({
+      root,
+      packageId: webviewSettingsPackageId,
+      webviewId: "settings",
+      settings: {
+        async get() {
+          return currentSettings;
+        },
+        async save(values) {
+          currentSettings = host.setPackageSettings(webviewSettingsPackageId, values);
+          return currentSettings;
+        },
+        subscribe(callback) {
+          return host.subscribePackageSettings(webviewSettingsPackageId, (settings) => {
+            currentSettings = settings;
+            void callback(settings);
+          });
+        }
+      },
+      telemetryHub: createWebviewTelemetryHarness(initialTelemetryFrame).hub,
+      dimensions: {
+        width: 720,
+        height: 520
+      },
+      mode: "runtime"
+    });
+
+    assert.ok(root.innerHTML.includes("POC Webview Settings"), "settings webview should render.");
+    assert.ok(root.innerHTML.includes("Initial Settings"), "settings webview should render host-provided settings.");
+
+    root.submitForm({
+      enabled: false,
+      displayName: "Saved Through Bridge",
+      accentColor: "#ef4444",
+      refreshSeconds: 9
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.equal(host.settingsFor(webviewSettingsPackageId).enabled, false);
+    assert.equal(host.settingsFor(webviewSettingsPackageId).displayName, "Saved Through Bridge");
+    assert.ok(root.innerHTML.includes("Saved through host settings bridge."), "settings webview should confirm host save.");
+    assert.ok(root.innerHTML.includes("Saved Through Bridge"), "settings webview should re-render saved settings.");
+
+    host.setPackageSettings(webviewSettingsPackageId, {
+      enabled: true,
+      displayName: "Subscribed Settings",
+      accentColor: "#2563eb",
+      refreshSeconds: 12
+    });
+    await Promise.resolve();
+
+    assert.ok(root.innerHTML.includes("Updated from host settings."), "settings webview should react to host setting updates.");
+    assert.ok(root.innerHTML.includes("Subscribed Settings"), "settings webview should render subscribed host updates.");
+
+    if (typeof cleanup === "function") cleanup();
+    assert.equal(root.innerHTML, "");
+  } finally {
+    restoreDocument();
+  }
+}
+
 async function activateStandaloneService(extension, overrides) {
   const context = createStandaloneRuntimeContext(visualPackageId, overrides);
   await extension.activate(context);
@@ -852,34 +1016,71 @@ function assertContentSummary(content) {
 const packageList = pocDirs.map(loadPackage);
 const packages = new Map(packageList.map((pkg) => [pkg.id, pkg]));
 const simplePackage = requirePackage(packages, simplePackageId);
+const webviewSettingsPackage = requirePackage(packages, webviewSettingsPackageId);
 const sidecarPackage = requirePackage(packages, sidecarPackageId);
 const overlayPackage = requirePackage(packages, overlayPackageId);
 const visualPackage = requirePackage(packages, visualPackageId);
 requirePackage(packages, contentPackageId);
 
-const host = createManifestRuntimeHost(packageList, undefined, initialTelemetryFrame);
+const host = createManifestRuntimeHost(packageList, undefined, initialTelemetryFrame, {
+  [webviewSettingsPackageId]: {
+    enabled: true,
+    displayName: "Initial Settings",
+    accentColor: "#16a34a",
+    refreshSeconds: 5
+  }
+});
 const simpleExtension = await loadExtension(simplePackage);
+const webviewSettingsExtension = await loadExtension(webviewSettingsPackage);
 const sidecarExtension = await loadExtension(sidecarPackage);
 const overlayExtension = await loadExtension(overlayPackage);
 const visualExtension = await loadExtension(visualPackage);
 let visualExtensionActive = false;
+let webviewSettingsExtensionActive = false;
 let sidecarExtensionActive = false;
 
 try {
   await assertOverlayStudioWebviewTelemetry(overlayPackage);
+  await assertWebviewSettingsModule(webviewSettingsPackage, host);
 
   await simpleExtension.activate(host.createRuntimeContext(simplePackageId));
+  await webviewSettingsExtension.activate(host.createRuntimeContext(webviewSettingsPackageId));
+  webviewSettingsExtensionActive = true;
   await sidecarExtension.activate(host.createRuntimeContext(sidecarPackageId));
   sidecarExtensionActive = true;
   await overlayExtension.activate(host.createRuntimeContext(overlayPackageId));
   await visualExtension.activate(host.createRuntimeContext(visualPackageId));
   visualExtensionActive = true;
 
-  host.setActive([simplePackageId, sidecarPackageId, overlayPackageId, visualPackageId, contentPackageId]);
+  host.setActive([
+    simplePackageId,
+    webviewSettingsPackageId,
+    sidecarPackageId,
+    overlayPackageId,
+    visualPackageId,
+    contentPackageId
+  ]);
 
   const simpleSnapshot = await host.callService(`${simplePackageId}/pocSimpleNode`, "snapshot");
   assert.equal(simpleSnapshot.source, "telemetry");
   assert.equal(simpleSnapshot.frame.Data.MatchGuid, "runtime-poc-host-snapshot");
+
+  const webviewSettingsSnapshot = await host.callService(webviewSettingsServiceRef, "settingsSnapshot");
+  assert.equal(webviewSettingsSnapshot.packageId, webviewSettingsPackageId);
+  assert.equal(webviewSettingsSnapshot.settings.displayName, "Subscribed Settings");
+
+  const webviewOpen = await host.callService(webviewSettingsServiceRef, "openSettings", { source: "runtime-poc-smoke" });
+  assert.equal(webviewOpen.ok, true);
+  assert.equal(webviewOpen.webviewId, "settings");
+  assert.equal(webviewOpen.result.packageId, webviewSettingsPackageId);
+  assert.equal(webviewOpen.result.webviewId, "settings");
+  assert.deepEqual(webviewOpen.result.options, { source: "runtime-poc-smoke" });
+  assert.ok(
+    host.calls.webviewOpens.some(
+      (call) => call.packageId === webviewSettingsPackageId && call.webviewId === "settings"
+    ),
+    "POC webview settings should open its declared webview through the host."
+  );
 
   const sidecarPing = await host.callService(sidecarServiceRef, "ping", { source: "runtime-poc-smoke" });
   assert.equal(sidecarPing.ok, true);
@@ -999,6 +1200,7 @@ try {
   if (visualExtensionActive) await visualExtension.deactivate();
   await overlayExtension.deactivate();
   if (sidecarExtensionActive) await sidecarExtension.deactivate();
+  if (webviewSettingsExtensionActive) await webviewSettingsExtension.deactivate();
   await simpleExtension.deactivate();
 }
 
