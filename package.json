@@ -22,6 +22,7 @@
     "validate": "npm run validate --workspaces --if-present",
     "validate:poc-chain": "node scripts/validate-poc-chain.mjs",
     "validate:runtime-poc": "node scripts/smoke-runtime-poc.mjs",
+    "validate:local-install": "node scripts/validate-local-install.mjs",
     "pack": "npm run pack --workspaces --if-present",
     "install:local": "npm run install:local --workspaces --if-present"
   },

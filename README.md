@@ -49,6 +49,7 @@ npm run check
 npm run build
 npm run validate
 npm run validate:poc-chain
+npm run validate:local-install
 ```
 
 `validate:poc-chain` reads `BakingRL`'s `HOST_RUNTIME_API_VERSION` and
@@ -58,6 +59,11 @@ It should run after `npm run build` so built entries and sidecar binaries exist.
 The standard `npm run validate` command remains the SDK CLI validation gate and
 requires the local SDK validator to understand the Runtime API 2.2 manifest
 fields.
+
+`validate:local-install` uses the same local SDK CLI to pack each POC and copy
+it into a temporary `BAKINGRL_PACKAGES_DIR`, then checks that installed runtime
+entries, webviews, sidecars, schemas, and resources are present. It exercises
+the local install path without mutating the real BakingRL app-data directory.
 
 ## Create A New Plugin
 
