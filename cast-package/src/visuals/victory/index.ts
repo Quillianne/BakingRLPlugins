@@ -1,9 +1,7 @@
 import {
-  defineVisual,
   type BakingRLEvent,
   type RlMatchEndedPayload,
-  type RlUpdateStatePayload,
-  type VisualContext
+  type RlUpdateStatePayload
 } from "@bakingrl/plugin-sdk";
 import {
   BO_STATE_EVENT,
@@ -25,6 +23,7 @@ import {
 import { CAST_TRANSITION_EXIT_MS, castTransitionCss, renderCastTransitionJaws } from "../../shared/cast-transition";
 import { editorUpdateState as editorPreviewUpdateState } from "../editorPreviewData";
 import { fitVisualScale } from "../fitVisualScale";
+import { defineVisual, type VisualContext } from "../visualModule";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 

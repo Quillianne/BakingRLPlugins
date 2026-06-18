@@ -1,5 +1,6 @@
-import { defineVisual, type BakingRLEvent, type VisualContext } from "@bakingrl/plugin-sdk";
+import { type BakingRLEvent } from "@bakingrl/plugin-sdk";
 import { PLAYER_STATS_EVENT } from "../../shared/events";
+import { defineVisual, type VisualContext } from "../visualModule";
 import {
   escapeHtml,
   renderPlayerDetail,

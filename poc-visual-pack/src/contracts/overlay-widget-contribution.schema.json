@@ -1,10 +1,7 @@
 {
   "type": "object",
-  "required": ["visual", "service"],
+  "required": ["service", "resources", "metadata"],
   "properties": {
-    "visual": {
-      "type": "string"
-    },
     "service": {
       "type": "string"
     },
@@ -15,7 +12,48 @@
       }
     },
     "metadata": {
-      "type": "object"
+      "type": "object",
+      "required": ["renderer"],
+      "properties": {
+        "placement": {
+          "type": "string"
+        },
+        "contentTarget": {
+          "type": "string"
+        },
+        "defaultSize": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "remoteCompatible": {
+          "type": "boolean"
+        },
+        "renderer": {
+          "type": "object",
+          "required": ["kind", "resource"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "resource-module"
+            },
+            "resource": {
+              "type": "string"
+            },
+            "moduleFormat": {
+              "type": "string"
+            },
+            "export": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": true

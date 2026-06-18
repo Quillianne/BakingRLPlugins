@@ -26,6 +26,7 @@ const overlayTarget = `${overlayPackageId}/overlay-studio.visual`;
 const contentTarget = `${visualPackageId}/visual-pack.content`;
 const overlayServiceRef = `${overlayPackageId}/overlayStudio`;
 const visualServiceRef = `${visualPackageId}/visualPack`;
+const textResourceTypes = new Set(["application/javascript", "image/svg+xml", "text/css", "text/html"]);
 const initialTelemetryFrame = {
   Event: "UpdateState",
   Data: {
@@ -439,7 +440,7 @@ function createManifestRuntimeHost(
   async function readPublicText(ref, path) {
     calls.readText.push({ ref, path: path ?? null });
     const { pkg, resource } = findPublicResource(ref);
-    assert.equal(resource.type, "image/svg+xml");
+    assert.ok(textResourceTypes.has(resource.type), `Unsupported text resource type: ${resource.type}`);
     const resourcePath = resolveDeclaredResourcePath(resource, path);
     return readFileText(resolve(pkg.packageDir, resourcePath));
   }
@@ -558,7 +559,7 @@ function createManifestRuntimeHost(
         async read(ref, path) {
           const { resource } = findPublicResource(ref);
           if (resource.type === "application/json") return readPublicJson(ref, path);
-          if (resource.type === "image/svg+xml") return readPublicText(ref, path);
+          if (textResourceTypes.has(resource.type)) return readPublicText(ref, path);
           throw new Error(`Unsupported runtime POC resource type: ${resource.type}`);
         },
         readJson: readPublicJson,
@@ -980,10 +981,15 @@ function assertVisualContribution(contribution) {
   assert.equal(contribution.reference, `${visualPackageId}/demo-score-widget`);
   assert.equal(contribution.id, "demo-score-widget");
   assert.equal(contribution.target, overlayTarget);
-  assert.equal(contribution.visual, "demoWidget");
+  assert.equal(contribution.visual, undefined);
   assert.equal(contribution.service, "visualPack");
-  assert.deepEqual(contribution.resources, ["widgetPreset"]);
+  assert.deepEqual(contribution.resources, ["demoWidgetModule", "widgetPreset"]);
   assert.equal(contribution.metadata.contentTarget, contentTarget);
+  assert.deepEqual(contribution.metadata.defaultSize, [380, 160]);
+  assert.equal(contribution.metadata.remoteCompatible, true);
+  assert.equal(contribution.metadata.renderer.kind, "resource-module");
+  assert.equal(contribution.metadata.renderer.resource, "demoWidgetModule");
+  assert.equal(contribution.metadata.renderer.moduleFormat, "esm");
 }
 
 function assertContentContribution(contribution) {
@@ -1014,6 +1020,20 @@ function assertContentSummary(content) {
 }
 
 const packageList = pocDirs.map(loadPackage);
+for (const pkg of packageList) {
+  assert.equal(
+    (pkg.manifest.contributes?.visuals ?? []).length,
+    0,
+    `${pkg.dir} should not declare host-owned contributes.visuals in the POC chain.`
+  );
+  for (const contribution of pkg.manifest.contributes?.contributions ?? []) {
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(contribution, "visual"),
+      false,
+      `${pkg.dir}/${contribution.id} should not declare host-owned contribution.visual.`
+    );
+  }
+}
 const packages = new Map(packageList.map((pkg) => [pkg.id, pkg]));
 const simplePackage = requirePackage(packages, simplePackageId);
 const webviewSettingsPackage = requirePackage(packages, webviewSettingsPackageId);
@@ -1060,6 +1080,21 @@ try {
     visualPackageId,
     contentPackageId
   ]);
+
+  const overlayPreviewModule = await host
+    .createRuntimeContext(overlayPackageId)
+    .resources.readText(resourceReference(overlayPackageId, "overlayPreviewModule"));
+  assert.ok(
+    overlayPreviewModule.includes("Overlay Studio POC"),
+    "Overlay Studio preview module should be served as a public resource."
+  );
+  const demoWidgetModule = await host
+    .createRuntimeContext(visualPackageId)
+    .resources.readText(resourceReference(visualPackageId, "demoWidgetModule"));
+  assert.ok(
+    demoWidgetModule.includes("Visual Pack Widget"),
+    "Visual Pack widget module should be served as a public resource."
+  );
 
   const simpleSnapshot = await host.callService(`${simplePackageId}/pocSimpleNode`, "snapshot");
   assert.equal(simpleSnapshot.source, "telemetry");

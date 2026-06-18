@@ -62,11 +62,9 @@ such as `http://localhost` also allow any port for that host.
 
 ## Host layout and snapshot contract
 
-The current SDK exposes `context.overlays.list()`, so the Node extension uses it
-to populate `host.layouts` and the `/overlay/api/layouts` response. The plugin
-normalizes common fields (`id`, `layoutId`, `name`, `title`, `items`,
-`visuals`) and returns an empty layout list with an explicit error if the host
-API is unavailable.
+Runtime API 2.2 no longer exposes host-owned overlay layout discovery. The Node
+extension now reports an empty `host.layouts` list with an explicit message so
+the gateway can still run while platform plugins own future layout contracts.
 
 There is not yet a dedicated host API in the SDK for layout render snapshots.
 Until the host exposes one, `/overlay/api/snapshot` returns HTTP 501 with:

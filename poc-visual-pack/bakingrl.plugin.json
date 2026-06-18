@@ -1,6 +1,6 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.1.0",
+  "bakingrlApi": "2.2.0",
   "id": "bakingrl.poc-visual-pack",
   "name": "POC Visual Pack",
   "version": "1.0.0",
@@ -22,20 +22,25 @@
       {
         "id": "visualPack",
         "runtime": "node",
-        "methods": ["snapshot", "content", "renderWidget"],
+        "methods": [
+          "snapshot",
+          "content",
+          "renderWidget"
+        ],
         "schema": "src/services/visual-pack/methods.schema.json"
       }
     ],
-    "visuals": [
-      {
-        "id": "demoWidget",
-        "kind": "overlay",
-        "entry": "dist/visuals/demo-widget.js",
-        "defaultSize": [380, 160],
-        "remoteCompatible": true
-      }
-    ],
     "resources": [
+      {
+        "id": "demoWidgetModule",
+        "path": "dist/visuals/demo-widget.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "overlay-widget-module",
+          "moduleFormat": "esm"
+        }
+      },
       {
         "id": "widgetPreset",
         "path": "resources/widget-preset.json",
@@ -64,12 +69,25 @@
         "title": "Demo score widget",
         "description": "A simple widget contributed to Overlay Studio.",
         "dataSchema": "src/contracts/overlay-widget-contribution.schema.json",
-        "visual": "demoWidget",
         "service": "visualPack",
-        "resources": ["widgetPreset"],
+        "resources": [
+          "demoWidgetModule",
+          "widgetPreset"
+        ],
         "metadata": {
           "placement": "bottom-right",
-          "contentTarget": "bakingrl.poc-visual-pack/visual-pack.content"
+          "contentTarget": "bakingrl.poc-visual-pack/visual-pack.content",
+          "defaultSize": [
+            380,
+            160
+          ],
+          "remoteCompatible": true,
+          "renderer": {
+            "kind": "resource-module",
+            "resource": "demoWidgetModule",
+            "moduleFormat": "esm",
+            "export": "default"
+          }
         }
       }
     ]

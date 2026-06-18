@@ -1,4 +1,4 @@
-import { defineVisual, type VisualContext } from "@bakingrl/plugin-sdk";
+import { defineVisual, type VisualContext } from "../visualModule";
 
 const SERVICE_REF = "bakingrl.obs-gateway/obsGateway";
 

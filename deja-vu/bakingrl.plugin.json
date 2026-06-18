@@ -1,6 +1,6 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.0.0",
+  "bakingrlApi": "2.2.0",
   "id": "com.bakingrl.deja-vu",
   "name": "Deja Vu",
   "version": "1.0.5",
@@ -12,24 +12,36 @@
     "sidecars": []
   },
   "contributes": {
-    "visuals": [
-      {
-        "id": "dejaVu",
-        "entry": "dist/visuals/deja-vu.js",
-        "defaultSize": [300, 100],
-        "instanceSettings": "src/visuals/deja-vu/settings.schema.json"
-      }
-    ],
     "services": [
       {
         "id": "dejaVu",
         "runtime": "node",
-        "methods": ["snapshot", "reset"],
+        "methods": [
+          "snapshot",
+          "reset"
+        ],
         "schema": "src/services/deja-vu/methods.schema.json"
       }
     ],
     "settings": {
       "schema": "src/settings.schema.json"
-    }
+    },
+    "resources": [
+      {
+        "id": "dejaVu",
+        "path": "dist/visuals/deja-vu.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "renderer-module",
+          "moduleFormat": "esm",
+          "defaultSize": [
+            300,
+            100
+          ],
+          "settingsSchema": "src/visuals/deja-vu/settings.schema.json"
+        }
+      }
+    ]
   }
 }

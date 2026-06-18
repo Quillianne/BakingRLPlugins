@@ -1,10 +1,8 @@
 import {
-  defineVisual,
   type BakingRLEvent,
   type RlGoalScoredPayload,
   type RlSimpleMatchPayload,
-  type RlUpdateStatePayload,
-  type VisualContext
+  type RlUpdateStatePayload
 } from "@bakingrl/plugin-sdk";
 import {
   displayTeamForTeamNum,
@@ -18,6 +16,7 @@ import {
 import { CAST_TRANSITION_EXIT_MS, castTransitionCss, renderCastTransitionJaws } from "../../shared/cast-transition";
 import { editorUpdateState } from "../editorPreviewData";
 import { fitVisualScale } from "../fitVisualScale";
+import { defineVisual, type VisualContext } from "../visualModule";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 

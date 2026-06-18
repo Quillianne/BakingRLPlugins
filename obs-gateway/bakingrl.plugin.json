@@ -1,6 +1,6 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.0.0",
+  "bakingrlApi": "2.2.0",
   "id": "bakingrl.obs-gateway",
   "name": "OBS Gateway",
   "version": "1.0.5",
@@ -19,25 +19,35 @@
     ]
   },
   "contributes": {
-    "visuals": [
-      {
-        "id": "obsGatewayConfig",
-        "kind": "config",
-        "entry": "dist/visuals/config.js",
-        "defaultSize": [980, 720]
-      }
-    ],
     "services": [
       {
         "id": "obsGateway",
         "runtime": "node",
-        "methods": ["snapshot", "configure", "setConnectionState", "refreshHostData", "updateHostData"],
+        "methods": [
+          "snapshot",
+          "configure",
+          "setConnectionState",
+          "refreshHostData",
+          "updateHostData"
+        ],
         "schema": "src/services/obs-gateway/methods.schema.json"
       }
     ],
     "settings": {
       "schema": "src/settings.schema.json",
       "ui": "obsGatewayConfig"
-    }
+    },
+    "webviews": [
+      {
+        "id": "obsGatewayConfig",
+        "entry": "dist/visuals/config.js",
+        "title": "OBS Gateway Settings",
+        "kind": "settings",
+        "defaultSize": [
+          980,
+          720
+        ]
+      }
+    ]
   }
 }

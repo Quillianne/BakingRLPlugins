@@ -1,6 +1,6 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.1.0",
+  "bakingrlApi": "2.2.0",
   "id": "bakingrl.poc-overlay-studio",
   "name": "POC Overlay Studio",
   "version": "1.0.0",
@@ -16,17 +16,12 @@
       {
         "id": "overlayStudio",
         "runtime": "node",
-        "methods": ["snapshot", "contributions", "renderState"],
+        "methods": [
+          "snapshot",
+          "contributions",
+          "renderState"
+        ],
         "schema": "src/services/overlay-studio/methods.schema.json"
-      }
-    ],
-    "visuals": [
-      {
-        "id": "overlayPreview",
-        "kind": "overlay",
-        "entry": "dist/visuals/overlay-preview.js",
-        "defaultSize": [960, 540],
-        "remoteCompatible": true
       }
     ],
     "webviews": [
@@ -35,7 +30,22 @@
         "entry": "dist/webviews/studio.js",
         "title": "POC Overlay Studio",
         "kind": "tool",
-        "defaultSize": [1040, 720]
+        "defaultSize": [
+          1040,
+          720
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "id": "overlayPreviewModule",
+        "path": "dist/visuals/overlay-preview.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "overlay-studio-preview-module",
+          "moduleFormat": "esm"
+        }
       }
     ],
     "extensionPoints": [

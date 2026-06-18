@@ -1,7 +1,8 @@
-import { defineVisual, type BakingRLEvent, type VisualContext } from "@bakingrl/plugin-sdk";
+import { type BakingRLEvent } from "@bakingrl/plugin-sdk";
 import { CAGE_STATS_EVENT, CAGE_STATS_KEY } from "../../shared/events";
 import { cageMapStyles, renderCageMap } from "../../shared/cage-map";
 import { editorCageStatsState, isEditorMode } from "../editorPreviewData";
+import { defineVisual, type VisualContext } from "../visualModule";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 

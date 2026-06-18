@@ -1,6 +1,6 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.0.0",
+  "bakingrlApi": "2.2.0",
   "id": "com.bakingrl.cast-package",
   "name": "Cast Package",
   "version": "1.0.5",
@@ -12,68 +12,6 @@
     "sidecars": []
   },
   "contributes": {
-    "visuals": [
-      {
-        "id": "boControl",
-        "entry": "dist/visuals/bo-control.js",
-        "defaultSize": [1200, 900],
-        "instanceSettings": "src/visuals/control-panel/settings.schema.json"
-      },
-      {
-        "id": "scoreboard",
-        "entry": "dist/visuals/scoreboard.js",
-        "defaultSize": [760, 128],
-        "instanceSettings": "src/visuals/scoreboard/settings.schema.json"
-      },
-      {
-        "id": "goalAnimation",
-        "entry": "dist/visuals/goal-animation.js",
-        "defaultSize": [1920, 1080],
-        "instanceSettings": "src/visuals/goal/settings.schema.json"
-      },
-      {
-        "id": "victoryAnimation",
-        "entry": "dist/visuals/victory-animation.js",
-        "defaultSize": [1920, 1080],
-        "instanceSettings": "src/visuals/victory/settings.schema.json"
-      },
-      {
-        "id": "playerBoost",
-        "entry": "dist/visuals/player-boost.js",
-        "defaultSize": [220, 120],
-        "instanceSettings": "src/visuals/player-boost/settings.schema.json"
-      },
-      {
-        "id": "playerStatLive",
-        "entry": "dist/visuals/player-stat-live.js",
-        "defaultSize": [360, 110],
-        "instanceSettings": "src/visuals/player-stats/settings.schema.json"
-      },
-      {
-        "id": "teamPreviewLive",
-        "entry": "dist/visuals/team-preview-live.js",
-        "defaultSize": [420, 170],
-        "instanceSettings": "src/visuals/team-events/settings.schema.json"
-      },
-      {
-        "id": "cageStats",
-        "entry": "dist/visuals/cage-stats.js",
-        "defaultSize": [760, 260],
-        "instanceSettings": "src/visuals/cage-stats/settings.schema.json"
-      },
-      {
-        "id": "statistics",
-        "entry": "dist/visuals/statistics.js",
-        "defaultSize": [900, 420],
-        "instanceSettings": "src/visuals/statistics/settings.schema.json"
-      },
-      {
-        "id": "fullscreenStats",
-        "entry": "dist/visuals/fullscreen-stats.js",
-        "defaultSize": [1920, 1080],
-        "instanceSettings": "src/visuals/fullscreen-stats/settings.schema.json"
-      }
-    ],
     "services": [
       {
         "id": "boTracker",
@@ -127,6 +65,158 @@
           "snapshot"
         ],
         "schema": "src/services/regie-controller/methods.schema.json"
+      }
+    ],
+    "resources": [
+      {
+        "id": "boControl",
+        "path": "dist/visuals/bo-control.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "renderer-module",
+          "moduleFormat": "esm",
+          "defaultSize": [
+            1200,
+            900
+          ],
+          "settingsSchema": "src/visuals/control-panel/settings.schema.json"
+        }
+      },
+      {
+        "id": "scoreboard",
+        "path": "dist/visuals/scoreboard.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "renderer-module",
+          "moduleFormat": "esm",
+          "defaultSize": [
+            760,
+            128
+          ],
+          "settingsSchema": "src/visuals/scoreboard/settings.schema.json"
+        }
+      },
+      {
+        "id": "goalAnimation",
+        "path": "dist/visuals/goal-animation.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "renderer-module",
+          "moduleFormat": "esm",
+          "defaultSize": [
+            1920,
+            1080
+          ],
+          "settingsSchema": "src/visuals/goal/settings.schema.json"
+        }
+      },
+      {
+        "id": "victoryAnimation",
+        "path": "dist/visuals/victory-animation.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "renderer-module",
+          "moduleFormat": "esm",
+          "defaultSize": [
+            1920,
+            1080
+          ],
+          "settingsSchema": "src/visuals/victory/settings.schema.json"
+        }
+      },
+      {
+        "id": "playerBoost",
+        "path": "dist/visuals/player-boost.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "renderer-module",
+          "moduleFormat": "esm",
+          "defaultSize": [
+            220,
+            120
+          ],
+          "settingsSchema": "src/visuals/player-boost/settings.schema.json"
+        }
+      },
+      {
+        "id": "playerStatLive",
+        "path": "dist/visuals/player-stat-live.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "renderer-module",
+          "moduleFormat": "esm",
+          "defaultSize": [
+            360,
+            110
+          ],
+          "settingsSchema": "src/visuals/player-stats/settings.schema.json"
+        }
+      },
+      {
+        "id": "teamPreviewLive",
+        "path": "dist/visuals/team-preview-live.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "renderer-module",
+          "moduleFormat": "esm",
+          "defaultSize": [
+            420,
+            170
+          ],
+          "settingsSchema": "src/visuals/team-events/settings.schema.json"
+        }
+      },
+      {
+        "id": "cageStats",
+        "path": "dist/visuals/cage-stats.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "renderer-module",
+          "moduleFormat": "esm",
+          "defaultSize": [
+            760,
+            260
+          ],
+          "settingsSchema": "src/visuals/cage-stats/settings.schema.json"
+        }
+      },
+      {
+        "id": "statistics",
+        "path": "dist/visuals/statistics.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "renderer-module",
+          "moduleFormat": "esm",
+          "defaultSize": [
+            900,
+            420
+          ],
+          "settingsSchema": "src/visuals/statistics/settings.schema.json"
+        }
+      },
+      {
+        "id": "fullscreenStats",
+        "path": "dist/visuals/fullscreen-stats.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "renderer-module",
+          "moduleFormat": "esm",
+          "defaultSize": [
+            1920,
+            1080
+          ],
+          "settingsSchema": "src/visuals/fullscreen-stats/settings.schema.json"
+        }
       }
     ]
   }

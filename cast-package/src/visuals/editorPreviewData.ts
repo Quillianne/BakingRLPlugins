@@ -1,4 +1,5 @@
-import type { RlPlayer, RlTeam, RlUpdateStatePayload, VisualContext } from "@bakingrl/plugin-sdk";
+import type { RlPlayer, RlTeam, RlUpdateStatePayload } from "@bakingrl/plugin-sdk";
+import type { VisualContext } from "./visualModule";
 
 export type EditorPublicMetrics = {
   score: number;

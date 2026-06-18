@@ -22,12 +22,11 @@
     "validate": "npm run validate --workspaces --if-present",
     "validate:poc-chain": "node scripts/validate-poc-chain.mjs",
     "validate:runtime-poc": "node scripts/smoke-runtime-poc.mjs",
-    "validate:listing": "npm run validate:listing --workspaces --if-present",
     "pack": "npm run pack --workspaces --if-present",
     "install:local": "npm run install:local --workspaces --if-present"
   },
   "devDependencies": {
-    "@bakingrl/create-plugin": "2.1.1"
+    "@bakingrl/create-plugin": "2.2.0"
   },
   "license": "MIT"
 }

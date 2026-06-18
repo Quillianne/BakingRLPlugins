@@ -1,10 +1,9 @@
 import {
   RL_TELEMETRY_FRAME_TEMPLATES,
-  defineVisual,
   type BakingRLEvent,
-  type RlUpdateStatePayload,
-  type VisualContext
+  type RlUpdateStatePayload
 } from "@bakingrl/plugin-sdk";
+import { defineVisual, type VisualContext } from "../visualModule";
 
 const SERVICE_REF = "bakingrl.poc-overlay-studio/overlayStudio";
 

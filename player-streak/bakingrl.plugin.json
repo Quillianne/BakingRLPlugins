@@ -1,6 +1,6 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.0.0",
+  "bakingrlApi": "2.2.0",
   "id": "com.bakingrl.player-streak",
   "name": "PlayerStreak",
   "version": "1.0.5",
@@ -12,24 +12,36 @@
     "sidecars": []
   },
   "contributes": {
-    "visuals": [
-      {
-        "id": "playerStreak",
-        "entry": "dist/visuals/player-streak.js",
-        "defaultSize": [420, 120],
-        "instanceSettings": "src/visuals/player-streak/settings.schema.json"
-      }
-    ],
     "services": [
       {
         "id": "playerStreak",
         "runtime": "node",
-        "methods": ["snapshot", "reset"],
+        "methods": [
+          "snapshot",
+          "reset"
+        ],
         "schema": "src/services/player-streak/methods.schema.json"
       }
     ],
     "settings": {
       "schema": "src/settings.schema.json"
-    }
+    },
+    "resources": [
+      {
+        "id": "playerStreak",
+        "path": "dist/visuals/player-streak.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": {
+          "role": "renderer-module",
+          "moduleFormat": "esm",
+          "defaultSize": [
+            420,
+            120
+          ],
+          "settingsSchema": "src/visuals/player-streak/settings.schema.json"
+        }
+      }
+    ]
   }
 }

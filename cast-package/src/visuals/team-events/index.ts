@@ -1,15 +1,14 @@
 import {
-  defineVisual,
   type BakingRLEvent,
   type RlGoalScoredPayload,
   type RlPlayer,
   type RlPlayerRef,
   type RlStatfeedEventPayload,
   type RlTeam,
-  type RlUpdateStatePayload,
-  type VisualContext
+  type RlUpdateStatePayload
 } from "@bakingrl/plugin-sdk";
 import { editorUpdateState, isEditorMode } from "../editorPreviewData";
+import { defineVisual, type VisualContext } from "../visualModule";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 

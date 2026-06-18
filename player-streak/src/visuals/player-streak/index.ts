@@ -1,4 +1,4 @@
-import { defineVisual, type BakingRLEvent, type VisualContext } from "@bakingrl/plugin-sdk";
+import { type BakingRLEvent } from "@bakingrl/plugin-sdk";
 import {
   STATE_EVENT,
   STATE_KEY,
@@ -9,6 +9,7 @@ import {
   type PublicState,
   type RecordScope
 } from "../../shared/state";
+import { defineVisual, type VisualContext } from "../visualModule";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
 

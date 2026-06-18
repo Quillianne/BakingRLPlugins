@@ -78,23 +78,13 @@ async function readSecret(context: ExtensionContext, settings: ObsGatewaySetting
   };
 }
 
-async function collectHostData(context: ExtensionContext) {
-  try {
-    const overlaySnapshot = await context.overlays.list<unknown>();
-    return {
-      layouts: normalizeLayouts(overlaySnapshot),
-      snapshot: null,
-      hostApiAvailable: true,
-      error: null
-    };
-  } catch (error) {
-    return {
-      layouts: [],
-      snapshot: null,
-      hostApiAvailable: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
+async function collectHostData(_context: ExtensionContext) {
+  return {
+    layouts: [],
+    snapshot: null,
+    hostApiAvailable: false,
+    error: "Host-owned overlay layout discovery is not available in runtime API 2.2."
+  };
 }
 
 async function callSidecar<TOutput = unknown>(method: string, params?: unknown): Promise<TOutput> {

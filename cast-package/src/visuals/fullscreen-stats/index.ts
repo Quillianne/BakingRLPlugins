@@ -1,4 +1,4 @@
-import { defineVisual, type BakingRLEvent, type VisualContext } from "@bakingrl/plugin-sdk";
+import { type BakingRLEvent } from "@bakingrl/plugin-sdk";
 import {
   CAGE_STATS_EVENT,
   CAGE_STATS_KEY,
@@ -7,6 +7,7 @@ import {
   type RegieCommand,
   type RegieCue
 } from "../../shared/events";
+import { defineVisual, type VisualContext } from "../visualModule";
 import {
   escapeHtml,
   pickHeadToHeadPlayers,

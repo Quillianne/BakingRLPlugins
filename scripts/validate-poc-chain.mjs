@@ -12,7 +12,7 @@ const pocDirs = [
   "poc-visual-pack",
   "poc-content-pack"
 ];
-const requiredApi = "2.1.0";
+const requiredApi = "2.2.0";
 const requiredSchema = "bakingrl.plugin/4";
 
 function fail(message) {
@@ -110,6 +110,23 @@ function requireResource(source, id, expected, label) {
   return resource;
 }
 
+function requireRendererMetadata(contribution, expectedResourceId, label) {
+  const renderer = contribution?.metadata?.renderer;
+  if (!isRecord(renderer)) {
+    fail(`${label}: contribution ${contribution?.id ?? "unknown"} metadata.renderer is required.`);
+    return;
+  }
+  if (renderer.kind !== "resource-module") {
+    fail(`${label}: contribution ${contribution.id} metadata.renderer.kind must be resource-module.`);
+  }
+  if (renderer.resource !== expectedResourceId) {
+    fail(`${label}: contribution ${contribution.id} metadata.renderer.resource must be ${expectedResourceId}.`);
+  }
+  if (renderer.moduleFormat !== "esm") {
+    fail(`${label}: contribution ${contribution.id} metadata.renderer.moduleFormat must be esm.`);
+  }
+}
+
 const packages = new Map();
 
 for (const dir of pocDirs) {
@@ -132,14 +149,11 @@ for (const dir of pocDirs) {
   }
 
   const contributes = manifest.contributes ?? {};
+  if ((contributes.visuals ?? []).length > 0) {
+    fail(`${dir}: POC chain must not declare host-owned contributes.visuals; expose visual modules as resources.`);
+  }
   for (const service of contributes.services ?? []) {
     pathExistsInside(packageDir, service.schema, `${dir}: service ${service.id} schema`);
-  }
-  for (const visual of contributes.visuals ?? []) {
-    pathExistsInside(packageDir, visual.entry, `${dir}: visual ${visual.id} entry`);
-    if (visual.instanceSettings) {
-      pathExistsInside(packageDir, visual.instanceSettings, `${dir}: visual ${visual.id} instanceSettings`);
-    }
   }
   for (const webview of contributes.webviews ?? []) {
     pathExistsInside(packageDir, webview.entry, `${dir}: webview ${webview.id} entry`);
@@ -185,7 +199,6 @@ for (const dir of pocDirs) {
 for (const { dir, manifest } of packages.values()) {
   const dependencies = new Set((manifest.dependencies ?? []).map((dependency) => dependency.packageId));
   const services = new Set((manifest.contributes?.services ?? []).map((service) => service.id));
-  const visuals = new Set((manifest.contributes?.visuals ?? []).map((visual) => visual.id));
   const resources = new Set((manifest.contributes?.resources ?? []).map((resource) => resource.id));
 
   for (const point of manifest.contributes?.extensionPoints ?? []) {
@@ -211,8 +224,8 @@ for (const { dir, manifest } of packages.values()) {
     if (contribution.dataSchema) {
       pathExistsInside(resolve(rootDir, dir), contribution.dataSchema, `${dir}: contribution ${contribution.id} dataSchema`);
     }
-    if (contribution.visual && !visuals.has(contribution.visual)) {
-      fail(`${dir}: contribution ${contribution.id} references unknown visual ${contribution.visual}.`);
+    if (Object.prototype.hasOwnProperty.call(contribution, "visual")) {
+      fail(`${dir}: contribution ${contribution.id} must not use host-owned contribution.visual; use metadata.renderer.resource.`);
     }
     if (contribution.service && !services.has(contribution.service)) {
       fail(`${dir}: contribution ${contribution.id} references unknown service ${contribution.service}.`);
@@ -233,6 +246,12 @@ const overlayPoint = requireExtensionPoint(overlayStudio, "overlay-studio.visual
 if (overlayPoint?.service !== "overlayStudio") {
   fail("Overlay Studio POC: overlay-studio.visual must be backed by overlayStudio.");
 }
+requireResource(
+  overlayStudio,
+  "overlayPreviewModule",
+  { visibility: "public", type: "application/javascript", role: "overlay-studio-preview-module" },
+  "Overlay Studio POC"
+);
 
 requireDependency(visualPack, "bakingrl.poc-overlay-studio", "Visual Pack POC");
 const visualContentPoint = requireExtensionPoint(visualPack, "visual-pack.content", "Visual Pack POC");
@@ -246,15 +265,23 @@ const visualContribution = requireContribution(
   "Visual Pack POC"
 );
 if (visualContribution) {
-  if (visualContribution.visual !== "demoWidget") fail("Visual Pack POC: demo-score-widget must expose demoWidget.");
   if (visualContribution.service !== "visualPack") fail("Visual Pack POC: demo-score-widget must expose visualPack.");
-  if (!hasItem(visualContribution.resources, "widgetPreset")) {
-    fail("Visual Pack POC: demo-score-widget must reference widgetPreset.");
+  for (const resourceId of ["demoWidgetModule", "widgetPreset"]) {
+    if (!hasItem(visualContribution.resources, resourceId)) {
+      fail(`Visual Pack POC: demo-score-widget must reference ${resourceId}.`);
+    }
   }
   if (visualContribution.metadata?.contentTarget !== "bakingrl.poc-visual-pack/visual-pack.content") {
     fail("Visual Pack POC: demo-score-widget metadata.contentTarget must point to visual-pack.content.");
   }
+  requireRendererMetadata(visualContribution, "demoWidgetModule", "Visual Pack POC");
 }
+requireResource(
+  visualPack,
+  "demoWidgetModule",
+  { visibility: "public", type: "application/javascript", role: "overlay-widget-module" },
+  "Visual Pack POC"
+);
 requireResource(
   visualPack,
   "widgetPreset",

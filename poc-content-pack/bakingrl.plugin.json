@@ -1,6 +1,6 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.1.0",
+  "bakingrlApi": "2.2.0",
   "id": "bakingrl.poc-content-pack",
   "name": "POC Content Pack",
   "version": "1.0.0",
@@ -44,7 +44,10 @@
         "title": "Demo overlay content",
         "description": "Public JSON and SVG resources consumed by the POC Visual Pack.",
         "dataSchema": "src/contracts/content-contribution.schema.json",
-        "resources": ["overlayContent", "badgeSvgs"],
+        "resources": [
+          "overlayContent",
+          "badgeSvgs"
+        ],
         "metadata": {
           "preset": "demo",
           "priority": 10
