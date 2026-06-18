@@ -42,6 +42,17 @@ function runCli(command, packageDir) {
   }).toString("utf8");
 }
 
+function runScript(scriptPath, env = {}) {
+  return execFileSync(process.execPath, [scriptPath], {
+    cwd: rootDir,
+    env: {
+      ...process.env,
+      ...env
+    },
+    stdio: "pipe"
+  }).toString("utf8");
+}
+
 function assertFile(path, label) {
   assert.ok(existsSync(path), `${label} should exist: ${path}`);
   assert.ok(statSync(path).isFile(), `${label} should be a file: ${path}`);
@@ -227,6 +238,12 @@ try {
     .sort();
   assert.deepEqual(actualIds, installedIds);
   assertInstalledPocChain(installedManifests, inspectSummaries);
+
+  const smokeOutput = runScript(resolve(rootDir, "scripts/smoke-runtime-poc.mjs"), {
+    BAKINGRL_POC_ROOT_DIR: packagesDir,
+    BAKINGRL_POC_SKIP_FRESHNESS: "1"
+  });
+  assert.match(smokeOutput, /Runtime POC smoke passed\./);
 
   console.log(`POC local install validation passed in ${packagesDir}.`);
 } finally {

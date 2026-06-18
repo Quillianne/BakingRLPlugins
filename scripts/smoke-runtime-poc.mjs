@@ -4,21 +4,22 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const pocDirs = [
-  "poc-simple-node",
-  "poc-webview-settings",
-  "poc-sidecar",
-  "poc-overlay-studio",
-  "poc-visual-pack",
-  "poc-content-pack"
-];
 const simplePackageId = "bakingrl.poc-simple-node";
 const webviewSettingsPackageId = "bakingrl.poc-webview-settings";
 const sidecarPackageId = "bakingrl.poc-sidecar";
 const overlayPackageId = "bakingrl.poc-overlay-studio";
 const visualPackageId = "bakingrl.poc-visual-pack";
 const contentPackageId = "bakingrl.poc-content-pack";
+const rootDir = resolve(process.env.BAKINGRL_POC_ROOT_DIR ?? resolve(dirname(fileURLToPath(import.meta.url)), ".."));
+const skipFreshnessCheck = process.env.BAKINGRL_POC_SKIP_FRESHNESS === "1";
+const pocSpecs = [
+  { dir: "poc-simple-node", packageId: simplePackageId },
+  { dir: "poc-webview-settings", packageId: webviewSettingsPackageId },
+  { dir: "poc-sidecar", packageId: sidecarPackageId },
+  { dir: "poc-overlay-studio", packageId: overlayPackageId },
+  { dir: "poc-visual-pack", packageId: visualPackageId },
+  { dir: "poc-content-pack", packageId: contentPackageId }
+];
 const webviewSettingsServiceRef = `${webviewSettingsPackageId}/pocWebviewSettings`;
 const sidecarServiceRef = `${sidecarPackageId}/pocSidecar`;
 const nativeSidecarServiceRef = `${sidecarPackageId}/pocSidecarNative`;
@@ -92,9 +93,18 @@ function updateStateFrame(matchGuid, blueScore, orangeScore) {
   return frame;
 }
 
-function loadPackage(dir) {
-  const packageDir = resolve(rootDir, dir);
+function resolvePackageDir(dir, packageId) {
+  const workspaceDir = resolve(rootDir, dir);
+  if (existsSync(workspaceDir)) return workspaceDir;
+  const installedDir = resolve(rootDir, packageId);
+  if (existsSync(installedDir)) return installedDir;
+  return workspaceDir;
+}
+
+function loadPackage({ dir, packageId }) {
+  const packageDir = resolvePackageDir(dir, packageId);
   const manifest = readJson(resolve(packageDir, "bakingrl.plugin.json"));
+  if (manifest.id !== packageId) fail(`${dir} manifest id must be ${packageId}, got ${manifest.id}.`);
   return {
     dir,
     packageDir,
@@ -118,7 +128,7 @@ function requireFreshBuild(pkg) {
   if (!existsSync(entryPath)) {
     fail(`Missing ${pkg.dir} dist entry. Run npm run build before npm run validate:runtime-poc.`);
   }
-  if (existsSync(sourcePath) && statSync(entryPath).mtimeMs < statSync(sourcePath).mtimeMs) {
+  if (!skipFreshnessCheck && existsSync(sourcePath) && statSync(entryPath).mtimeMs < statSync(sourcePath).mtimeMs) {
     fail(`${pkg.dir} dist entry is older than source. Run npm run build before npm run validate:runtime-poc.`);
   }
   return entryPath;
@@ -133,7 +143,7 @@ function requireFreshWebviewBuild(pkg, webviewId) {
   if (!existsSync(entryPath)) {
     fail(`Missing ${pkg.dir} ${webviewId} webview dist entry. Run npm run build before npm run validate:runtime-poc.`);
   }
-  if (existsSync(sourcePath) && statSync(entryPath).mtimeMs < statSync(sourcePath).mtimeMs) {
+  if (!skipFreshnessCheck && existsSync(sourcePath) && statSync(entryPath).mtimeMs < statSync(sourcePath).mtimeMs) {
     fail(`${pkg.dir} ${webviewId} webview dist entry is older than source. Run npm run build before npm run validate:runtime-poc.`);
   }
   return entryPath;
@@ -1019,7 +1029,7 @@ function assertContentSummary(content) {
   ]);
 }
 
-const packageList = pocDirs.map(loadPackage);
+const packageList = pocSpecs.map(loadPackage);
 for (const pkg of packageList) {
   assert.equal(
     (pkg.manifest.contributes?.visuals ?? []).length,
