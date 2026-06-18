@@ -29,6 +29,15 @@ function cloneMockSnapshot(): UpdateStateFrame {
   return JSON.parse(JSON.stringify(RL_TELEMETRY_FRAME_TEMPLATES.UpdateState)) as UpdateStateFrame;
 }
 
+function isUpdateStateFrame(value: unknown): value is UpdateStateFrame {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    (value as { Event?: unknown }).Event === "UpdateState" &&
+    Boolean((value as { Data?: unknown }).Data)
+  );
+}
+
 function nowMs() {
   return Date.now();
 }
@@ -83,6 +92,16 @@ const extension = defineExtension({
 
     latestSnapshot = cloneMockSnapshot();
     debugState = createDebugState(debugLabel(context), "mock");
+
+    const hostSnapshot = await context.telemetryHub.snapshot<"UpdateState">();
+    if (isUpdateStateFrame(hostSnapshot)) {
+      latestSnapshot = hostSnapshot;
+      debugState = {
+        ...debugState,
+        snapshotSource: "telemetry",
+        lastMatchGuid: latestSnapshot.Data.MatchGuid ?? null
+      };
+    }
 
     const telemetryCleanup = context.telemetryHub.subscribe("UpdateState", async (event) => {
       latestSnapshot = event;

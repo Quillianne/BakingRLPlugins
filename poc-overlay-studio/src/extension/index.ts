@@ -34,6 +34,15 @@ function cloneMockSnapshot(): UpdateStateFrame {
   return JSON.parse(JSON.stringify(RL_TELEMETRY_FRAME_TEMPLATES.UpdateState)) as UpdateStateFrame;
 }
 
+function isUpdateStateFrame(value: unknown): value is UpdateStateFrame {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    (value as { Event?: unknown }).Event === "UpdateState" &&
+    Boolean((value as { Data?: unknown }).Data)
+  );
+}
+
 function summarizeScore(frame: UpdateStateFrame) {
   const teams = frame.Data.Game.Teams;
   return {
@@ -96,6 +105,12 @@ const extension = defineExtension({
 
     latestSnapshot = cloneMockSnapshot();
     snapshotSource = "mock";
+
+    const hostSnapshot = await context.telemetryHub.snapshot<"UpdateState">();
+    if (isUpdateStateFrame(hostSnapshot)) {
+      latestSnapshot = hostSnapshot;
+      snapshotSource = "telemetry";
+    }
 
     const telemetryCleanup = context.telemetryHub.subscribe("UpdateState", (event) => {
       latestSnapshot = event;

@@ -5,7 +5,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const pocDirs = ["poc-overlay-studio", "poc-visual-pack", "poc-content-pack"];
+const pocDirs = ["poc-simple-node", "poc-overlay-studio", "poc-visual-pack", "poc-content-pack"];
+const simplePackageId = "bakingrl.poc-simple-node";
 const overlayPackageId = "bakingrl.poc-overlay-studio";
 const visualPackageId = "bakingrl.poc-visual-pack";
 const contentPackageId = "bakingrl.poc-content-pack";
@@ -13,6 +14,45 @@ const overlayTarget = `${overlayPackageId}/overlay-studio.visual`;
 const contentTarget = `${visualPackageId}/visual-pack.content`;
 const overlayServiceRef = `${overlayPackageId}/overlayStudio`;
 const visualServiceRef = `${visualPackageId}/visualPack`;
+const initialTelemetryFrame = {
+  Event: "UpdateState",
+  Data: {
+    MatchGuid: "runtime-poc-host-snapshot",
+    Players: [],
+    Game: {
+      Teams: [
+        {
+          Name: "Blue",
+          TeamNum: 0,
+          Score: 2,
+          ColorPrimary: "#2563eb",
+          ColorSecondary: "#93c5fd"
+        },
+        {
+          Name: "Orange",
+          TeamNum: 1,
+          Score: 1,
+          ColorPrimary: "#f97316",
+          ColorSecondary: "#fed7aa"
+        }
+      ],
+      TimeSeconds: 123,
+      bOvertime: false,
+      Frame: 42,
+      Elapsed: 12.3,
+      Ball: {
+        Speed: 640,
+        TeamNum: 0
+      },
+      bReplay: false,
+      bHasWinner: false,
+      Winner: "",
+      Arena: "DFH Stadium",
+      bHasTarget: false,
+      Target: null
+    }
+  }
+};
 
 function fail(message) {
   console.error(message);
@@ -98,7 +138,11 @@ function declaredResourcePaths(resource) {
   return [];
 }
 
-function createManifestRuntimeHost(packageList, initialActivePackageIds = packageList.map((pkg) => pkg.id)) {
+function createManifestRuntimeHost(
+  packageList,
+  initialActivePackageIds = packageList.map((pkg) => pkg.id),
+  latestTelemetryEvent = null
+) {
   const packages = new Map(packageList.map((pkg) => [pkg.id, pkg]));
   const activePackageIds = new Set(initialActivePackageIds);
   const registeredServices = new Map();
@@ -300,10 +344,10 @@ function createManifestRuntimeHost(packageList, initialActivePackageIds = packag
         },
         publish() {},
         snapshot() {
-          return null;
+          return latestTelemetryEvent;
         },
         getSnapshot() {
-          return null;
+          return latestTelemetryEvent;
         }
       },
       state: {
@@ -505,23 +549,32 @@ function assertContentSummary(content) {
 
 const packageList = pocDirs.map(loadPackage);
 const packages = new Map(packageList.map((pkg) => [pkg.id, pkg]));
+const simplePackage = requirePackage(packages, simplePackageId);
 const overlayPackage = requirePackage(packages, overlayPackageId);
 const visualPackage = requirePackage(packages, visualPackageId);
 requirePackage(packages, contentPackageId);
 
-const host = createManifestRuntimeHost(packageList);
+const host = createManifestRuntimeHost(packageList, undefined, initialTelemetryFrame);
+const simpleExtension = await loadExtension(simplePackage);
 const overlayExtension = await loadExtension(overlayPackage);
 const visualExtension = await loadExtension(visualPackage);
 let visualExtensionActive = false;
 
 try {
+  await simpleExtension.activate(host.createRuntimeContext(simplePackageId));
   await overlayExtension.activate(host.createRuntimeContext(overlayPackageId));
   await visualExtension.activate(host.createRuntimeContext(visualPackageId));
   visualExtensionActive = true;
 
-  host.setActive([overlayPackageId, visualPackageId, contentPackageId]);
+  host.setActive([simplePackageId, overlayPackageId, visualPackageId, contentPackageId]);
+
+  const simpleSnapshot = await host.callService(`${simplePackageId}/pocSimpleNode`, "snapshot");
+  assert.equal(simpleSnapshot.source, "telemetry");
+  assert.equal(simpleSnapshot.frame.Data.MatchGuid, "runtime-poc-host-snapshot");
 
   const overlaySnapshot = await host.callService(overlayServiceRef, "snapshot");
+  assert.equal(overlaySnapshot.source, "telemetry");
+  assert.equal(overlaySnapshot.score.matchGuid, "runtime-poc-host-snapshot");
   assert.equal(overlaySnapshot.discovery.available, true);
   assert.equal(overlaySnapshot.discovery.target, overlayTarget);
   assert.equal(overlaySnapshot.discovery.contributions.length, 1);
@@ -602,6 +655,7 @@ try {
 } finally {
   if (visualExtensionActive) await visualExtension.deactivate();
   await overlayExtension.deactivate();
+  await simpleExtension.deactivate();
 }
 
 await assertMissingApiFails(visualExtension, { resources: host.createRuntimeContext(visualPackageId).resources }, /requires host extensions\.contributions/);
