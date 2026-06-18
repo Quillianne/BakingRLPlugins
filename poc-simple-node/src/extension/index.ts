@@ -1,6 +1,7 @@
 import {
   RL_TELEMETRY_FRAME_TEMPLATES,
   defineExtension,
+  isBakingRLEvent,
   type BakingRLEvent,
   type ExtensionContext,
   type ExtensionSubscription,
@@ -27,15 +28,6 @@ let debugState: DebugState = createDebugState("Simple Node POC", "mock");
 
 function cloneMockSnapshot(): UpdateStateFrame {
   return JSON.parse(JSON.stringify(RL_TELEMETRY_FRAME_TEMPLATES.UpdateState)) as UpdateStateFrame;
-}
-
-function isUpdateStateFrame(value: unknown): value is UpdateStateFrame {
-  return (
-    Boolean(value) &&
-    typeof value === "object" &&
-    (value as { Event?: unknown }).Event === "UpdateState" &&
-    Boolean((value as { Data?: unknown }).Data)
-  );
 }
 
 function nowMs() {
@@ -94,7 +86,7 @@ const extension = defineExtension({
     debugState = createDebugState(debugLabel(context), "mock");
 
     const hostSnapshot = await context.telemetryHub.snapshot<"UpdateState">();
-    if (isUpdateStateFrame(hostSnapshot)) {
+    if (isBakingRLEvent(hostSnapshot, "UpdateState")) {
       latestSnapshot = hostSnapshot;
       debugState = {
         ...debugState,

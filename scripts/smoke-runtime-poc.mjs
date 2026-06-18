@@ -71,6 +71,14 @@ function cloneJson(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function updateStateFrame(matchGuid, blueScore, orangeScore) {
+  const frame = cloneJson(initialTelemetryFrame);
+  frame.Data.MatchGuid = matchGuid;
+  frame.Data.Game.Teams[0].Score = blueScore;
+  frame.Data.Game.Teams[1].Score = orangeScore;
+  return frame;
+}
+
 function loadPackage(dir) {
   const packageDir = resolve(rootDir, dir);
   const manifest = readJson(resolve(packageDir, "bakingrl.plugin.json"));
@@ -99,6 +107,21 @@ function requireFreshBuild(pkg) {
   }
   if (existsSync(sourcePath) && statSync(entryPath).mtimeMs < statSync(sourcePath).mtimeMs) {
     fail(`${pkg.dir} dist entry is older than source. Run npm run build before npm run validate:runtime-poc.`);
+  }
+  return entryPath;
+}
+
+function requireFreshWebviewBuild(pkg, webviewId) {
+  const webview = pkg.manifest.contributes?.webviews?.find((item) => item.id === webviewId);
+  if (!webview?.entry) fail(`${pkg.dir} does not declare webview ${webviewId}.`);
+
+  const entryPath = resolve(pkg.packageDir, webview.entry);
+  const sourcePath = resolve(pkg.packageDir, `src/webviews/${webviewId}/index.ts`);
+  if (!existsSync(entryPath)) {
+    fail(`Missing ${pkg.dir} ${webviewId} webview dist entry. Run npm run build before npm run validate:runtime-poc.`);
+  }
+  if (existsSync(sourcePath) && statSync(entryPath).mtimeMs < statSync(sourcePath).mtimeMs) {
+    fail(`${pkg.dir} ${webviewId} webview dist entry is older than source. Run npm run build before npm run validate:runtime-poc.`);
   }
   return entryPath;
 }
@@ -495,6 +518,139 @@ async function loadExtension(pkg) {
   return extension;
 }
 
+async function loadWebview(pkg, webviewId) {
+  const entryPath = requireFreshWebviewBuild(pkg, webviewId);
+  const href = `${pathToFileURL(entryPath).href}?mtime=${statSync(entryPath).mtimeMs}`;
+  const module = await import(href);
+  const webview = module.default ?? module;
+  if (typeof webview.mount !== "function") {
+    fail(`${pkg.dir} ${webviewId} webview must export mount.`);
+  }
+  return webview;
+}
+
+function installFakeDocument() {
+  const previousDocument = globalThis.document;
+  const nodesById = new Map();
+  globalThis.document = {
+    getElementById(id) {
+      return nodesById.get(id) ?? null;
+    },
+    createElement(tagName) {
+      return {
+        tagName: String(tagName).toUpperCase(),
+        id: "",
+        textContent: "",
+        style: {},
+        setAttribute() {},
+        append() {}
+      };
+    },
+    head: {
+      append(node) {
+        if (node?.id) nodesById.set(node.id, node);
+      }
+    }
+  };
+  return () => {
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
+  };
+}
+
+function createFakeRoot() {
+  return {
+    innerHTML: "",
+    append(node) {
+      this.innerHTML += node?.innerHTML ?? node?.textContent ?? "";
+    },
+    replaceChildren(...nodes) {
+      this.innerHTML = nodes.map((node) => node?.innerHTML ?? node?.textContent ?? "").join("");
+    },
+    querySelector() {
+      return null;
+    }
+  };
+}
+
+function createWebviewTelemetryHarness(initialFrame) {
+  let latest = initialFrame;
+  const subscriptions = new Set();
+
+  function publishFrame(frame) {
+    latest = frame;
+    for (const subscription of subscriptions) {
+      if (subscription.eventName === frame.Event) void subscription.callback(frame);
+    }
+  }
+
+  return {
+    hub: {
+      subscribe(eventName, callback) {
+        const subscription = { eventName, callback };
+        subscriptions.add(subscription);
+        return () => subscriptions.delete(subscription);
+      },
+      publish(eventName, payload) {
+        publishFrame({ Event: eventName, Data: payload ?? null });
+      },
+      snapshot() {
+        return latest;
+      },
+      getSnapshot() {
+        return latest;
+      }
+    },
+    publishFrame
+  };
+}
+
+async function assertOverlayStudioWebviewTelemetry(pkg) {
+  const restoreDocument = installFakeDocument();
+  try {
+    const webview = await loadWebview(pkg, "studio");
+    const root = createFakeRoot();
+    const telemetry = createWebviewTelemetryHarness(initialTelemetryFrame);
+    const cleanup = await webview.mount({
+      root,
+      packageId: overlayPackageId,
+      webviewId: "studio",
+      settings: {
+        async get() {
+          return {};
+        },
+        async save(values) {
+          return values;
+        },
+        subscribe() {
+          return () => {};
+        }
+      },
+      telemetryHub: telemetry.hub,
+      dimensions: {
+        width: 1040,
+        height: 720
+      },
+      mode: "runtime"
+    });
+
+    assert.ok(root.innerHTML.includes("runtime-poc-host-snapshot"), "webview should render the initial telemetry snapshot.");
+    assert.ok(root.innerHTML.includes("<dd>snapshot</dd>"), "webview should label the initial telemetry source.");
+    assert.ok(root.innerHTML.includes("<dd>2-1</dd>"), "webview should render the initial telemetry score.");
+
+    telemetry.publishFrame(updateStateFrame("runtime-poc-webview-event", 5, 4));
+
+    assert.ok(root.innerHTML.includes("runtime-poc-webview-event"), "webview should render subscribed telemetry events.");
+    assert.ok(root.innerHTML.includes("<dd>event</dd>"), "webview should label subscribed telemetry as events.");
+    assert.ok(root.innerHTML.includes("<dd>5-4</dd>"), "webview should render the subscribed telemetry score.");
+
+    if (typeof cleanup === "function") cleanup();
+    assert.equal(root.innerHTML, "");
+  } finally {
+    restoreDocument();
+  }
+}
+
 async function activateStandaloneService(extension, overrides) {
   const context = createStandaloneRuntimeContext(visualPackageId, overrides);
   await extension.activate(context);
@@ -561,6 +717,8 @@ const visualExtension = await loadExtension(visualPackage);
 let visualExtensionActive = false;
 
 try {
+  await assertOverlayStudioWebviewTelemetry(overlayPackage);
+
   await simpleExtension.activate(host.createRuntimeContext(simplePackageId));
   await overlayExtension.activate(host.createRuntimeContext(overlayPackageId));
   await visualExtension.activate(host.createRuntimeContext(visualPackageId));
