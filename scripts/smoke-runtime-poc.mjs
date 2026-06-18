@@ -5,11 +5,14 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const pocDirs = ["poc-simple-node", "poc-overlay-studio", "poc-visual-pack", "poc-content-pack"];
+const pocDirs = ["poc-simple-node", "poc-sidecar", "poc-overlay-studio", "poc-visual-pack", "poc-content-pack"];
 const simplePackageId = "bakingrl.poc-simple-node";
+const sidecarPackageId = "bakingrl.poc-sidecar";
 const overlayPackageId = "bakingrl.poc-overlay-studio";
 const visualPackageId = "bakingrl.poc-visual-pack";
 const contentPackageId = "bakingrl.poc-content-pack";
+const sidecarServiceRef = `${sidecarPackageId}/pocSidecar`;
+const nativeSidecarServiceRef = `${sidecarPackageId}/pocSidecarNative`;
 const overlayTarget = `${overlayPackageId}/overlay-studio.visual`;
 const contentTarget = `${visualPackageId}/visual-pack.content`;
 const overlayServiceRef = `${overlayPackageId}/overlayStudio`;
@@ -169,14 +172,33 @@ function createManifestRuntimeHost(
   const packages = new Map(packageList.map((pkg) => [pkg.id, pkg]));
   const activePackageIds = new Set(initialActivePackageIds);
   const registeredServices = new Map();
+  const sidecarServices = new Map();
+  const sidecarStates = new Map();
   const calls = {
     contributions: [],
     pluginsList: [],
     resourceList: [],
     readJson: [],
     readText: [],
-    serviceCalls: []
+    serviceCalls: [],
+    sidecarStarts: [],
+    sidecarStops: [],
+    sidecarRestarts: [],
+    sidecarCalls: []
   };
+
+  for (const pkg of packageList) {
+    const sidecarIds = new Set((pkg.manifest.runtime?.sidecars ?? []).map((sidecar) => sidecar.id));
+    for (const service of pkg.manifest.contributes?.services ?? []) {
+      const sidecarName = typeof service.runtime === "string" ? service.runtime.replace(/^sidecar:/, "") : "";
+      if (!service.runtime?.startsWith?.("sidecar:") || !sidecarIds.has(sidecarName)) continue;
+      sidecarServices.set(`${pkg.id}/${service.id}`, {
+        packageId: pkg.id,
+        sidecarName,
+        methods: service.methods ?? []
+      });
+    }
+  }
 
   function setActive(packageIds) {
     activePackageIds.clear();
@@ -247,6 +269,106 @@ function createManifestRuntimeHost(
     return resourcePath;
   }
 
+  function sidecarRef(packageId, sidecarName) {
+    return `${packageId}/${sidecarName}`;
+  }
+
+  function sidecarState(packageId, sidecarName) {
+    const ref = sidecarRef(packageId, sidecarName);
+    if (!sidecarStates.has(ref)) {
+      sidecarStates.set(ref, {
+        running: false,
+        crashCount: 0,
+        lastExitCode: null
+      });
+    }
+    return sidecarStates.get(ref);
+  }
+
+  function requireDeclaredSidecar(packageId, sidecarName) {
+    if (!activePackageIds.has(packageId)) throw new Error(`Sidecar package is inactive: ${packageId}`);
+    const pkg = packages.get(packageId);
+    const sidecar = pkg?.manifest.runtime?.sidecars?.find((candidate) => candidate.id === sidecarName);
+    if (!pkg || !sidecar) throw new Error(`Unknown sidecar runtime: ${sidecarRef(packageId, sidecarName)}`);
+    return { pkg, sidecar };
+  }
+
+  async function startSidecar(packageId, sidecarName) {
+    requireDeclaredSidecar(packageId, sidecarName);
+    calls.sidecarStarts.push({ packageId, sidecarName });
+    const state = sidecarState(packageId, sidecarName);
+    state.running = true;
+    state.lastExitCode = null;
+    return {
+      ok: true,
+      ref: sidecarRef(packageId, sidecarName)
+    };
+  }
+
+  async function stopSidecar(packageId, sidecarName) {
+    requireDeclaredSidecar(packageId, sidecarName);
+    calls.sidecarStops.push({ packageId, sidecarName });
+    const state = sidecarState(packageId, sidecarName);
+    const wasRunning = state.running;
+    state.running = false;
+    state.lastExitCode = 0;
+    return {
+      ok: true,
+      stopped: wasRunning,
+      ref: sidecarRef(packageId, sidecarName)
+    };
+  }
+
+  async function restartSidecar(packageId, sidecarName) {
+    requireDeclaredSidecar(packageId, sidecarName);
+    calls.sidecarRestarts.push({ packageId, sidecarName });
+    const state = sidecarState(packageId, sidecarName);
+    state.running = true;
+    state.lastExitCode = null;
+    return {
+      ok: true,
+      restarted: true,
+      ref: sidecarRef(packageId, sidecarName)
+    };
+  }
+
+  async function callSidecar(packageId, sidecarName, method, params = {}) {
+    requireDeclaredSidecar(packageId, sidecarName);
+    const state = sidecarState(packageId, sidecarName);
+    const ref = sidecarRef(packageId, sidecarName);
+    calls.sidecarCalls.push({ packageId, sidecarName, method, params });
+    if (!state.running) throw new Error(`Sidecar runtime '${ref}' is not running.`);
+
+    if (method === "ping") {
+      return {
+        ok: true,
+        method: "ping",
+        ref,
+        echo: params
+      };
+    }
+    if (method === "health") {
+      return {
+        ok: true,
+        status: "healthy",
+        ref,
+        checkedAtMs: 123456
+      };
+    }
+    if (method === "crash") {
+      state.running = false;
+      state.lastExitCode = 42;
+      state.crashCount += 1;
+      return {
+        ok: false,
+        status: "crashing",
+        ref,
+        exitCode: 42
+      };
+    }
+    throw new Error(`Unknown sidecar method: ${ref}.${method}`);
+  }
+
   async function readPublicJson(ref, path) {
     calls.readJson.push({ ref, path: path ?? null });
     const { pkg, resource } = findPublicResource(ref);
@@ -279,7 +401,13 @@ function createManifestRuntimeHost(
   async function callService(ref, method, input) {
     calls.serviceCalls.push({ ref, method, input: input ?? null });
     const service = registeredServices.get(ref);
-    if (!service) throw new Error(`Unknown service ref: ${ref}`);
+    if (!service) {
+      const sidecarService = sidecarServices.get(ref);
+      if (!sidecarService) throw new Error(`Unknown service ref: ${ref}`);
+      if (!activePackageIds.has(sidecarService.packageId)) throw new Error(`Service package is inactive: ${ref}`);
+      if (!sidecarService.methods.includes(method)) throw new Error(`Unknown service method: ${ref}.${method}`);
+      return callSidecar(sidecarService.packageId, sidecarService.sidecarName, method, input ?? {});
+    }
     if (!activePackageIds.has(service.packageId)) throw new Error(`Service package is inactive: ${ref}`);
     const handler = service.methods?.[method];
     if (typeof handler !== "function") throw new Error(`Unknown service method: ${ref}.${method}`);
@@ -309,6 +437,21 @@ function createManifestRuntimeHost(
           };
         },
         call: callService
+      },
+      sidecars: {
+        declared: (packages.get(packageId)?.manifest.runtime?.sidecars ?? []).map((sidecar) => sidecar.id),
+        start(name) {
+          return startSidecar(packageId, name);
+        },
+        stop(name) {
+          return stopSidecar(packageId, name);
+        },
+        restart(name) {
+          return restartSidecar(packageId, name);
+        },
+        call(name, method, params) {
+          return callSidecar(packageId, name, method, params ?? {});
+        }
       },
       extensions: {
         async contributions(target) {
@@ -416,7 +559,10 @@ function createManifestRuntimeHost(
     createRuntimeContext,
     callService,
     listContributions,
-    listResources
+    listResources,
+    sidecarState(packageId, sidecarName) {
+      return { ...sidecarState(packageId, sidecarName) };
+    }
   };
 }
 
@@ -706,29 +852,68 @@ function assertContentSummary(content) {
 const packageList = pocDirs.map(loadPackage);
 const packages = new Map(packageList.map((pkg) => [pkg.id, pkg]));
 const simplePackage = requirePackage(packages, simplePackageId);
+const sidecarPackage = requirePackage(packages, sidecarPackageId);
 const overlayPackage = requirePackage(packages, overlayPackageId);
 const visualPackage = requirePackage(packages, visualPackageId);
 requirePackage(packages, contentPackageId);
 
 const host = createManifestRuntimeHost(packageList, undefined, initialTelemetryFrame);
 const simpleExtension = await loadExtension(simplePackage);
+const sidecarExtension = await loadExtension(sidecarPackage);
 const overlayExtension = await loadExtension(overlayPackage);
 const visualExtension = await loadExtension(visualPackage);
 let visualExtensionActive = false;
+let sidecarExtensionActive = false;
 
 try {
   await assertOverlayStudioWebviewTelemetry(overlayPackage);
 
   await simpleExtension.activate(host.createRuntimeContext(simplePackageId));
+  await sidecarExtension.activate(host.createRuntimeContext(sidecarPackageId));
+  sidecarExtensionActive = true;
   await overlayExtension.activate(host.createRuntimeContext(overlayPackageId));
   await visualExtension.activate(host.createRuntimeContext(visualPackageId));
   visualExtensionActive = true;
 
-  host.setActive([simplePackageId, overlayPackageId, visualPackageId, contentPackageId]);
+  host.setActive([simplePackageId, sidecarPackageId, overlayPackageId, visualPackageId, contentPackageId]);
 
   const simpleSnapshot = await host.callService(`${simplePackageId}/pocSimpleNode`, "snapshot");
   assert.equal(simpleSnapshot.source, "telemetry");
   assert.equal(simpleSnapshot.frame.Data.MatchGuid, "runtime-poc-host-snapshot");
+
+  const sidecarPing = await host.callService(sidecarServiceRef, "ping", { source: "runtime-poc-smoke" });
+  assert.equal(sidecarPing.ok, true);
+  assert.equal(sidecarPing.method, "ping");
+  assert.equal(sidecarPing.ref, `${sidecarPackageId}/worker`);
+  assert.deepEqual(sidecarPing.echo, { source: "runtime-poc-smoke" });
+
+  const sidecarHealth = await host.callService(sidecarServiceRef, "health");
+  assert.equal(sidecarHealth.status, "healthy");
+  assert.equal(host.sidecarState(sidecarPackageId, "worker").running, true);
+
+  const nativeSidecarHealth = await host.callService(nativeSidecarServiceRef, "health");
+  assert.equal(nativeSidecarHealth.status, "healthy");
+
+  const sidecarCrash = await host.callService(sidecarServiceRef, "crash");
+  assert.equal(sidecarCrash.status, "crashing");
+  assert.equal(sidecarCrash.exitCode, 42);
+  assert.equal(host.sidecarState(sidecarPackageId, "worker").running, false);
+  assert.equal(host.sidecarState(sidecarPackageId, "worker").crashCount, 1);
+  await assert.rejects(() => host.callService(nativeSidecarServiceRef, "health"), /is not running/);
+
+  const sidecarRestartPing = await host.callService(sidecarServiceRef, "ping", { afterCrash: true });
+  assert.equal(sidecarRestartPing.ok, true);
+  assert.deepEqual(sidecarRestartPing.echo, { afterCrash: true });
+  assert.ok(
+    host.calls.sidecarStarts.filter((call) => call.packageId === sidecarPackageId && call.sidecarName === "worker").length >= 2,
+    "POC sidecar service should start the worker before calls, including after a crash."
+  );
+  assert.ok(
+    host.calls.sidecarCalls.some(
+      (call) => call.packageId === sidecarPackageId && call.sidecarName === "worker" && call.method === "crash"
+    ),
+    "POC sidecar crash path should be exercised through the sidecar controller."
+  );
 
   const overlaySnapshot = await host.callService(overlayServiceRef, "snapshot");
   assert.equal(overlaySnapshot.source, "telemetry");
@@ -813,6 +998,7 @@ try {
 } finally {
   if (visualExtensionActive) await visualExtension.deactivate();
   await overlayExtension.deactivate();
+  if (sidecarExtensionActive) await sidecarExtension.deactivate();
   await simpleExtension.deactivate();
 }
 
