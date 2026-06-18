@@ -4,6 +4,8 @@ import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const hostDir = resolve(process.env.BAKINGRL_HOST_DIR ?? resolve(rootDir, "../BakingRL"));
+const sdkDir = resolve(process.env.BAKINGRL_SDK_DIR ?? resolve(rootDir, "../BakingRLSDK"));
 const pocDirs = [
   "poc-simple-node",
   "poc-webview-settings",
@@ -12,7 +14,6 @@ const pocDirs = [
   "poc-visual-pack",
   "poc-content-pack"
 ];
-const requiredApi = "2.2.0";
 const requiredSchema = "bakingrl.plugin/4";
 
 function fail(message) {
@@ -22,6 +23,34 @@ function fail(message) {
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
+}
+
+function readTextFile(path, label) {
+  if (!existsSync(path)) {
+    fail(`${label} does not exist: ${path}`);
+    return "";
+  }
+  return readFileSync(path, "utf8");
+}
+
+function readRustStringConstant(path, name, label) {
+  const source = readTextFile(path, label);
+  const match = source.match(new RegExp(`(?:pub\\s+)?const\\s+${name}\\s*:\\s*&str\\s*=\\s*"([^"]+)"`));
+  if (!match) {
+    fail(`${label} must declare ${name}.`);
+    return "";
+  }
+  return match[1];
+}
+
+function readTsStringConstant(path, name, label) {
+  const source = readTextFile(path, label);
+  const match = source.match(new RegExp(`export\\s+const\\s+${name}\\s*=\\s*"([^"]+)"`));
+  if (!match) {
+    fail(`${label} must export ${name}.`);
+    return "";
+  }
+  return match[1];
 }
 
 function isRecord(value) {
@@ -125,6 +154,25 @@ function requireRendererMetadata(contribution, expectedResourceId, label) {
   if (renderer.moduleFormat !== "esm") {
     fail(`${label}: contribution ${contribution.id} metadata.renderer.moduleFormat must be esm.`);
   }
+}
+
+const hostManifestSource = resolve(hostDir, "src-tauri/src/plugin_package/manifest.rs");
+const sdkIndexSource = resolve(sdkDir, "packages/plugin-sdk/src/index.ts");
+const requiredApi = readRustStringConstant(hostManifestSource, "HOST_RUNTIME_API_VERSION", "BakingRL host manifest contract");
+const hostMinSupportedApi = readRustStringConstant(
+  hostManifestSource,
+  "MIN_SUPPORTED_RUNTIME_API_VERSION",
+  "BakingRL host manifest contract"
+);
+const sdkRuntimeApi = readTsStringConstant(sdkIndexSource, "RUNTIME_API_VERSION", "BakingRLSDK plugin SDK contract");
+
+if (hostMinSupportedApi !== requiredApi) {
+  fail(
+    `BakingRL host supported runtime API range must stay exact for this prerelease validation: ${hostMinSupportedApi} != ${requiredApi}.`
+  );
+}
+if (sdkRuntimeApi !== requiredApi) {
+  fail(`BakingRLSDK RUNTIME_API_VERSION must match BakingRL HOST_RUNTIME_API_VERSION: ${sdkRuntimeApi} != ${requiredApi}.`);
 }
 
 const packages = new Map();
@@ -325,5 +373,5 @@ requireResource(
 );
 
 if (!process.exitCode) {
-  console.log("POC plugin chain validation passed.");
+  console.log(`POC plugin chain validation passed for BakingRL runtime API ${requiredApi}.`);
 }

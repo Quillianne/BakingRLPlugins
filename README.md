@@ -14,12 +14,12 @@ deja-vu/        Service and visual package for player encounter counts.
 obs-gateway/    Trusted Rust sidecar OBS gateway service.
 player-streak/  Service and visual package for player win/loss streak records.
 
-poc-simple-node/        Runtime API 2.1 Node service and RL snapshot POC.
-poc-webview-settings/   Runtime API 2.1 settings and webview POC.
-poc-sidecar/            Runtime API 2.1 managed sidecar health/crash POC.
-poc-overlay-studio/     Runtime API 2.1 platform plugin POC.
-poc-visual-pack/        Runtime API 2.1 Overlay Studio contributor POC.
-poc-content-pack/       Runtime API 2.1 resource-only content contributor POC.
+poc-simple-node/        Runtime API 2.2 Node service and RL snapshot POC.
+poc-webview-settings/   Runtime API 2.2 settings and webview POC.
+poc-sidecar/            Runtime API 2.2 managed sidecar health/crash POC.
+poc-overlay-studio/     Runtime API 2.2 platform plugin POC.
+poc-visual-pack/        Runtime API 2.2 Overlay Studio contributor POC.
+poc-content-pack/       Runtime API 2.2 resource-only content contributor POC.
 ```
 
 ## Local Workspace Setup
@@ -32,22 +32,32 @@ perso/
   BakingRLPlugins/
 ```
 
-Install plugin workspace dependencies. Published SDK and helper CLI packages are
-installed from npm:
+Install plugin workspace dependencies. For refactor validation, build and pack
+the sibling `BakingRLSDK` checkout locally, then install that pack into this
+workspace before running the checks:
 
 ```sh
+cd ../BakingRLSDK
+npm run check
+npm run build
+npm pack --workspace @bakingrl/plugin-sdk --pack-destination /tmp/bakingrl-sdk-packs
+npm pack --workspace @bakingrl/create-plugin --pack-destination /tmp/bakingrl-sdk-packs
+cd ../BakingRLPlugins
 npm install
+npm install --no-save /tmp/bakingrl-sdk-packs/bakingrl-plugin-sdk-2.2.0.tgz /tmp/bakingrl-sdk-packs/bakingrl-create-plugin-2.2.0.tgz
 npm run check
 npm run build
 npm run validate
 npm run validate:poc-chain
 ```
 
-`validate:poc-chain` checks the Runtime API 2.1 POC dependency,
-contribution, resource, webview, and sidecar declarations locally. It should run
-after `npm run build` so built entries and sidecar binaries exist. The standard
-`npm run validate` command remains the SDK CLI validation gate and requires the
-SDK validator to understand the Runtime API 2.1 manifest fields.
+`validate:poc-chain` reads `BakingRL`'s `HOST_RUNTIME_API_VERSION` and
+`BakingRLSDK`'s `RUNTIME_API_VERSION`, then checks the Runtime API 2.2 POC
+dependency, contribution, resource, webview, and sidecar declarations locally.
+It should run after `npm run build` so built entries and sidecar binaries exist.
+The standard `npm run validate` command remains the SDK CLI validation gate and
+requires the local SDK validator to understand the Runtime API 2.2 manifest
+fields.
 
 ## Create A New Plugin
 
