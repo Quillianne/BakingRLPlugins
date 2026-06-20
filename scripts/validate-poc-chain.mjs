@@ -336,6 +336,16 @@ requireResource(
   { visibility: "public", type: "application/json", role: "widget-preset" },
   "Visual Pack POC"
 );
+const visualRuntimeSource = readTextFile(resolve(visualPack.packageDir, "src/extension/index.ts"), "Visual Pack POC runtime");
+if (visualRuntimeSource.includes("bakingrl.poc-content-pack")) {
+  fail("Visual Pack POC: runtime must derive content packages from active contributions, not from bakingrl.poc-content-pack.");
+}
+const overlayRuntimeSource = readTextFile(resolve(overlayStudio.packageDir, "src/extension/index.ts"), "Overlay Studio POC runtime");
+for (const expectedRuntimeSnippet of ["buildRenderState", "resolveContributionResources", "rendererResource"]) {
+  if (!overlayRuntimeSource.includes(expectedRuntimeSnippet)) {
+    fail(`Overlay Studio POC: runtime renderState must consume visual contribution metadata/resources (${expectedRuntimeSnippet}).`);
+  }
+}
 
 requireDependency(contentPack, "bakingrl.poc-visual-pack", "Content Pack POC");
 if (contentPack?.manifest.runtime) {

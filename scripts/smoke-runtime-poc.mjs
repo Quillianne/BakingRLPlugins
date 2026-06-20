@@ -1112,6 +1112,64 @@ function assertContentSummary(content) {
   ]);
 }
 
+function assertOverlayRenderState(renderState) {
+  assert.equal(renderState.source, "telemetry");
+  assert.equal(renderState.score.matchGuid, "runtime-poc-host-snapshot");
+  assert.equal(renderState.viewport.width, 1040);
+  assert.equal(renderState.viewport.height, 720);
+  assert.equal(renderState.discovery.available, true);
+  assert.equal(renderState.discovery.target, overlayTarget);
+  assert.equal(renderState.discovery.contributions.length, 1);
+  assert.equal(renderState.resources.available, true);
+  assert.equal(renderState.widgets.length, 1);
+  assert.equal(renderState.visibleWidgets, 1);
+  assert.equal(renderState.emptyReason, null);
+
+  const widget = renderState.widgets[0];
+  assert.equal(widget.id, "demo-score-widget");
+  assert.equal(widget.packageId, visualPackageId);
+  assert.equal(widget.reference, `${visualPackageId}/demo-score-widget`);
+  assert.equal(widget.serviceRef, visualServiceRef);
+  assert.equal(widget.contentTarget, contentTarget);
+  assert.equal(widget.renderer.resource, "demoWidgetModule");
+  assert.equal(widget.renderer.resourceRef, resourceReference(visualPackageId, "demoWidgetModule"));
+  assert.equal(widget.renderer.available, true);
+  assert.deepEqual(widget.frame, {
+    x: 636,
+    y: 536,
+    width: 380,
+    height: 160
+  });
+  assert.equal(widget.preview.score, "2-1");
+  assert.equal(widget.preview.message, "Renderer resource ready");
+  assert.equal(widget.preset.defaultLabel, "Visual Pack Widget");
+
+  const moduleResource = widget.resources.find((resource) => resource.id === "demoWidgetModule");
+  assert.ok(moduleResource, "Overlay Studio renderState should include the Visual Pack renderer module resource.");
+  assert.equal(moduleResource.reference, resourceReference(visualPackageId, "demoWidgetModule"));
+  assert.equal(moduleResource.type, "application/javascript");
+  assert.equal(moduleResource.role, "overlay-widget-module");
+  assert.ok(
+    moduleResource.text.some((item) => item.path === "dist/visuals/demo-widget.js" && item.length > 0),
+    "Overlay Studio renderState should read the Visual Pack renderer module resource."
+  );
+
+  const presetResource = widget.resources.find((resource) => resource.id === "widgetPreset");
+  assert.ok(presetResource, "Overlay Studio renderState should include the Visual Pack preset resource.");
+  assert.equal(presetResource.reference, resourceReference(visualPackageId, "widgetPreset"));
+  assert.equal(presetResource.type, "application/json");
+  assert.equal(presetResource.role, "widget-preset");
+  assert.equal(presetResource.hasJson, true);
+}
+
+function assertNoOverlayWidgets(renderState) {
+  assert.equal(renderState.discovery.available, true);
+  assert.equal(renderState.discovery.contributions.length, 0);
+  assert.equal(renderState.widgets.length, 0);
+  assert.equal(renderState.visibleWidgets, 0);
+  assert.equal(renderState.emptyReason, "no-active-visual-contributions");
+}
+
 const packageList = pocSpecs.map(loadPackage);
 for (const pkg of packageList) {
   assert.equal(
@@ -1271,10 +1329,33 @@ try {
   assert.equal(overlayContributions.contributions.length, 1);
   assertVisualContribution(overlayContributions.contributions[0]);
 
-  const overlayRenderState = await host.callService(overlayServiceRef, "renderState");
-  assert.equal(overlayRenderState.discovery.contributions.length, 1);
+  const visualTextReadCountBeforeRenderState = host.calls.readText.length;
+  const visualJsonReadCountBeforeRenderState = host.calls.readJson.length;
+  const overlayRenderState = await host.callService(overlayServiceRef, "renderState", {
+    width: 1040,
+    height: 720
+  });
+  assertOverlayRenderState(overlayRenderState);
   assert.ok(overlayRenderState.plugins.some((plugin) => plugin.id === contentPackageId));
   assert.ok(overlayRenderState.plugins.some((plugin) => plugin.id === visualPackageId));
+  assert.ok(
+    host.calls.resourceList.some(
+      (call) => call.packageId === visualPackageId && call.visibility === "public" && call.type === undefined
+    ),
+    "Overlay Studio renderState should list the Visual Pack public resources through the host resource API."
+  );
+  assert.ok(
+    host.calls.readText
+      .slice(visualTextReadCountBeforeRenderState)
+      .some((call) => call.ref === resourceReference(visualPackageId, "demoWidgetModule")),
+    "Overlay Studio renderState should read the Visual Pack renderer module through the host resource API."
+  );
+  assert.ok(
+    host.calls.readJson
+      .slice(visualJsonReadCountBeforeRenderState)
+      .some((call) => call.ref === resourceReference(visualPackageId, "widgetPreset")),
+    "Overlay Studio renderState should read the Visual Pack preset through the host resource API."
+  );
 
   const content = await host.callService(visualServiceRef, "content");
   assertContentSummary(content);
@@ -1328,17 +1409,38 @@ try {
   assert.equal(contentDisabled.summary.contributionCount, 0);
   assert.equal(contentDisabled.summary.resourceCount, 0);
   assert.equal(host.calls.readJson.length + host.calls.readText.length, resourceReadCount);
+  const contentDisabledRender = await host.callService(visualServiceRef, "renderWidget", { source: "content-disabled" });
+  assert.equal(contentDisabledRender.render.title, null);
+  assert.deepEqual(contentDisabledRender.render.messages, []);
+  assert.deepEqual(contentDisabledRender.render.badgePaths, []);
+  const overlayWithContentDisabled = await host.callService(overlayServiceRef, "renderState", {
+    width: 1040,
+    height: 720
+  });
+  assertOverlayRenderState(overlayWithContentDisabled);
+  assert.ok(!overlayWithContentDisabled.plugins.some((plugin) => plugin.id === contentPackageId));
 
   host.setActive([overlayPackageId, contentPackageId]);
   const visualDisabledSnapshot = await host.callService(overlayServiceRef, "snapshot");
   assert.equal(visualDisabledSnapshot.discovery.available, true);
   assert.equal(visualDisabledSnapshot.discovery.contributions.length, 0);
+  const visualDisabledRenderState = await host.callService(overlayServiceRef, "renderState", {
+    width: 1040,
+    height: 720
+  });
+  assertNoOverlayWidgets(visualDisabledRenderState);
+  assert.ok(!visualDisabledRenderState.plugins.some((plugin) => plugin.id === visualPackageId));
   await assert.rejects(() => host.callService(visualServiceRef, "content"), /Service package is inactive/);
 
   await visualExtension.deactivate();
   visualExtensionActive = false;
   const visualAbsentSnapshot = await host.callService(overlayServiceRef, "snapshot");
   assert.equal(visualAbsentSnapshot.discovery.contributions.length, 0);
+  const visualAbsentRenderState = await host.callService(overlayServiceRef, "renderState", {
+    width: 1040,
+    height: 720
+  });
+  assertNoOverlayWidgets(visualAbsentRenderState);
 } finally {
   if (visualExtensionActive) await visualExtension.deactivate();
   await overlayExtension.deactivate();

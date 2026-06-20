@@ -220,16 +220,6 @@ async function discoverContent(context: ExtensionContext21) {
   }
 }
 
-async function listResources(context: ExtensionContext21) {
-  try {
-    const resources = requireResources(context);
-    return listPublicContentResources(resources, "bakingrl.poc-content-pack");
-  } catch (error) {
-    context.diagnostics.warn("POC Visual Pack resource listing failed.", error);
-    throw error;
-  }
-}
-
 async function disposeRegistrations(items: ExtensionSubscription[]) {
   for (const registration of items.reverse()) {
     await registration.dispose();
@@ -249,10 +239,11 @@ const extension = defineExtension({
 
     const serviceRegistration = context.services.register(SERVICE_ID, {
       async snapshot() {
+        const content = await discoverContent(context21);
         return {
           overlayTarget: OVERLAY_TARGET,
-          content: await discoverContent(context21),
-          resources: await listResources(context21)
+          content,
+          resources: content.resources
         };
       },
       async content() {
