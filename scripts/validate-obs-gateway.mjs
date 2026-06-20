@@ -29,6 +29,16 @@ assert.doesNotMatch(
   /overlays\/list/,
   "obs-gateway sidecar should not call the old host-owned overlays/list API."
 );
+assert.doesNotMatch(
+  sidecarSource,
+  /pages\/list/,
+  "obs-gateway sidecar should not call the old host-owned pages/list API."
+);
+assert.doesNotMatch(
+  sidecarSource,
+  /visuals\/readSource/,
+  "obs-gateway sidecar should not call the old host-owned visuals/readSource API."
+);
 assert.match(
   sidecarSource,
   /host_layout_catalog/,

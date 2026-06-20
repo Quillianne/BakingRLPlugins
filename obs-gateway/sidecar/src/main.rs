@@ -1149,22 +1149,12 @@ fn handle_api_request(
 
     let result = match (request.method.as_str(), api_path) {
         ("GET", "plugins") => runtime_packages_with_public_resources(host_rpc),
-        ("GET", "pages") => host_rpc.request("pages/list", Value::Null).map(ApiResponse::Json),
         _ => handle_dynamic_api_request(request, api_path, host_rpc),
     };
 
     match result {
         Ok(ApiResponse::Json(value)) => {
             let _ = write_json_value(stream, 200, value);
-        }
-        Ok(ApiResponse::Text { contents, content_type }) => {
-            let _ = write_response(
-                stream,
-                200,
-                "OK",
-                &[("Content-Type", content_type.as_str())],
-                contents.as_bytes(),
-            );
         }
         Ok(ApiResponse::Bytes { contents, content_type }) => {
             let _ = write_response(
@@ -1184,10 +1174,6 @@ fn handle_api_request(
 
 enum ApiResponse {
     Json(Value),
-    Text {
-        contents: String,
-        content_type: String,
-    },
     Bytes {
         contents: Vec<u8>,
         content_type: String,
@@ -1306,22 +1292,6 @@ fn handle_dynamic_api_request(
                 return Ok(ApiResponse::Bytes {
                     contents,
                     content_type,
-                });
-            }
-            ("GET", "visuals") if segments.len() >= 5 && segments[4] == "source" => {
-                let export_name = percent_decode(segments[3]);
-                let payload = host_rpc.request(
-                    "visuals/readSource",
-                    json!({ "packageId": package_id, "exportName": export_name }),
-                )?;
-                let contents = payload
-                    .get("source")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string();
-                return Ok(ApiResponse::Text {
-                    contents,
-                    content_type: "text/javascript; charset=utf-8".to_string(),
                 });
             }
             ("GET", "settings") => {
