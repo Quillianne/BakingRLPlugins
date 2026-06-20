@@ -349,14 +349,15 @@ function createManifestRuntimeHost(
     return contributions;
   }
 
-  function listResources(filter = {}) {
-    calls.resourceList.push({ ...filter });
+  function listResources(callerPackageId, filter = {}) {
+    calls.resourceList.push({ callerPackageId, ...filter });
 
     const resources = [];
     for (const pkg of packageList) {
       if (!activePackageIds.has(pkg.id)) continue;
       for (const resource of pkg.manifest.contributes?.resources ?? []) {
         const normalized = normalizeResource(pkg, resource);
+        if (normalized.visibility !== "public" && normalized.packageId !== callerPackageId) continue;
         if (filter.packageId && normalized.packageId !== filter.packageId) continue;
         if (filter.type && normalized.type !== filter.type) continue;
         if (filter.visibility && normalized.visibility !== filter.visibility) continue;
@@ -366,7 +367,7 @@ function createManifestRuntimeHost(
     return resources;
   }
 
-  function findPublicResource(ref) {
+  function findReadableResource(callerPackageId, ref) {
     const parsed = splitReference(ref);
     if (!parsed) throw new Error(`Invalid resource ref: ${ref}`);
     if (!activePackageIds.has(parsed.packageId)) throw new Error(`Resource package is inactive: ${ref}`);
@@ -376,7 +377,9 @@ function createManifestRuntimeHost(
     if (!pkg || !resource) throw new Error(`Unknown resource ref: ${ref}`);
 
     const normalized = normalizeResource(pkg, resource);
-    if (normalized.visibility !== "public") throw new Error(`Private resource must not be read cross-package: ${ref}`);
+    if (normalized.visibility !== "public" && parsed.packageId !== callerPackageId) {
+      throw new Error(`Private resource must not be read cross-package: ${ref}`);
+    }
     return { pkg, resource: normalized };
   }
 
@@ -488,17 +491,17 @@ function createManifestRuntimeHost(
     throw new Error(`Unknown sidecar method: ${ref}.${method}`);
   }
 
-  async function readPublicJson(ref, path) {
-    calls.readJson.push({ ref, path: path ?? null });
-    const { pkg, resource } = findPublicResource(ref);
+  async function readResourceJson(callerPackageId, ref, path) {
+    calls.readJson.push({ callerPackageId, ref, path: path ?? null });
+    const { pkg, resource } = findReadableResource(callerPackageId, ref);
     assert.equal(resource.type, "application/json");
     const resourcePath = resolveDeclaredResourcePath(resource, path);
     return readJson(resolve(pkg.packageDir, resourcePath));
   }
 
-  async function readPublicText(ref, path) {
-    calls.readText.push({ ref, path: path ?? null });
-    const { pkg, resource } = findPublicResource(ref);
+  async function readResourceText(callerPackageId, ref, path) {
+    calls.readText.push({ callerPackageId, ref, path: path ?? null });
+    const { pkg, resource } = findReadableResource(callerPackageId, ref);
     assert.ok(textResourceTypes.has(resource.type), `Unsupported text resource type: ${resource.type}`);
     const resourcePath = resolveDeclaredResourcePath(resource, path);
     return readFileText(resolve(pkg.packageDir, resourcePath));
@@ -631,16 +634,20 @@ function createManifestRuntimeHost(
       },
       resources: {
         async list(filter) {
-          return listResources(filter);
+          return listResources(packageId, filter);
         },
         async read(ref, path) {
-          const { resource } = findPublicResource(ref);
-          if (resource.type === "application/json") return readPublicJson(ref, path);
-          if (textResourceTypes.has(resource.type)) return readPublicText(ref, path);
+          const { resource } = findReadableResource(packageId, ref);
+          if (resource.type === "application/json") return readResourceJson(packageId, ref, path);
+          if (textResourceTypes.has(resource.type)) return readResourceText(packageId, ref, path);
           throw new Error(`Unsupported runtime POC resource type: ${resource.type}`);
         },
-        readJson: readPublicJson,
-        readText: readPublicText
+        readJson(ref, path) {
+          return readResourceJson(packageId, ref, path);
+        },
+        readText(ref, path) {
+          return readResourceText(packageId, ref, path);
+        }
       },
       settings: {
         get(key) {
@@ -1245,6 +1252,27 @@ try {
   assert.ok(
     demoWidgetModule.includes("Visual Pack Widget"),
     "Visual Pack widget module should be served as a public resource."
+  );
+  const contentOwnerResources = await host
+    .createRuntimeContext(contentPackageId)
+    .resources.list({ packageId: contentPackageId });
+  assert.ok(
+    contentOwnerResources.some((resource) => resource.id === "privateNotes" && resource.public === false),
+    "Content Pack should see its own private resource."
+  );
+  const overlayVisibleContentResources = await host
+    .createRuntimeContext(overlayPackageId)
+    .resources.list({ packageId: contentPackageId });
+  assert.ok(
+    !overlayVisibleContentResources.some((resource) => resource.id === "privateNotes"),
+    "Overlay Studio should not discover Content Pack private resources."
+  );
+  await assert.rejects(
+    () =>
+      host
+        .createRuntimeContext(overlayPackageId)
+        .resources.readJson(resourceReference(contentPackageId, "privateNotes")),
+    /Private resource must not be read cross-package/
   );
 
   const simpleSnapshot = await host.callService(`${simplePackageId}/pocSimpleNode`, "snapshot");
