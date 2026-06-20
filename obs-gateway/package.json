@@ -7,7 +7,7 @@
     "build": "npm run build:sidecar && vite build",
     "build:sidecar": "cargo build --manifest-path sidecar/Cargo.toml --target-dir ../.cargo-target/obs-gateway --release && node scripts/copy-sidecar.mjs",
     "check": "tsc -p tsconfig.json --noEmit && cargo check --manifest-path sidecar/Cargo.toml --target-dir ../.cargo-target/obs-gateway",
-    "validate": "bakingrl-plugin validate",
+    "validate": "bakingrl-plugin validate && node ../scripts/validate-obs-gateway.mjs",
     "pack": "bakingrl-plugin pack",
     "install:local": "bakingrl-plugin install-local"
   },

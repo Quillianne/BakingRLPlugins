@@ -1,8 +1,11 @@
-import type { ExtensionContext, ExtensionSubscription } from "@bakingrl/plugin-sdk";
+import type { ExtensionContext, ExtensionSubscription, ResourceDescriptor } from "@bakingrl/plugin-sdk";
 
 const SERVICE_ID = "obsGateway";
 const SIDECAR_NAME = "gateway";
 const DEFAULT_SECRET_KEY_REF = "obs.gateway.accessToken";
+const RENDERER_RESOURCE_ROLE = "renderer-module";
+const DEFAULT_LAYOUT_WIDTH = 1920;
+const DEFAULT_LAYOUT_HEIGHT = 1080;
 
 type ObsGatewaySettings = {
   enabled?: unknown;
@@ -15,13 +18,6 @@ type ObsGatewaySettings = {
   requireToken?: unknown;
   heartbeatMs?: unknown;
   allowedOrigins?: unknown;
-};
-
-type HostLayout = {
-  id: string;
-  name: string;
-  source: string;
-  itemCount?: number;
 };
 
 let registrations: ExtensionSubscription[] = [];
@@ -40,33 +36,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function normalizeLayout(value: unknown, index: number): HostLayout | null {
-  if (!isRecord(value)) return null;
-  const id = cleanString(value.id) ?? cleanString(value.layoutId) ?? cleanString(value.name) ?? `layout-${index + 1}`;
-  const name = cleanString(value.name) ?? cleanString(value.title) ?? id;
-  const source = cleanString(value.source) ?? cleanString(value.kind) ?? "host";
-  const items = Array.isArray(value.items) ? value.items.length : Array.isArray(value.visuals) ? value.visuals.length : undefined;
-  return { id, name, source, itemCount: items };
-}
-
-function normalizeLayouts(value: unknown): HostLayout[] {
-  const rawLayouts = Array.isArray(value)
-    ? value
-    : isRecord(value) && Array.isArray(value.layouts)
-      ? value.layouts
-      : isRecord(value) && Array.isArray(value.overlays)
-        ? value.overlays
-        : [];
-  const seen = new Set<string>();
-  return rawLayouts
-    .map(normalizeLayout)
-    .filter((layout): layout is HostLayout => {
-      if (!layout || seen.has(layout.id)) return false;
-      seen.add(layout.id);
-      return true;
-    });
-}
-
 async function readSecret(context: ExtensionContext, settings: ObsGatewaySettings) {
   const secretKeyRef = cleanString(settings.secretKeyRef) ?? DEFAULT_SECRET_KEY_REF;
   const tokenConfigured = await context.secrets.configured(secretKeyRef).catch(() => false);
@@ -78,12 +47,147 @@ async function readSecret(context: ExtensionContext, settings: ObsGatewaySetting
   };
 }
 
-async function collectHostData(_context: ExtensionContext) {
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function resourceMetadata(resource: ResourceDescriptor) {
+  return isRecord(resource.metadata) ? resource.metadata : {};
+}
+
+function resourceId(resource: ResourceDescriptor) {
+  return cleanString(resource.id);
+}
+
+function resourceTitle(resource: ResourceDescriptor) {
+  const metadata = resourceMetadata(resource);
+  return cleanString(metadata.title) ?? cleanString(metadata.name) ?? resourceId(resource) ?? resource.reference;
+}
+
+function safeLayoutSegment(value: string) {
+  return value.trim().replace(/[^A-Za-z0-9_.-]+/g, "-").replace(/^-+|-+$/g, "") || "resource";
+}
+
+function defaultSize(resource: ResourceDescriptor) {
+  const size = resourceMetadata(resource).defaultSize;
+  const values = Array.isArray(size) ? size : [];
+  const width = Number(values[0]);
+  const height = Number(values[1]);
   return {
-    layouts: [],
-    snapshot: null,
-    hostApiAvailable: false,
-    error: "Host-owned overlay layout discovery is not available in runtime API 2.2."
+    width: Number.isFinite(width) && width > 0 ? width : 420,
+    height: Number.isFinite(height) && height > 0 ? height : 180
+  };
+}
+
+function isRendererResource(resource: ResourceDescriptor) {
+  const metadata = resourceMetadata(resource);
+  const type = cleanString(resource.type);
+  return (
+    resource.public !== false &&
+    metadata.role === RENDERER_RESOURCE_ROLE &&
+    (!type || type.includes("javascript"))
+  );
+}
+
+function rendererLayoutFor(resource: ResourceDescriptor) {
+  const id = resourceId(resource) ?? safeLayoutSegment(resource.reference);
+  const title = resourceTitle(resource);
+  const size = defaultSize(resource);
+  const width = Math.max(DEFAULT_LAYOUT_WIDTH, Math.ceil(size.width));
+  const height = Math.max(DEFAULT_LAYOUT_HEIGHT, Math.ceil(size.height));
+  const itemWidth = Math.min(width, Math.ceil(size.width));
+  const itemHeight = Math.min(height, Math.ceil(size.height));
+  const item = {
+    id: `item-${safeLayoutSegment(resource.reference)}`,
+    name: title,
+    kind: "visual",
+    package_id: resource.packageId,
+    packageId: resource.packageId,
+    export_name: id,
+    exportName: id,
+    resource_id: id,
+    resourceId: id,
+    resourceRef: resource.reference,
+    x: Math.round((width - itemWidth) / 2),
+    y: Math.round((height - itemHeight) / 2),
+    width: itemWidth,
+    height: itemHeight,
+    z_index: 0,
+    zIndex: 0,
+    visible: true,
+    settings: {
+      resource: {
+        id,
+        reference: resource.reference,
+        type: resource.type ?? null,
+        metadata: resource.metadata ?? null
+      }
+    }
+  };
+  return {
+    id: `resource-${safeLayoutSegment(resource.reference)}`,
+    name: `${resource.packageId}/${title}`,
+    source: "plugin-resources",
+    width,
+    height,
+    layers: [
+      {
+        id: "renderer",
+        name: "Renderer",
+        kind: "normal",
+        visible: true,
+        locked: false,
+        order: 0,
+        items: [item]
+      }
+    ],
+    items: [item]
+  };
+}
+
+async function collectHostData(context: ExtensionContext) {
+  let resources: ResourceDescriptor[];
+  try {
+    resources = await context.resources.list({ visibility: "public" });
+  } catch (error) {
+    const message = `Public renderer resources are not available: ${errorMessage(error)}`;
+    return {
+      layouts: [],
+      snapshot: {
+        source: "plugin-resources",
+        layouts: [],
+        error: message
+      },
+      hostApiAvailable: false,
+      error: message
+    };
+  }
+
+  const telemetry = (await Promise.resolve(context.telemetryHub?.snapshot?.()).catch(() => null)) ?? null;
+  const layouts = resources
+    .filter(isRendererResource)
+    .sort((a, b) => a.reference.localeCompare(b.reference))
+    .map(rendererLayoutFor);
+  const streamLayoutId = layouts[0]?.id ?? null;
+  const snapshot = {
+    source: "plugin-resources",
+    generatedAt: new Date().toISOString(),
+    stream_layout_id: streamLayoutId,
+    streamLayoutId,
+    telemetry,
+    layouts
+  };
+
+  return {
+    layouts: layouts.map((layout) => ({
+      id: layout.id,
+      name: layout.name,
+      source: layout.source,
+      itemCount: layout.items.length
+    })),
+    snapshot,
+    hostApiAvailable: true,
+    error: layouts.length === 0 ? "No public renderer-module resources are available." : undefined
   };
 }
 

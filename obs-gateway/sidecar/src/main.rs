@@ -805,14 +805,7 @@ fn handle_client(mut stream: TcpStream, shared: Arc<SharedGateway>, host_rpc: Ho
     }
 
     if request.method == "GET" && request.path == routes.layouts_api {
-        match host_rpc.request("overlays/list", Value::Null) {
-            Ok(layouts) => {
-                let _ = write_json_value(&mut stream, 200, layouts);
-            }
-            Err(error) => {
-                let _ = write_json(&mut stream, 502, json!({ "ok": false, "error": error }));
-            }
-        }
+        let _ = write_json_value(&mut stream, 200, host_layout_catalog(&shared));
         return;
     }
 
@@ -821,33 +814,27 @@ fn handle_client(mut stream: TcpStream, shared: Arc<SharedGateway>, host_rpc: Ho
             .path
             .starts_with(&format!("{}/", routes.layouts_api))
     {
-        let layout_id = request.path[routes.layouts_api.len() + 1..].to_string();
-        match host_rpc.request("overlays/list", Value::Null) {
-            Ok(catalog) => {
-                let layout = catalog
-                    .get("layouts")
-                    .and_then(Value::as_array)
-                    .and_then(|layouts| {
-                        layouts
-                            .iter()
-                            .find(|layout| layout.get("id").and_then(Value::as_str) == Some(&layout_id))
-                    })
-                    .cloned();
-                match layout {
-                    Some(layout) => {
-                        let _ = write_json_value(&mut stream, 200, json!({ "ok": true, "layout": layout }));
-                    }
-                    None => {
-                        let _ = write_json(
-                            &mut stream,
-                            404,
-                            json!({ "ok": false, "error": "Layout not found", "layoutId": layout_id }),
-                        );
-                    }
-                }
+        let layout_id = percent_decode(&request.path[routes.layouts_api.len() + 1..]);
+        let catalog = host_layout_catalog(&shared);
+        let layout = catalog
+            .get("layouts")
+            .and_then(Value::as_array)
+            .and_then(|layouts| {
+                layouts
+                    .iter()
+                    .find(|layout| layout.get("id").and_then(Value::as_str) == Some(&layout_id))
+            })
+            .cloned();
+        match layout {
+            Some(layout) => {
+                let _ = write_json_value(&mut stream, 200, json!({ "ok": true, "layout": layout }));
             }
-            Err(error) => {
-                let _ = write_json(&mut stream, 502, json!({ "ok": false, "error": error }));
+            None => {
+                let _ = write_json(
+                    &mut stream,
+                    404,
+                    json!({ "ok": false, "error": "Layout not found", "layoutId": layout_id }),
+                );
             }
         }
         return;
@@ -1131,6 +1118,25 @@ fn write_json_value(stream: &mut TcpStream, status: u16, payload: Value) -> io::
     )
 }
 
+fn host_layout_catalog(shared: &SharedGateway) -> Value {
+    let Ok(state) = shared.state.lock() else {
+        return json!({ "layouts": [] });
+    };
+    if let Some(snapshot) = &state.host.snapshot {
+        if snapshot.get("layouts").and_then(Value::as_array).is_some() {
+            return snapshot.clone();
+        }
+    }
+    json!({
+        "source": "host-data-summary",
+        "stream_layout_id": state.config.stream_layout_id.clone(),
+        "streamLayoutId": state.config.stream_layout_id.clone(),
+        "hostApiAvailable": state.host.host_api_available,
+        "error": state.host.error.clone(),
+        "layouts": serde_json::to_value(&state.host.layouts).unwrap_or_else(|_| Value::Array(Vec::new())),
+    })
+}
+
 fn handle_api_request(
     stream: &mut TcpStream,
     request: &HttpRequest,
@@ -1142,12 +1148,7 @@ fn handle_api_request(
     };
 
     let result = match (request.method.as_str(), api_path) {
-        ("GET", "plugins") => host_rpc
-            .request("packages/list", Value::Null)
-            .map(ApiResponse::Json),
-        ("GET", "layouts") => host_rpc
-            .request("overlays/list", Value::Null)
-            .map(ApiResponse::Json),
+        ("GET", "plugins") => runtime_packages_with_public_resources(host_rpc),
         ("GET", "pages") => host_rpc.request("pages/list", Value::Null).map(ApiResponse::Json),
         _ => handle_dynamic_api_request(request, api_path, host_rpc),
     };
@@ -1199,6 +1200,47 @@ impl From<Value> for ApiResponse {
     }
 }
 
+fn runtime_packages_with_public_resources(host_rpc: &HostRpc) -> Result<ApiResponse, String> {
+    let mut packages = host_rpc.request("packages/list", Value::Null)?;
+    let resources = host_rpc.request("resources/list", json!({ "visibility": "public" }))?;
+    let mut resources_by_package: HashMap<String, Vec<Value>> = HashMap::new();
+    for resource in resources.as_array().into_iter().flatten() {
+        let Some(package_id) = resource.get("packageId").and_then(Value::as_str) else {
+            continue;
+        };
+        resources_by_package
+            .entry(package_id.to_string())
+            .or_default()
+            .push(resource.clone());
+    }
+
+    if let Some(items) = packages.as_array_mut() {
+        for package in items {
+            let Some(package_id) = package
+                .get("id")
+                .and_then(Value::as_str)
+                .map(ToOwned::to_owned)
+            else {
+                continue;
+            };
+            let resources = resources_by_package.remove(&package_id).unwrap_or_default();
+            if !package.get("contributions").is_some_and(Value::is_object) {
+                if let Some(package) = package.as_object_mut() {
+                    package.insert("contributions".to_string(), json!({}));
+                }
+            }
+            if let Some(contributions) = package
+                .get_mut("contributions")
+                .and_then(Value::as_object_mut)
+            {
+                contributions.insert("resources".to_string(), Value::Array(resources));
+            }
+        }
+    }
+
+    Ok(ApiResponse::Json(packages))
+}
+
 fn handle_dynamic_api_request(
     request: &HttpRequest,
     api_path: &str,
@@ -1208,6 +1250,37 @@ fn handle_dynamic_api_request(
     if segments.first() == Some(&"packages") && segments.len() >= 3 {
         let package_id = percent_decode(segments[1]);
         match (request.method.as_str(), segments[2]) {
+            ("GET", "resources") if segments.len() >= 4 => {
+                let resource_id = percent_decode(segments[3]);
+                let requested_path = request
+                    .query
+                    .get("path")
+                    .map(String::as_str)
+                    .filter(|value| !value.trim().is_empty());
+                let payload = host_rpc.request(
+                    "resources/read",
+                    json!({
+                        "ref": format!("{package_id}/{resource_id}"),
+                        "path": requested_path,
+                    }),
+                )?;
+                let contents = payload
+                    .get("contentsBase64")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| "Host did not return resource contents.".to_string())?;
+                let contents = BASE64
+                    .decode(contents)
+                    .map_err(|error| format!("Host returned invalid resource data: {error}"))?;
+                let content_type = payload
+                    .get("contentType")
+                    .and_then(Value::as_str)
+                    .unwrap_or("application/octet-stream")
+                    .to_string();
+                return Ok(ApiResponse::Bytes {
+                    contents,
+                    content_type,
+                });
+            }
             ("GET", "files") if segments.len() >= 4 => {
                 let relative_path = segments[3..]
                     .iter()
@@ -1547,6 +1620,15 @@ function packageFileUrl(packageId, path, version) {
   return withAuth(versioned);
 }
 
+function packageResourceUrl(packageId, resourceId, version, path) {
+  const base = `${apiBase}/packages/${encodeURIComponent(packageId)}/resources/${encodeURIComponent(resourceId)}`;
+  const query = new URLSearchParams();
+  if (path) query.set("path", String(path));
+  if (version !== undefined) query.set("v", String(version));
+  const suffix = query.toString();
+  return withAuth(suffix ? `${base}?${suffix}` : base);
+}
+
 function packageAssetUrl(packageId, ref, version) {
   const value = String(ref || "");
   if (/^(https?:|data:|blob:|\/)/.test(value)) return value;
@@ -1573,7 +1655,7 @@ function layoutItems(layout) {
 }
 
 function selectLayout(catalog) {
-  const layouts = catalog.layouts || [];
+  const layouts = Array.isArray(catalog) ? catalog : catalog.layouts || [];
   const target = requestedLayoutId || catalog.stream_layout_id || catalog.streamLayoutId || catalog.active_layout_id || catalog.activeLayoutId;
   return layouts.find((layout) => layout.id === target) || layouts[0] || null;
 }
@@ -1654,10 +1736,38 @@ function renderNativeItem(root, item) {
 }
 
 function packageForItem(packages, item) {
-  return packages.find((pkg) => pkg.id === item.package_id && pkg.enabled) || null;
+  const packageId = item.package_id || item.packageId;
+  return packages.find((pkg) => pkg.id === packageId && pkg.enabled !== false && pkg.active !== false) || null;
+}
+
+function resourceId(resource) {
+  return resource?.id || resource?.name || (resource?.reference ? String(resource.reference).split("/").pop() : null);
+}
+
+function itemResourceId(item) {
+  return item.resource_id || item.resourceId || item.export_name || item.exportName;
+}
+
+function resourceType(resource) {
+  return resource?.type || resource?.resource_type || resource?.resourceType || "";
+}
+
+function rendererResources(pkg) {
+  return (pkg?.contributions?.resources || []).filter((resource) => {
+    const metadata = (resource.metadata && typeof resource.metadata === "object") ? resource.metadata : {};
+    const type = String(resourceType(resource));
+    return resource.public !== false && metadata.role === "renderer-module" && (!type || type.includes("javascript"));
+  });
 }
 
 function visualForItem(pkg, item) {
+  const target = String(itemResourceId(item) || "");
+  const resource = rendererResources(pkg).find((candidate) => {
+    const id = resourceId(candidate);
+    const reference = candidate.reference || (id ? `${pkg.id}/${id}` : "");
+    return target === id || target === reference || target === candidate.name;
+  });
+  if (resource) return { ...resource, kind: "resource-module" };
   return (pkg?.contributions?.visuals || []).find((visual) => visual.name === item.export_name) || null;
 }
 
@@ -1674,7 +1784,8 @@ function createVisualContext(root, pkg, visual, item, settings) {
   return {
     root,
     package: pkg,
-    exportName: item.export_name,
+    exportName: item.export_name || item.exportName || itemResourceId(item),
+    resource: visual.kind === "resource-module" ? visual : undefined,
     item,
     settings,
     mode: "runtime",
@@ -1707,8 +1818,16 @@ function createVisualContext(root, pkg, visual, item, settings) {
   };
 }
 
+function moduleUrlForVisual(pkg, visual) {
+  const id = resourceId(visual);
+  if (visual.kind === "resource-module" && id) {
+    return packageResourceUrl(pkg.id, id, `${pkg.version}-${Date.now()}`);
+  }
+  return packageFileUrl(pkg.id, visual.entry, `${pkg.version}-${Date.now()}`);
+}
+
 async function mountVisual(root, pkg, visual, item) {
-  const moduleUrl = packageFileUrl(pkg.id, visual.entry, `${pkg.version}-${Date.now()}`);
+  const moduleUrl = moduleUrlForVisual(pkg, visual);
   const module = await import(moduleUrl);
   const visualExport = module.default || module;
   const settings = { ...(await packageSettings(pkg.id)), ...((item.settings && typeof item.settings === "object") ? item.settings : {}) };
@@ -1753,6 +1872,7 @@ async function loadAndRender() {
     fetchJson(`${apiBase}/plugins`),
     fetchJson(`${apiBase}/layouts`)
   ]);
+  latestTelemetry = catalog.telemetry ?? latestTelemetry;
   const layout = selectLayout(catalog);
   if (!layout) {
     setStatus("No BakingRL overlay layout is available.");
