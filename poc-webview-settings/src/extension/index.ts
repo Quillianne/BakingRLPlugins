@@ -1,6 +1,7 @@
 import { defineExtension, type ExtensionContext, type ExtensionSubscription } from "@bakingrl/plugin-sdk";
 
 const SERVICE_ID = "pocWebviewSettings";
+const COMMAND_OPEN_SETTINGS = "openSettings";
 const WEBVIEW_ID = "settings";
 
 let registrations: ExtensionSubscription[] = [];
@@ -22,18 +23,22 @@ async function deactivateExtension() {
   await disposeRegistrations(activeRegistrations);
 }
 
+async function openSettings(context: ExtensionContext, input: unknown) {
+  const result = await context.webviews.open(WEBVIEW_ID, input ?? {});
+  return {
+    ok: true,
+    webviewId: WEBVIEW_ID,
+    result
+  };
+}
+
 const extension = defineExtension({
   async activate(context: ExtensionContext) {
     await deactivateExtension();
 
     const serviceRegistration = context.services.register(SERVICE_ID, {
       async openSettings(input) {
-        const result = await context.webviews.open(WEBVIEW_ID, input ?? {});
-        return {
-          ok: true,
-          webviewId: WEBVIEW_ID,
-          result
-        };
+        return openSettings(context, input);
       },
       async settingsSnapshot() {
         return {
@@ -42,9 +47,12 @@ const extension = defineExtension({
         };
       }
     });
+    const commandRegistration = context.commands.registerCommand(COMMAND_OPEN_SETTINGS, async (input) => {
+      return openSettings(context, input);
+    });
 
-    registrations = [serviceRegistration];
-    context.subscriptions.push(serviceRegistration);
+    registrations = [serviceRegistration, commandRegistration];
+    context.subscriptions.push(serviceRegistration, commandRegistration);
     context.logger.info("POC Webview Settings activated.");
   },
   deactivate: deactivateExtension

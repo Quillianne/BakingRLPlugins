@@ -12,6 +12,13 @@
     "sidecars": []
   },
   "contributes": {
+    "commands": [
+      {
+        "id": "openSettings",
+        "title": "Open POC Settings",
+        "category": "POC"
+      }
+    ],
     "services": [
       {
         "id": "pocWebviewSettings",

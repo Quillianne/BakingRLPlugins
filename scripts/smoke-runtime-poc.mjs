@@ -21,6 +21,7 @@ const pocSpecs = [
   { dir: "poc-content-pack", packageId: contentPackageId }
 ];
 const webviewSettingsServiceRef = `${webviewSettingsPackageId}/pocWebviewSettings`;
+const webviewSettingsCommandRef = `${webviewSettingsPackageId}/openSettings`;
 const sidecarServiceRef = `${sidecarPackageId}/pocSidecar`;
 const nativeSidecarServiceRef = `${sidecarPackageId}/pocSidecarNative`;
 const overlayTarget = `${overlayPackageId}/overlay-studio.visual`;
@@ -192,6 +193,7 @@ function createManifestRuntimeHost(
 ) {
   const packages = new Map(packageList.map((pkg) => [pkg.id, pkg]));
   const activePackageIds = new Set(initialActivePackageIds);
+  const registeredCommands = new Map();
   const registeredServices = new Map();
   const packageSettings = new Map(Object.entries(cloneJson(initialPackageSettings)));
   const settingSubscribers = new Map();
@@ -203,6 +205,7 @@ function createManifestRuntimeHost(
     resourceList: [],
     readJson: [],
     readText: [],
+    commandCalls: [],
     serviceCalls: [],
     webviewOpens: [],
     webviewCloses: [],
@@ -252,6 +255,52 @@ function createManifestRuntimeHost(
     return Object.fromEntries(
       (packages.get(packageId)?.manifest.contributes?.webviews ?? []).map((webview) => [webview.id, cloneJson(webview)])
     );
+  }
+
+  function commandRef(packageId, command) {
+    const value = String(command ?? "").trim();
+    if (!value) throw new Error("Command id is required.");
+    return value.includes("/") ? value : `${packageId}/${value}`;
+  }
+
+  function requireDeclaredCommand(packageId, commandId) {
+    if (!activePackageIds.has(packageId)) throw new Error(`Command package is inactive: ${packageId}`);
+    const command = packages.get(packageId)?.manifest.contributes?.commands?.find((candidate) => candidate.id === commandId);
+    if (!command) throw new Error(`Unknown command: ${packageId}/${commandId}`);
+    return command;
+  }
+
+  function registerCommand(packageId, command, handler) {
+    const ref = commandRef(packageId, command);
+    const parsed = splitReference(ref);
+    if (!parsed || parsed.packageId !== packageId) throw new Error(`Command '${ref}' cannot be registered by ${packageId}`);
+    requireDeclaredCommand(parsed.packageId, parsed.id);
+    assert.equal(typeof handler, "function", `Command ${ref} handler should be a function.`);
+    const token = Symbol(ref);
+    registeredCommands.set(ref, { token, packageId, id: parsed.id, handler });
+    return {
+      dispose() {
+        if (registeredCommands.get(ref)?.token === token) {
+          registeredCommands.delete(ref);
+        }
+      }
+    };
+  }
+
+  async function callCommand(callerPackageId, command, args = []) {
+    const ref = commandRef(callerPackageId, command);
+    const parsed = splitReference(ref);
+    if (!parsed) throw new Error(`Invalid command ref: ${ref}`);
+    requireDeclaredCommand(parsed.packageId, parsed.id);
+    const caller = packages.get(callerPackageId);
+    if (parsed.packageId !== callerPackageId) {
+      const dependsOnProvider = (caller?.manifest.dependencies ?? []).some((dependency) => dependency.packageId === parsed.packageId);
+      if (!dependsOnProvider) throw new Error(`Command caller ${callerPackageId} does not depend on ${parsed.packageId}`);
+    }
+    const commandRegistration = registeredCommands.get(ref);
+    if (!commandRegistration) throw new Error(`Command runtime is not running: ${ref}`);
+    calls.commandCalls.push({ callerPackageId, ref, args: cloneJson(args) });
+    return commandRegistration.handler(...args);
   }
 
   async function openWebview(packageId, webviewId, options = {}) {
@@ -485,6 +534,7 @@ function createManifestRuntimeHost(
   }
 
   function createRuntimeContext(packageId) {
+    const contextCommands = new Map();
     const contextServices = new Map();
     const subscriptions = [];
     const diagnostics = [];
@@ -495,6 +545,23 @@ function createManifestRuntimeHost(
       mode: "test",
       subscriptions,
       registeredServices: contextServices,
+      registeredCommands: contextCommands,
+      commands: {
+        registerCommand(command, handler) {
+          const ref = commandRef(packageId, command);
+          contextCommands.set(ref, handler);
+          const registration = registerCommand(packageId, command, handler);
+          return {
+            dispose() {
+              contextCommands.delete(ref);
+              registration.dispose();
+            }
+          };
+        },
+        executeCommand(command, ...args) {
+          return callCommand(packageId, command, args);
+        }
+      },
       services: {
         register(id, methods) {
           contextServices.set(id, methods);
@@ -636,6 +703,7 @@ function createManifestRuntimeHost(
     calls,
     setActive,
     createRuntimeContext,
+    callCommand,
     callService,
     listContributions,
     listResources,
@@ -651,6 +719,7 @@ function createManifestRuntimeHost(
 }
 
 function createStandaloneRuntimeContext(packageId, overrides = {}) {
+  const registeredCommands = new Map();
   const registeredServices = new Map();
   const subscriptions = [];
   const diagnostics = [];
@@ -660,7 +729,21 @@ function createStandaloneRuntimeContext(packageId, overrides = {}) {
     packageId,
     mode: "test",
     subscriptions,
+    registeredCommands,
     registeredServices,
+    commands: {
+      registerCommand(command, handler) {
+        registeredCommands.set(command, handler);
+        return {
+          dispose() {
+            registeredCommands.delete(command);
+          }
+        };
+      },
+      async executeCommand() {
+        throw new Error("Standalone runtime POC smoke does not expose host command calls.");
+      }
+    },
     services: {
       register(id, methods) {
         registeredServices.set(id, methods);
@@ -1125,6 +1208,21 @@ try {
       (call) => call.packageId === webviewSettingsPackageId && call.webviewId === "settings"
     ),
     "POC webview settings should open its declared webview through the host."
+  );
+
+  const commandWebviewOpen = await host.callCommand(webviewSettingsPackageId, "openSettings", [
+    { source: "runtime-poc-command" }
+  ]);
+  assert.equal(commandWebviewOpen.ok, true);
+  assert.equal(commandWebviewOpen.webviewId, "settings");
+  assert.equal(commandWebviewOpen.result.packageId, webviewSettingsPackageId);
+  assert.equal(commandWebviewOpen.result.webviewId, "settings");
+  assert.deepEqual(commandWebviewOpen.result.options, { source: "runtime-poc-command" });
+  assert.ok(
+    host.calls.commandCalls.some(
+      (call) => call.callerPackageId === webviewSettingsPackageId && call.ref === webviewSettingsCommandRef
+    ),
+    "POC webview settings should open its declared webview through the host command router."
   );
 
   const sidecarPing = await host.callService(sidecarServiceRef, "ping", { source: "runtime-poc-smoke" });

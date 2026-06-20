@@ -85,6 +85,12 @@ function assertService(manifest, id, runtime, methods, label) {
   assert.deepEqual(service.methods, methods, `${label} service ${id} methods`);
 }
 
+function assertCommand(manifest, id, title, label) {
+  const command = (manifest.contributes?.commands ?? []).find((item) => item.id === id);
+  assert.ok(command, `${label} should expose command ${id}`);
+  assert.equal(command.title, title, `${label} command ${id} title`);
+}
+
 function assertWebview(manifest, id, kind, label) {
   const webview = (manifest.contributes?.webviews ?? []).find((item) => item.id === id);
   assert.ok(webview, `${label} should expose webview ${id}`);
@@ -134,6 +140,7 @@ function assertInstalledPocChain(installedManifests, inspectSummaries) {
   assert.ok(simple.contributes?.settings?.schema, `${packageIds.simple} should declare settings schema`);
 
   const webviewSettings = installedManifests.get(packageIds.webviewSettings);
+  assertCommand(webviewSettings, "openSettings", "Open POC Settings", packageIds.webviewSettings);
   assertService(webviewSettings, "pocWebviewSettings", "node", ["openSettings", "settingsSnapshot"], packageIds.webviewSettings);
   assertWebview(webviewSettings, "settings", "settings", packageIds.webviewSettings);
   assert.ok(webviewSettings.contributes?.settings?.schema, `${packageIds.webviewSettings} should declare settings schema`);
