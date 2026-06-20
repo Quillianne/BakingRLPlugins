@@ -5,8 +5,16 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const manifest = JSON.parse(readFileSync(resolve(rootDir, "obs-gateway/bakingrl.plugin.json"), "utf8"));
+const viteConfig = readFileSync(resolve(rootDir, "obs-gateway/vite.config.ts"), "utf8");
 const extensionSource = readFileSync(resolve(rootDir, "obs-gateway/src/extension/index.ts"), "utf8");
 const sidecarSource = readFileSync(resolve(rootDir, "obs-gateway/sidecar/src/main.rs"), "utf8");
+const configWebview = manifest.contributes?.webviews?.find((webview) => webview.id === "obsGatewayConfig");
+
+assert.equal(configWebview?.kind, "settings", "obs-gateway config UI must be a settings webview.");
+assert.equal(configWebview?.entry, "dist/webviews/config.js", "obs-gateway config UI must build as a webview entry.");
+assert.match(viteConfig, /"webviews\/config": "src\/webviews\/config\/index\.ts"/, "obs-gateway Vite config should build the settings webview entry.");
+assert.doesNotMatch(viteConfig, /visuals\/config/, "obs-gateway settings UI should not use the legacy visuals/config entry.");
 
 assert.match(
   extensionSource,

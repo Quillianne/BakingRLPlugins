@@ -15,7 +15,7 @@ inside the plugin boundary. It does not reintroduce OBS core logic in the host.
 - Methods: `snapshot`, `configure`, `setConnectionState`, `refreshHostData`,
   `updateHostData`
 - Package settings schema: `src/settings.schema.json`
-- Settings UI visual `obsGatewayConfig` (`kind: "config"`)
+- Settings webview `obsGatewayConfig` (`kind: "settings"`)
 
 ## Runtime gateway
 

@@ -1,4 +1,4 @@
-import { defineVisual, type VisualContext } from "../visualModule";
+import { definePluginWebview, type PluginWebviewContext } from "../webviewModule";
 
 const SERVICE_REF = "bakingrl.obs-gateway/obsGateway";
 
@@ -262,8 +262,8 @@ button{border:1px solid #22304a;background:#22304a;color:#fff;padding:9px 12px;f
 @media (max-width: 760px){.grid,.cols{grid-template-columns:1fr}.obs-config{padding:12px}.url-row{grid-template-columns:1fr}}
 `;
 
-export default defineVisual({
-  async mount(context: VisualContext) {
+export default definePluginWebview({
+  async mount(context: PluginWebviewContext) {
     let settings = readSettings(context.configuration ? await context.configuration.settings.get() : context.settings);
     let snapshot: GatewaySnapshot | null = null;
     let message = "";

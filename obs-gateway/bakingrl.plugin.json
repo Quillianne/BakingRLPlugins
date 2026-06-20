@@ -40,7 +40,7 @@
     "webviews": [
       {
         "id": "obsGatewayConfig",
-        "entry": "dist/visuals/config.js",
+        "entry": "dist/webviews/config.js",
         "title": "OBS Gateway Settings",
         "kind": "settings",
         "defaultSize": [

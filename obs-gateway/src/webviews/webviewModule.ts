@@ -12,7 +12,7 @@ import type {
   TelemetryHub
 } from "@bakingrl/plugin-sdk";
 
-export type VisualContext = {
+export type PluginWebviewContext = {
   root: HTMLElement;
   package?: {
     id: string;
@@ -53,23 +53,23 @@ export type VisualContext = {
   secrets: ExtensionSecretReader;
 };
 
-export type VisualEditorAction = {
+export type PluginWebviewEditorAction = {
   id: string;
   label: string;
   disabled?: boolean;
-  run(context: VisualContext): void | Promise<void>;
+  run(context: PluginWebviewContext): void | Promise<void>;
 };
 
-export type VisualExport = {
-  mount(context: VisualContext): void | CleanupFn | Promise<void | CleanupFn>;
-  update?(context: VisualContext): void | Promise<void>;
+export type PluginWebviewExport = {
+  mount(context: PluginWebviewContext): void | CleanupFn | Promise<void | CleanupFn>;
+  update?(context: PluginWebviewContext): void | Promise<void>;
   unmount?(): void | Promise<void>;
   editor?: {
-    mount?(context: VisualContext): void | CleanupFn | Promise<void | CleanupFn>;
-    actions?(context: VisualContext): VisualEditorAction[] | Promise<VisualEditorAction[]>;
+    mount?(context: PluginWebviewContext): void | CleanupFn | Promise<void | CleanupFn>;
+    actions?(context: PluginWebviewContext): PluginWebviewEditorAction[] | Promise<PluginWebviewEditorAction[]>;
   };
 };
 
-export function defineVisual<T extends VisualExport>(visual: T): T {
-  return visual;
+export function definePluginWebview<T extends PluginWebviewExport>(webview: T): T {
+  return webview;
 }
