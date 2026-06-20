@@ -5,6 +5,13 @@
   "name": "PlayerStreak",
   "version": "1.0.5",
   "author": "BakingRL",
+  "dependencies": [
+    {
+      "packageId": "com.bakingrl.cast-package",
+      "version": "^1.0.0",
+      "optional": true
+    }
+  ],
   "runtime": {
     "node": {
       "entry": "dist/extension/index.js"

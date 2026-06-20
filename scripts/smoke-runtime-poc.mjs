@@ -1429,6 +1429,32 @@ try {
     "Visual Pack content should be exercised through host service calls."
   );
 
+  host.setActive([overlayPackageId]);
+  const overlayOnlySnapshot = await host.callService(overlayServiceRef, "snapshot");
+  assert.equal(overlayOnlySnapshot.source, "telemetry");
+  assert.equal(overlayOnlySnapshot.score.matchGuid, "runtime-poc-host-snapshot");
+  assert.equal(overlayOnlySnapshot.discovery.available, true);
+  assert.equal(overlayOnlySnapshot.discovery.target, overlayTarget);
+  assert.equal(overlayOnlySnapshot.discovery.contributions.length, 0);
+  const overlayOnlyContributions = await host.callService(overlayServiceRef, "contributions");
+  assert.equal(overlayOnlyContributions.contributions.length, 0);
+  const overlayOnlyRenderState = await host.callService(overlayServiceRef, "renderState", {
+    width: 1040,
+    height: 720
+  });
+  assertNoOverlayWidgets(overlayOnlyRenderState);
+  assert.ok(overlayOnlyRenderState.plugins.some((plugin) => plugin.id === overlayPackageId));
+  assert.ok(!overlayOnlyRenderState.plugins.some((plugin) => plugin.id === visualPackageId));
+  assert.ok(!overlayOnlyRenderState.plugins.some((plugin) => plugin.id === contentPackageId));
+  const overlayOnlyPreviewModule = await host
+    .createRuntimeContext(overlayPackageId)
+    .resources.readText(resourceReference(overlayPackageId, "overlayPreviewModule"));
+  assert.ok(
+    overlayOnlyPreviewModule.includes("Overlay Studio POC"),
+    "Overlay Studio should serve its own preview module without Visual Pack or Content Pack."
+  );
+  await assert.rejects(() => host.callService(visualServiceRef, "content"), /Service package is inactive/);
+
   const resourceReadCount = host.calls.readJson.length + host.calls.readText.length;
   host.setActive([overlayPackageId, visualPackageId]);
   const contentDisabled = await host.callService(visualServiceRef, "content");
@@ -1447,6 +1473,22 @@ try {
   });
   assertOverlayRenderState(overlayWithContentDisabled);
   assert.ok(!overlayWithContentDisabled.plugins.some((plugin) => plugin.id === contentPackageId));
+
+  host.setActive([visualPackageId, contentPackageId]);
+  const overlayDisabledPoints = await host
+    .createRuntimeContext(visualPackageId)
+    .extensions.points({ packageId: overlayPackageId });
+  assert.equal(overlayDisabledPoints.length, 0);
+  const overlayDisabledVisualContributions = await host
+    .createRuntimeContext(visualPackageId)
+    .extensions.contributions(overlayTarget);
+  assert.equal(overlayDisabledVisualContributions.length, 0);
+  const overlayDisabledActiveContributions = await host
+    .createRuntimeContext(visualPackageId)
+    .extensions.contributions();
+  assert.equal(overlayDisabledActiveContributions.length, 1);
+  assertContentContribution(overlayDisabledActiveContributions[0]);
+  await assert.rejects(() => host.callService(overlayServiceRef, "snapshot"), /Service package is inactive/);
 
   host.setActive([overlayPackageId, contentPackageId]);
   const visualDisabledSnapshot = await host.callService(overlayServiceRef, "snapshot");
