@@ -179,6 +179,33 @@ function normalizeResource(pkg, resource) {
   };
 }
 
+function normalizePlugin(pkg, callerPackageId) {
+  const contributes = pkg.manifest.contributes ?? {};
+  const resources = (contributes.resources ?? [])
+    .map((resource) => normalizeResource(pkg, resource))
+    .filter((resource) => resource.public || resource.packageId === callerPackageId);
+  return {
+    id: pkg.id,
+    name: pkg.manifest.name,
+    version: pkg.manifest.version,
+    author: pkg.manifest.author ?? null,
+    bakingrlApi: pkg.manifest.bakingrlApi ?? null,
+    enabled: true,
+    active: true,
+    dependencies: cloneJson(pkg.manifest.dependencies ?? []),
+    runtime: cloneJson(pkg.manifest.runtime ?? null),
+    contributes: {
+      settings: cloneJson(contributes.settings ?? null),
+      services: cloneJson(contributes.services ?? []),
+      commands: cloneJson(contributes.commands ?? []),
+      extensionPoints: cloneJson(contributes.extensionPoints ?? []),
+      contributions: cloneJson(contributes.contributions ?? []),
+      resources,
+      webviews: cloneJson(contributes.webviews ?? [])
+    }
+  };
+}
+
 function declaredResourcePaths(resource) {
   if (typeof resource.path === "string") return [resource.path];
   if (Array.isArray(resource.paths)) return resource.paths.filter((item) => typeof item === "string");
@@ -625,11 +652,7 @@ function createManifestRuntimeHost(
           calls.pluginsList.push([...activePackageIds].sort());
           return packageList
             .filter((pkg) => activePackageIds.has(pkg.id))
-            .map((pkg) => ({
-              id: pkg.id,
-              name: pkg.manifest.name,
-              version: pkg.manifest.version
-            }));
+            .map((pkg) => normalizePlugin(pkg, packageId));
         }
       },
       resources: {
@@ -1375,6 +1398,28 @@ try {
   assertOverlayRenderState(overlayRenderState);
   assert.ok(overlayRenderState.plugins.some((plugin) => plugin.id === contentPackageId));
   assert.ok(overlayRenderState.plugins.some((plugin) => plugin.id === visualPackageId));
+  const visualPluginSummary = overlayRenderState.plugins.find((plugin) => plugin.id === visualPackageId);
+  const contentPluginSummary = overlayRenderState.plugins.find((plugin) => plugin.id === contentPackageId);
+  assert.ok(
+    visualPluginSummary?.contributes?.contributions?.some((contribution) => contribution.id === "demo-score-widget"),
+    "plugins.list should expose active package contribution metadata."
+  );
+  assert.ok(
+    visualPluginSummary?.contributes?.resources?.some(
+      (resource) => resource.id === "demoWidgetModule" && resource.public === true
+    ),
+    "plugins.list should expose public resources from other active packages."
+  );
+  assert.ok(
+    contentPluginSummary?.contributes?.resources?.some(
+      (resource) => resource.id === "overlayContent" && resource.public === true
+    ),
+    "plugins.list should include public content resources from content packages."
+  );
+  assert.ok(
+    !contentPluginSummary?.contributes?.resources?.some((resource) => resource.id === "privateNotes"),
+    "plugins.list should not expose private resources from another package."
+  );
   assert.ok(
     host.calls.resourceList.some(
       (call) => call.packageId === visualPackageId && call.visibility === "public" && call.type === undefined
