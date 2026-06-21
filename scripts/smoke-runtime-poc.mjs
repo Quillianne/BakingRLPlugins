@@ -1000,6 +1000,7 @@ async function assertWebviewSettingsModule(pkg, host) {
     const webview = await loadWebview(pkg, "settings");
     const root = createFakeRoot();
     let currentSettings = host.settingsFor(webviewSettingsPackageId);
+    const assetUrls = [];
     const cleanup = await webview.mount({
       root,
       packageId: webviewSettingsPackageId,
@@ -1020,6 +1021,12 @@ async function assertWebviewSettingsModule(pkg, host) {
         }
       },
       telemetryHub: createWebviewTelemetryHarness(initialTelemetryFrame).hub,
+      assets: {
+        async url(ref) {
+          assetUrls.push(ref);
+          return `data:image/svg+xml;base64,${Buffer.from(`<svg data-ref="${ref}"></svg>`).toString("base64")}`;
+        }
+      },
       dimensions: {
         width: 720,
         height: 520
@@ -1029,6 +1036,8 @@ async function assertWebviewSettingsModule(pkg, host) {
 
     assert.ok(root.innerHTML.includes("POC Webview Settings"), "settings webview should render.");
     assert.ok(root.innerHTML.includes("Initial Settings"), "settings webview should render host-provided settings.");
+    assert.deepEqual(assetUrls, ["assets/settings-badge.svg"], "settings webview should resolve its package asset.");
+    assert.ok(root.innerHTML.includes("data:image/svg+xml;base64,"), "settings webview should render the resolved asset URL.");
 
     root.submitForm({
       enabled: false,

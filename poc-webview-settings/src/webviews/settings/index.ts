@@ -7,12 +7,20 @@ type SettingsValues = {
   refreshSeconds: number;
 };
 
+type WebviewAssetContext = {
+  assets?: {
+    url(ref: string): string | Promise<string>;
+  };
+};
+
 const fallbackSettings: SettingsValues = {
   enabled: true,
   displayName: "Settings POC",
   accentColor: "#16a34a",
   refreshSeconds: 5
 };
+
+const settingsBadgeAsset = "assets/settings-badge.svg";
 
 function cleanString(value: unknown, fallback: string) {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
@@ -41,12 +49,15 @@ function escapeHtml(value: unknown) {
     .replaceAll("'", "&#39;");
 }
 
-function render(root: HTMLElement, currentSettings: SettingsValues, message: string) {
+function render(root: HTMLElement, currentSettings: SettingsValues, message: string, badgeUrl: string) {
   root.innerHTML = `
     <main class="settings-poc">
       <header>
-        <p>POC Webview Settings</p>
-        <strong>${currentSettings.enabled ? "Enabled" : "Disabled"}</strong>
+        <div>
+          <p>POC Webview Settings</p>
+          <strong>${currentSettings.enabled ? "Enabled" : "Disabled"}</strong>
+        </div>
+        ${badgeUrl ? `<img class="settings-poc-badge" src="${escapeHtml(badgeUrl)}" alt="">` : ""}
       </header>
       <form>
         <label class="check">
@@ -92,6 +103,7 @@ function ensureStyle() {
     *{box-sizing:border-box}.settings-poc{min-height:100%;padding:20px;display:grid;gap:16px;align-content:start;background:#f8fafc;color:#172033;font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #d8e0eb;padding-bottom:12px}
     header p{margin:0;color:#64748b;text-transform:uppercase;font-size:12px;font-weight:800}header strong{font-size:20px}
+    .settings-poc-badge{width:48px;height:48px;object-fit:contain}
     form{display:grid;gap:12px;max-width:520px}label{display:grid;gap:6px;font-weight:800}.check{display:flex;gap:8px;align-items:center}
     input{width:100%;border:1px solid #cbd5e1;background:#fff;color:#172033;padding:9px 10px;font:inherit}.check input{width:auto}
     button{width:max-content;border:0;background:#172033;color:#fff;padding:10px 14px;font-weight:900;cursor:pointer}
@@ -106,10 +118,11 @@ export default defineWebview({
     ensureStyle();
     let currentSettings = readSettings(await context.settings.get());
     let message = "Loaded from host settings.";
+    const badgeUrl = (await (context as WebviewContext & WebviewAssetContext).assets?.url(settingsBadgeAsset)) ?? "";
     let disposed = false;
 
     const draw = () => {
-      render(context.root, currentSettings, message);
+      render(context.root, currentSettings, message, badgeUrl);
       context.root.querySelector("form")?.addEventListener("submit", (event: Event) => {
         event.preventDefault();
         void save();

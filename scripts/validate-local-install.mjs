@@ -217,6 +217,9 @@ try {
     if (manifest.runtime?.node?.entry) {
       assertInstalledPath(installedDir, manifest.runtime.node.entry, `${dir} runtime entry`);
     }
+    if (manifest.id === packageIds.webviewSettings) {
+      assertInstalledPath(installedDir, "assets/settings-badge.svg", `${dir} package-local settings badge`);
+    }
     for (const sidecar of manifest.runtime?.sidecars ?? []) {
       assertInstalledPath(installedDir, sidecar.bin, `${dir} sidecar ${sidecar.id}`);
     }
