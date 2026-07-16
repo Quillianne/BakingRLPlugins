@@ -1,6 +1,25 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.2.0",
+  "bakingrlApi": "2.3.0",
+  "permissions": {
+    "bus": {
+      "read": [],
+      "publish": []
+    },
+    "registry": {
+      "read": [],
+      "write": []
+    },
+    "network": {
+      "http": [],
+      "websocket": [],
+      "listen": []
+    },
+    "storage": {
+      "read": [],
+      "write": []
+    }
+  },
   "id": "bakingrl.poc-content-pack",
   "name": "POC Content Pack",
   "version": "1.0.0",

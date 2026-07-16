@@ -88,7 +88,7 @@ type PublicState = InternalState & {
 
 type ConfigureInput = Partial<ProjectionConfig>;
 
-const STORAGE_URI = "plugin://self/cage-stats-state.json";
+const STORAGE_URI = "cage-stats-state.json";
 const MAX_RECORDS = 300;
 const MAX_BALL_HITS = 40;
 const CROSSBAR_DEBOUNCE_MS = 1000;

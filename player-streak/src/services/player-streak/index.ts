@@ -90,7 +90,7 @@ const CAST_SEQUENCE_KEY = "plugin.com.bakingrl.cast-package.sequence";
 const CAST_PLAYER_STATS_EVENT = "plugin.com.bakingrl.cast-package.player-stats";
 const CAST_PLAYER_STATS_KEY = "plugin.com.bakingrl.cast-package.player-stats";
 
-const STORAGE_URI = "plugin://self/player-streak-state.json";
+const STORAGE_URI = "player-streak-state.json";
 const MAX_ALIASES = 12;
 const MAX_COUNTED_MATCHES = 1000;
 const FALLBACK_BLUE = "#3b82f6";

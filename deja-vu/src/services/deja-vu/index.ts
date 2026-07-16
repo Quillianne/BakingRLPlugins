@@ -57,7 +57,7 @@ type PublicState = {
 const PACKAGE_ID = "com.bakingrl.deja-vu";
 const STATE_EVENT = `plugin.${PACKAGE_ID}.state`;
 const REGISTRY_KEY = `plugin.${PACKAGE_ID}.state`;
-const STORAGE_URI = "plugin://self/deja-vu-state.json";
+const STORAGE_URI = "deja-vu-state.json";
 const MAX_MATCHES_PER_PLAYER = 500;
 
 let serviceContext: PluginRuntimeContext | null = null;

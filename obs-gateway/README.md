@@ -62,7 +62,7 @@ such as `http://localhost` also allow any port for that host.
 
 ## Host layout and snapshot contract
 
-Runtime API 2.2 no longer exposes host-owned overlay layout discovery. The Node
+Runtime API 2.3 does not expose host-owned overlay layout discovery. The Node
 extension now reports an empty `host.layouts` list with an explicit message so
 the gateway can still run while platform plugins own future layout contracts.
 

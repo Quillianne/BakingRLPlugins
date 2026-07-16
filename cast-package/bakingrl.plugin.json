@@ -1,6 +1,59 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.2.0",
+  "bakingrlApi": "2.3.0",
+  "permissions": {
+    "bus": {
+      "read": [
+        "UpdateState",
+        "BallHit",
+        "ClockUpdatedSeconds",
+        "CountdownBegin",
+        "CrossbarHit",
+        "GoalScored",
+        "GoalReplayEnd",
+        "GoalReplayStart",
+        "MatchCreated",
+        "MatchDestroyed",
+        "MatchInitialized",
+        "MatchEnded",
+        "MatchPaused",
+        "MatchUnpaused",
+        "PodiumStart",
+        "ReplayCreated",
+        "RoundStarted",
+        "StatfeedEvent",
+        "plugin.com.bakingrl.cast-package.*"
+      ],
+      "publish": [
+        "plugin.com.bakingrl.cast-package.*"
+      ]
+    },
+    "registry": {
+      "read": [
+        "plugin.com.bakingrl.cast-package.*"
+      ],
+      "write": [
+        "plugin.com.bakingrl.cast-package.*"
+      ]
+    },
+    "network": {
+      "http": [],
+      "websocket": [],
+      "listen": []
+    },
+    "storage": {
+      "read": [
+        "series-state.json",
+        "player-stats-state.json",
+        "cage-stats-state.json"
+      ],
+      "write": [
+        "series-state.json",
+        "player-stats-state.json",
+        "cage-stats-state.json"
+      ]
+    }
+  },
   "id": "com.bakingrl.cast-package",
   "name": "Cast Package",
   "version": "1.0.5",

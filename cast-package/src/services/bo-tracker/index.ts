@@ -77,7 +77,7 @@ type ResetInput = {
   keepConfig?: unknown;
 };
 
-const STORAGE_URI = "plugin://self/series-state.json";
+const STORAGE_URI = "series-state.json";
 
 let serviceContext: PluginRuntimeContext | null = null;
 let state: InternalState = createDefaultState();

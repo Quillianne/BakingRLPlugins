@@ -53,5 +53,5 @@ rectangle.
 - Reads Rocket League match lifecycle events.
 - Reads Cast Package sequence and player-stats state.
 - Writes package-scoped registry state.
-- Uses `plugin://self/*` storage for global player records.
+- Uses host-owned private storage for global player records.
 - Declares capabilities in the plugin manifest via `services` and package-level `settings`.

@@ -14,12 +14,12 @@ deja-vu/        Service and visual package for player encounter counts.
 obs-gateway/    Trusted Rust sidecar OBS gateway service.
 player-streak/  Service and visual package for player win/loss streak records.
 
-poc-simple-node/        Runtime API 2.2 Node service and RL snapshot POC.
-poc-webview-settings/   Runtime API 2.2 settings and webview POC.
-poc-sidecar/            Runtime API 2.2 managed sidecar health/crash POC.
-poc-overlay-studio/     Runtime API 2.2 platform plugin POC.
-poc-visual-pack/        Runtime API 2.2 Overlay Studio contributor POC.
-poc-content-pack/       Runtime API 2.2 resource-only content contributor POC.
+poc-simple-node/        Runtime API 2.3 Node service and RL snapshot POC.
+poc-webview-settings/   Runtime API 2.3 settings and webview POC.
+poc-sidecar/            Runtime API 2.3 managed sidecar health/crash POC.
+poc-overlay-studio/     Runtime API 2.3 platform plugin POC.
+poc-visual-pack/        Runtime API 2.3 Overlay Studio contributor POC.
+poc-content-pack/       Runtime API 2.3 resource-only content contributor POC.
 ```
 
 ## Local Workspace Setup
@@ -44,7 +44,7 @@ npm pack --workspace @bakingrl/plugin-sdk --pack-destination /tmp/bakingrl-sdk-p
 npm pack --workspace @bakingrl/create-plugin --pack-destination /tmp/bakingrl-sdk-packs
 cd ../BakingRLPlugins
 npm install
-npm install --no-save /tmp/bakingrl-sdk-packs/bakingrl-plugin-sdk-2.2.0.tgz /tmp/bakingrl-sdk-packs/bakingrl-create-plugin-2.2.0.tgz
+npm install --no-save /tmp/bakingrl-sdk-packs/bakingrl-plugin-sdk-2.3.0.tgz /tmp/bakingrl-sdk-packs/bakingrl-create-plugin-2.3.0.tgz
 npm run check
 npm run build
 npm run validate
@@ -53,11 +53,11 @@ npm run validate:local-install
 ```
 
 `validate:poc-chain` reads `BakingRL`'s `HOST_RUNTIME_API_VERSION` and
-`BakingRLSDK`'s `RUNTIME_API_VERSION`, then checks the Runtime API 2.2 POC
+`BakingRLSDK`'s `RUNTIME_API_VERSION`, then checks the Runtime API 2.3 POC
 dependency, contribution, resource, webview, and sidecar declarations locally.
 It should run after `npm run build` so built entries and sidecar binaries exist.
 The standard `npm run validate` command remains the SDK CLI validation gate and
-requires the local SDK validator to understand the Runtime API 2.2 manifest
+requires the local SDK validator to understand the Runtime API 2.3 manifest
 fields.
 
 `validate:local-install` uses the same local SDK CLI to pack each POC and copy

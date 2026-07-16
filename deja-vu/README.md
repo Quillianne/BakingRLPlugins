@@ -35,5 +35,5 @@ player has not been seen in any previously recorded match.
 
 - Reads Rocket League roster and match lifecycle events.
 - Writes package-scoped registry state.
-- Uses `plugin://self/*` storage for the local encounter history.
+- Uses host-owned private storage for the local encounter history.
 - Declares capabilities in the plugin manifest via `services` and package-level `settings`.

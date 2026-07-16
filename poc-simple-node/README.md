@@ -1,6 +1,6 @@
 # POC Simple Node
 
-Validation package for the BakingRL 2.2 plugin runtime.
+Validation package for the BakingRL 2.3 plugin runtime.
 
 - Runs a Node extension.
 - Reads the latest Rocket League snapshot, falling back to an SDK mock snapshot.

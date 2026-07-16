@@ -194,7 +194,7 @@ type SnapshotInput = {
   teamNum?: unknown;
 };
 
-const STORAGE_URI = "plugin://self/player-stats-state.json";
+const STORAGE_URI = "player-stats-state.json";
 const MAX_MATCHES = 12;
 const MAX_DELTA_SECONDS = 5;
 

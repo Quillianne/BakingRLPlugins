@@ -28,7 +28,7 @@
     "install:local": "npm run install:local --workspaces --if-present"
   },
   "devDependencies": {
-    "@bakingrl/create-plugin": "2.2.0"
+    "@bakingrl/create-plugin": "2.3.0"
   },
   "license": "MIT"
 }

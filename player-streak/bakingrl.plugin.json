@@ -1,6 +1,45 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.2.0",
+  "bakingrlApi": "2.3.0",
+  "permissions": {
+    "bus": {
+      "read": [
+        "MatchCreated",
+        "MatchInitialized",
+        "MatchEnded",
+        "MatchDestroyed",
+        "plugin.com.bakingrl.cast-package.sequence",
+        "plugin.com.bakingrl.cast-package.player-stats",
+        "plugin.com.bakingrl.player-streak.state"
+      ],
+      "publish": [
+        "plugin.com.bakingrl.player-streak.state"
+      ]
+    },
+    "registry": {
+      "read": [
+        "plugin.com.bakingrl.cast-package.sequence",
+        "plugin.com.bakingrl.cast-package.player-stats",
+        "plugin.com.bakingrl.player-streak.state"
+      ],
+      "write": [
+        "plugin.com.bakingrl.player-streak.state"
+      ]
+    },
+    "network": {
+      "http": [],
+      "websocket": [],
+      "listen": []
+    },
+    "storage": {
+      "read": [
+        "player-streak-state.json"
+      ],
+      "write": [
+        "player-streak-state.json"
+      ]
+    }
+  },
   "id": "com.bakingrl.player-streak",
   "name": "PlayerStreak",
   "version": "1.0.5",

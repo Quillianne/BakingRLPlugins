@@ -1,6 +1,41 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.2.0",
+  "bakingrlApi": "2.3.0",
+  "permissions": {
+    "bus": {
+      "read": [
+        "UpdateState",
+        "MatchCreated",
+        "MatchInitialized",
+        "MatchDestroyed",
+        "plugin.com.bakingrl.deja-vu.state"
+      ],
+      "publish": [
+        "plugin.com.bakingrl.deja-vu.state"
+      ]
+    },
+    "registry": {
+      "read": [
+        "plugin.com.bakingrl.deja-vu.state"
+      ],
+      "write": [
+        "plugin.com.bakingrl.deja-vu.state"
+      ]
+    },
+    "network": {
+      "http": [],
+      "websocket": [],
+      "listen": []
+    },
+    "storage": {
+      "read": [
+        "deja-vu-state.json"
+      ],
+      "write": [
+        "deja-vu-state.json"
+      ]
+    }
+  },
   "id": "com.bakingrl.deja-vu",
   "name": "Deja Vu",
   "version": "1.0.5",
