@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const rootDir = resolve(import.meta.dirname, "..");
+const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
 const [command, ...rawArgs] = process.argv.slice(2);
 if (!command) throw new Error("Usage: release-workspaces.mjs <workspace-script> [...args]");
 
@@ -38,7 +39,7 @@ for (const workspace of releaseWorkspaces) {
   const args = ["run", command, "--workspace", workspace];
   if (commandArgs.length > 0) args.push("--", ...commandArgs);
   console.log(`> npm ${args.join(" ")}`);
-  const result = spawnSync("npm", args, {
+  const result = spawnSync(npmExecutable, args, {
     cwd: rootDir,
     env: process.env,
     stdio: "inherit"
