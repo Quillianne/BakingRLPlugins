@@ -38,8 +38,14 @@
   },
   "id": "com.bakingrl.deja-vu",
   "name": "Deja Vu",
-  "version": "1.0.5",
+  "version": "2.0.0",
   "author": "BakingRL",
+  "dependencies": [
+    {
+      "packageId": "bakingrl.layout-studio",
+      "version": "^1.0.0"
+    }
+  ],
   "runtime": {
     "node": {
       "entry": "dist/extension/index.js"
@@ -75,6 +81,28 @@
             100
           ],
           "settingsSchema": "src/visuals/deja-vu/settings.schema.json"
+        }
+      }
+    ],
+    "contributions": [
+      {
+        "id": "deja-vu",
+        "target": "bakingrl.layout-studio/visual",
+        "kind": "visual",
+        "title": "Deja Vu",
+        "description": "Highlights repeated player and team matchups.",
+        "dataSchema": "src/contracts/layout-visual-contribution.schema.json",
+        "resources": ["dejaVu"],
+        "metadata": {
+          "category": "Match",
+          "defaultSize": [300, 100],
+          "remoteCompatible": true,
+          "renderer": {
+            "kind": "resource-module",
+            "resource": "dejaVu",
+            "moduleFormat": "esm",
+            "export": "default"
+          }
         }
       }
     ]

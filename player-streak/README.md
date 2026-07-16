@@ -10,16 +10,16 @@ League matches and exposes a small overlay visual for player-focused layouts.
 
 ## Behavior
 
-- Listens to Rocket League match lifecycle events and Cast Package public state.
+- Listens to Rocket League match lifecycle events and Extended Statistics public state.
 - Uses `PrimaryId` when available, then falls back to normalized player name.
 - Counts a win or loss for every player seen in a match when `MatchEnded`
   reports the winning team.
 - Publishes public state to `plugin.com.bakingrl.player-streak.state`.
 - Stores global records in package-local storage.
 - Keeps session records in memory only, starting from the current service launch.
-- Reads Cast Package `plugin.com.bakingrl.cast-package.sequence` for the game
-  mode and `plugin.com.bakingrl.cast-package.player-stats` for current match
-  players. Cast Package must be enabled for PlayerStreak to count results.
+- Reads `plugin.bakingrl.stats-extended.sequence` for the game mode and
+  `plugin.bakingrl.stats-extended.player-stats` for current match players.
+- Contributes its renderer to `bakingrl.layout-studio/visual`.
 
 ## Package Settings
 
@@ -36,11 +36,11 @@ instances that have not overridden the same fields:
 ## Visual Settings
 
 - `Player Name`: exact player name to display. Leave empty to use the package
-  default player name, then the first current player from Cast Package stats.
+  default player name, then the first current player from Extended Statistics.
 - `Record Scope`: session or global.
 - `Mode Tracking`: all modes together, or separated by the current game mode.
   With separated mode, a `1v1` streak, a `2v2` streak, and a `3v3` streak are
-  restored independently when Cast Package reports that mode again.
+  restored independently when Extended Statistics reports that mode again.
 - `Theme`: clean, broadcast, neon, ribbon, or terminal.
 - `Show Player Name`: hides the name when the visual is used as a pure counter.
 - `Show Scope And Mode`: hides the small context line.
@@ -51,7 +51,7 @@ rectangle.
 ## Capabilities
 
 - Reads Rocket League match lifecycle events.
-- Reads Cast Package sequence and player-stats state.
+- Reads Extended Statistics sequence and player-stats state.
 - Writes package-scoped registry state.
 - Uses host-owned private storage for global player records.
 - Declares capabilities in the plugin manifest via `services` and package-level `settings`.

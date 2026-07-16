@@ -3,7 +3,7 @@
   "packageId": "com.bakingrl.player-streak",
   "displayName": "PlayerStreak",
   "shortDescription": "Show a player's wins, losses, and streak on stream.",
-  "longDescription": "PlayerStreak keeps session and global win/loss history for Rocket League players and renders a compact overlay widget with either all modes grouped together or streaks separated automatically by the current Cast Package game mode. It reads Cast Package sequence and player-stats state for mode and player data, and offers package-level defaults plus distinct clean, broadcast, neon, ribbon, and terminal themes for player overlays.",
+  "longDescription": "PlayerStreak keeps session and global win/loss history for Rocket League players and contributes a compact visual to Layout Studio. It reads Extended Statistics for game mode and player identity, with package-level defaults and clean, broadcast, neon, ribbon and terminal themes.",
   "tags": ["stats", "overlay", "player", "streak"],
   "repo": "https://github.com/Quillianne/BakingRLPlugins",
   "iconUrl": null,

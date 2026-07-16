@@ -10,6 +10,7 @@ rectangle.
 
 - Visual: `dejaVu`
 - Service: `dejaVu`
+- Layout Studio contribution: `deja-vu`
 
 ## Behavior
 

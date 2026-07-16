@@ -85,10 +85,10 @@ type ResetInput = {
   scope?: unknown;
 };
 
-const CAST_SEQUENCE_EVENT = "plugin.com.bakingrl.cast-package.sequence";
-const CAST_SEQUENCE_KEY = "plugin.com.bakingrl.cast-package.sequence";
-const CAST_PLAYER_STATS_EVENT = "plugin.com.bakingrl.cast-package.player-stats";
-const CAST_PLAYER_STATS_KEY = "plugin.com.bakingrl.cast-package.player-stats";
+const CAST_SEQUENCE_EVENT = "plugin.bakingrl.stats-extended.sequence";
+const CAST_SEQUENCE_KEY = "plugin.bakingrl.stats-extended.sequence";
+const CAST_PLAYER_STATS_EVENT = "plugin.bakingrl.stats-extended.player-stats";
+const CAST_PLAYER_STATS_KEY = "plugin.bakingrl.stats-extended.player-stats";
 
 const STORAGE_URI = "player-streak-state.json";
 const MAX_ALIASES = 12;

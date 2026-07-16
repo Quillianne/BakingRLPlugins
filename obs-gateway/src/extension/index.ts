@@ -1,11 +1,10 @@
-import type { ExtensionContext, ExtensionSubscription, ResourceDescriptor } from "@bakingrl/plugin-sdk";
+import type { ExtensionContext, ExtensionSubscription } from "@bakingrl/plugin-sdk";
 
 const SERVICE_ID = "obsGateway";
 const SIDECAR_NAME = "gateway";
+const LAYOUT_SERVICE_REF = "bakingrl.layout-studio/layoutStudio";
+const LAYOUT_CHANGED_EVENT = "plugin.bakingrl.layout-studio.changed";
 const DEFAULT_SECRET_KEY_REF = "obs.gateway.accessToken";
-const RENDERER_RESOURCE_ROLE = "renderer-module";
-const DEFAULT_LAYOUT_WIDTH = 1920;
-const DEFAULT_LAYOUT_HEIGHT = 1080;
 
 type ObsGatewaySettings = {
   enabled?: unknown;
@@ -20,8 +19,26 @@ type ObsGatewaySettings = {
   allowedOrigins?: unknown;
 };
 
+type LayoutDocument = {
+  id?: string;
+  name?: string;
+  layers?: Array<{ items?: unknown[] }>;
+  items?: unknown[];
+};
+
+type LayoutSnapshot = {
+  activeLayoutId?: string;
+  active_layout_id?: string;
+  streamLayoutId?: string;
+  stream_layout_id?: string;
+  layouts?: LayoutDocument[];
+  telemetry?: unknown;
+  [key: string]: unknown;
+};
+
 let registrations: ExtensionSubscription[] = [];
 let activeContext: ExtensionContext | null = null;
+let refreshChain: Promise<unknown> = Promise.resolve();
 
 function settingsObject(context: ExtensionContext): ObsGatewaySettings {
   const values = context.settings?.all?.() ?? {};
@@ -36,6 +53,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 async function readSecret(context: ExtensionContext, settings: ObsGatewaySettings) {
   const secretKeyRef = cleanString(settings.secretKeyRef) ?? DEFAULT_SECRET_KEY_REF;
   const tokenConfigured = await context.secrets.configured(secretKeyRef).catch(() => false);
@@ -47,114 +68,39 @@ async function readSecret(context: ExtensionContext, settings: ObsGatewaySetting
   };
 }
 
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function resourceMetadata(resource: ResourceDescriptor) {
-  return isRecord(resource.metadata) ? resource.metadata : {};
-}
-
-function resourceId(resource: ResourceDescriptor) {
-  return cleanString(resource.id);
-}
-
-function resourceTitle(resource: ResourceDescriptor) {
-  const metadata = resourceMetadata(resource);
-  return cleanString(metadata.title) ?? cleanString(metadata.name) ?? resourceId(resource) ?? resource.reference;
-}
-
-function safeLayoutSegment(value: string) {
-  return value.trim().replace(/[^A-Za-z0-9_.-]+/g, "-").replace(/^-+|-+$/g, "") || "resource";
-}
-
-function defaultSize(resource: ResourceDescriptor) {
-  const size = resourceMetadata(resource).defaultSize;
-  const values = Array.isArray(size) ? size : [];
-  const width = Number(values[0]);
-  const height = Number(values[1]);
-  return {
-    width: Number.isFinite(width) && width > 0 ? width : 420,
-    height: Number.isFinite(height) && height > 0 ? height : 180
-  };
-}
-
-function isRendererResource(resource: ResourceDescriptor) {
-  const metadata = resourceMetadata(resource);
-  const type = cleanString(resource.type);
-  return (
-    resource.public !== false &&
-    metadata.role === RENDERER_RESOURCE_ROLE &&
-    (!type || type.includes("javascript"))
-  );
-}
-
-function rendererLayoutFor(resource: ResourceDescriptor) {
-  const id = resourceId(resource) ?? safeLayoutSegment(resource.reference);
-  const title = resourceTitle(resource);
-  const size = defaultSize(resource);
-  const width = Math.max(DEFAULT_LAYOUT_WIDTH, Math.ceil(size.width));
-  const height = Math.max(DEFAULT_LAYOUT_HEIGHT, Math.ceil(size.height));
-  const itemWidth = Math.min(width, Math.ceil(size.width));
-  const itemHeight = Math.min(height, Math.ceil(size.height));
-  const item = {
-    id: `item-${safeLayoutSegment(resource.reference)}`,
-    name: title,
-    kind: "visual",
-    package_id: resource.packageId,
-    packageId: resource.packageId,
-    export_name: id,
-    exportName: id,
-    resource_id: id,
-    resourceId: id,
-    resourceRef: resource.reference,
-    x: Math.round((width - itemWidth) / 2),
-    y: Math.round((height - itemHeight) / 2),
-    width: itemWidth,
-    height: itemHeight,
-    z_index: 0,
-    zIndex: 0,
-    visible: true,
-    settings: {
-      resource: {
-        id,
-        reference: resource.reference,
-        type: resource.type ?? null,
-        metadata: resource.metadata ?? null
-      }
-    }
-  };
-  return {
-    id: `resource-${safeLayoutSegment(resource.reference)}`,
-    name: `${resource.packageId}/${title}`,
-    source: "plugin-resources",
-    width,
-    height,
-    layers: [
-      {
-        id: "renderer",
-        name: "Renderer",
-        kind: "normal",
-        visible: true,
-        locked: false,
-        order: 0,
-        items: [item]
-      }
-    ],
-    items: [item]
-  };
+function layoutItemCount(layout: LayoutDocument) {
+  if (Array.isArray(layout.layers)) {
+    return layout.layers.reduce((total, layer) => total + (Array.isArray(layer.items) ? layer.items.length : 0), 0);
+  }
+  return Array.isArray(layout.items) ? layout.items.length : 0;
 }
 
 async function collectHostData(context: ExtensionContext) {
-  let resources: ResourceDescriptor[];
   try {
-    resources = await context.resources.list({ visibility: "public" });
+    const snapshot = await context.services.call<LayoutSnapshot>(LAYOUT_SERVICE_REF, "snapshot", {});
+    const layouts = Array.isArray(snapshot.layouts) ? snapshot.layouts : [];
+    return {
+      layouts: layouts
+        .filter((layout): layout is LayoutDocument & { id: string } => typeof layout.id === "string" && layout.id.length > 0)
+        .map((layout) => ({
+          id: layout.id,
+          name: typeof layout.name === "string" && layout.name ? layout.name : layout.id,
+          source: "layout-studio",
+          itemCount: layoutItemCount(layout)
+        })),
+      snapshot: {
+        ...snapshot,
+        source: "layout-studio"
+      },
+      hostApiAvailable: true,
+      error: layouts.length === 0 ? "Layout Studio has no saved layouts." : undefined
+    };
   } catch (error) {
-    const message = `Public renderer resources are not available: ${errorMessage(error)}`;
+    const message = `Layout Studio is not available: ${errorMessage(error)}`;
     return {
       layouts: [],
       snapshot: {
-        source: "plugin-resources",
+        source: "layout-studio",
         layouts: [],
         error: message
       },
@@ -162,33 +108,6 @@ async function collectHostData(context: ExtensionContext) {
       error: message
     };
   }
-
-  const telemetry = (await Promise.resolve(context.telemetryHub?.snapshot?.()).catch(() => null)) ?? null;
-  const layouts = resources
-    .filter(isRendererResource)
-    .sort((a, b) => a.reference.localeCompare(b.reference))
-    .map(rendererLayoutFor);
-  const streamLayoutId = layouts[0]?.id ?? null;
-  const snapshot = {
-    source: "plugin-resources",
-    generatedAt: new Date().toISOString(),
-    stream_layout_id: streamLayoutId,
-    streamLayoutId,
-    telemetry,
-    layouts
-  };
-
-  return {
-    layouts: layouts.map((layout) => ({
-      id: layout.id,
-      name: layout.name,
-      source: layout.source,
-      itemCount: layout.items.length
-    })),
-    snapshot,
-    hostApiAvailable: true,
-    error: layouts.length === 0 ? "No public renderer-module resources are available." : undefined
-  };
 }
 
 async function callSidecar<TOutput = unknown>(method: string, params?: unknown): Promise<TOutput> {
@@ -198,9 +117,14 @@ async function callSidecar<TOutput = unknown>(method: string, params?: unknown):
   return context.sidecars.call<TOutput>(SIDECAR_NAME, method, params);
 }
 
-async function updateHostData(context: ExtensionContext) {
-  const hostData = await collectHostData(context);
-  return context.sidecars.call(SIDECAR_NAME, "updateHostData", hostData);
+function updateHostData(context: ExtensionContext) {
+  refreshChain = refreshChain
+    .catch(() => undefined)
+    .then(async () => {
+      const hostData = await collectHostData(context);
+      return context.sidecars.call(SIDECAR_NAME, "updateHostData", hostData);
+    });
+  return refreshChain;
 }
 
 async function configureGateway(context: ExtensionContext, overrides: ObsGatewaySettings = {}) {
@@ -211,61 +135,63 @@ async function configureGateway(context: ExtensionContext, overrides: ObsGateway
   const secret = await readSecret(context, settings);
 
   await context.sidecars.start(SIDECAR_NAME);
-  const snapshot = await context.sidecars.call(SIDECAR_NAME, "configure", {
+  const configured = await context.sidecars.call(SIDECAR_NAME, "configure", {
     ...settings,
     ...secret
   });
   const refreshed = await updateHostData(context).catch((error) => {
-    context.diagnostics.warn("OBS gateway host data refresh failed.", error);
-    return snapshot;
+    context.diagnostics.warn("OBS Gateway layout refresh failed.", error);
+    return configured;
   });
-  context.diagnostics.log("obs-gateway sidecar configured");
+  context.diagnostics.log("OBS Gateway configured from Layout Studio.");
   return refreshed;
 }
 
 function registerService(context: ExtensionContext) {
   return context.services.register(SERVICE_ID, {
-    async snapshot() {
+    snapshot() {
       return callSidecar("snapshot");
     },
-    async configure(input) {
+    configure(input) {
       return configureGateway(context, isRecord(input) ? input : {});
     },
-    async setConnectionState(input) {
+    setConnectionState(input) {
       return callSidecar("setConnectionState", input);
     },
-    async updateHostData(input) {
+    updateHostData(input) {
       return callSidecar("updateHostData", isRecord(input) ? input : {});
     },
-    async refreshHostData() {
+    refreshHostData() {
       return updateHostData(context);
     }
   });
 }
 
 async function disposeRegistrations(items: ExtensionSubscription[]) {
-  for (const registration of items.reverse()) {
-    await registration.dispose();
-  }
+  for (const registration of items.reverse()) await registration.dispose();
 }
 
-export async function activate(context: ExtensionContext): Promise<void> {
+export async function activate(context: ExtensionContext) {
   await deactivate();
   activeContext = context;
-  const registration = registerService(context);
-  registrations = [registration];
-  context.subscriptions?.push(registration);
+  const serviceRegistration = registerService(context);
+  const stopLayoutSubscription = context.bus.subscribe(LAYOUT_CHANGED_EVENT, () => {
+    void updateHostData(context).catch((error) => context.diagnostics.warn("OBS Gateway could not apply a layout change.", error));
+  });
+  registrations = [
+    serviceRegistration,
+    { dispose: stopLayoutSubscription }
+  ];
+  context.subscriptions.push(...registrations);
   await configureGateway(context);
 }
 
-export async function deactivate(): Promise<void> {
+export async function deactivate() {
   const activeRegistrations = registrations;
   registrations = [];
   activeContext = null;
+  refreshChain = Promise.resolve();
   await disposeRegistrations(activeRegistrations);
 }
 
-export default {
-  activate,
-  deactivate
-};
+export default { activate, deactivate };

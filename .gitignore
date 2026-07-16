@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dist-bundles/
+release-assets/
 manifest.hashes.json
 signature.ed25519
 bakingrl-signing-key.json

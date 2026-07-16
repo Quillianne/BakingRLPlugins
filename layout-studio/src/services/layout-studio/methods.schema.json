@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "methods": {
+    "snapshot": { "input": true, "output": true },
+    "catalog": { "input": true, "output": true },
+    "list": { "input": true, "output": true },
+    "get": { "input": true, "output": true },
+    "save": { "input": true, "output": true },
+    "remove": { "input": true, "output": true },
+    "duplicate": { "input": true, "output": true },
+    "setActive": { "input": true, "output": true },
+    "resourceSource": { "input": true, "output": true }
+  }
+}

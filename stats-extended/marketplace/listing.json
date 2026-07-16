@@ -1,0 +1,16 @@
+{
+  "schema": "bakingrl.plugin-listing/1",
+  "packageId": "bakingrl.stats-extended",
+  "displayName": "Extended Statistics",
+  "shortDescription": "Persistent series, player, team and cage statistics for Rocket League broadcasts.",
+  "longDescription": "Extended Statistics turns BakingRL telemetry into reusable series, match, player, team and cage aggregates. It provides a focused statistics dashboard and stable services that other plugins can consume without duplicating telemetry processing.",
+  "tags": ["statistics", "telemetry", "series", "broadcast"],
+  "repo": "https://github.com/Quillianne/BakingRLPlugins",
+  "iconUrl": null,
+  "bannerUrl": null,
+  "screenshots": [],
+  "links": {
+    "docs": "https://github.com/Quillianne/BakingRLPlugins/tree/main/stats-extended#readme",
+    "support": "https://github.com/Quillianne/BakingRLPlugins/issues"
+  }
+}

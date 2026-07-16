@@ -1,0 +1,16 @@
+{
+  "schema": "bakingrl.plugin-listing/1",
+  "packageId": "bakingrl.layout-studio",
+  "displayName": "Layout Studio",
+  "shortDescription": "Compose reusable broadcast layouts from native blocks and plugin visuals.",
+  "longDescription": "Layout Studio owns BakingRL layout documents and provides a focused editor for arranging plugin visuals, text, images and shapes. Its stable service contract is shared by in-game overlays and OBS Gateway, so one saved layout is rendered consistently everywhere.",
+  "tags": ["layout", "overlay", "editor", "broadcast"],
+  "repo": "https://github.com/Quillianne/BakingRLPlugins",
+  "iconUrl": null,
+  "bannerUrl": null,
+  "screenshots": [],
+  "links": {
+    "docs": "https://github.com/Quillianne/BakingRLPlugins/tree/main/layout-studio#readme",
+    "support": "https://github.com/Quillianne/BakingRLPlugins/issues"
+  }
+}

@@ -1,0 +1,245 @@
+{
+  "schemaVersion": "bakingrl.plugin/4",
+  "bakingrlApi": "2.3.0",
+  "permissions": {
+    "bus": {
+      "read": [
+        "UpdateState",
+        "ClockUpdatedSeconds",
+        "CountdownBegin",
+        "GoalScored",
+        "GoalReplayEnd",
+        "GoalReplayStart",
+        "MatchCreated",
+        "MatchDestroyed",
+        "MatchInitialized",
+        "MatchEnded",
+        "MatchPaused",
+        "MatchUnpaused",
+        "PodiumStart",
+        "ReplayCreated",
+        "RoundStarted",
+        "StatfeedEvent",
+        "plugin.bakingrl.stats-extended.*",
+        "plugin.bakingrl.broadcast-visuals.*"
+      ],
+      "publish": [
+        "plugin.bakingrl.broadcast-visuals.*"
+      ]
+    },
+    "registry": {
+      "read": [
+        "plugin.bakingrl.stats-extended.*",
+        "plugin.bakingrl.broadcast-visuals.*"
+      ],
+      "write": [
+        "plugin.bakingrl.broadcast-visuals.*"
+      ]
+    },
+    "network": {
+      "http": [],
+      "websocket": [],
+      "listen": []
+    },
+    "storage": {
+      "read": [],
+      "write": []
+    }
+  },
+  "id": "bakingrl.broadcast-visuals",
+  "name": "Broadcast Visuals",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "dependencies": [
+    {
+      "packageId": "bakingrl.stats-extended",
+      "version": "^1.0.0"
+    },
+    {
+      "packageId": "bakingrl.layout-studio",
+      "version": "^1.0.0"
+    }
+  ],
+  "runtime": {
+    "node": {
+      "entry": "dist/extension/index.js"
+    },
+    "sidecars": []
+  },
+  "contributes": {
+    "services": [
+      {
+        "id": "regieController",
+        "runtime": "node",
+        "methods": ["trigger", "clear", "snapshot"],
+        "schema": "src/services/regie-controller/methods.schema.json"
+      }
+    ],
+    "webviews": [
+      {
+        "id": "broadcastControls",
+        "entry": "dist/webviews/controls.js",
+        "title": "Broadcast Controls",
+        "kind": "tool",
+        "defaultSize": [1200, 840]
+      }
+    ],
+    "resources": [
+      {
+        "id": "scoreboard",
+        "path": "dist/visuals/scoreboard.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": { "role": "renderer-module", "moduleFormat": "esm", "defaultSize": [760, 128], "settingsSchema": "src/visuals/scoreboard/settings.schema.json" }
+      },
+      {
+        "id": "goalAnimation",
+        "path": "dist/visuals/goal-animation.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": { "role": "renderer-module", "moduleFormat": "esm", "defaultSize": [1920, 1080], "settingsSchema": "src/visuals/goal/settings.schema.json" }
+      },
+      {
+        "id": "victoryAnimation",
+        "path": "dist/visuals/victory-animation.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": { "role": "renderer-module", "moduleFormat": "esm", "defaultSize": [1920, 1080], "settingsSchema": "src/visuals/victory/settings.schema.json" }
+      },
+      {
+        "id": "playerBoost",
+        "path": "dist/visuals/player-boost.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": { "role": "renderer-module", "moduleFormat": "esm", "defaultSize": [220, 120], "settingsSchema": "src/visuals/player-boost/settings.schema.json" }
+      },
+      {
+        "id": "playerStatLive",
+        "path": "dist/visuals/player-stat-live.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": { "role": "renderer-module", "moduleFormat": "esm", "defaultSize": [360, 110], "settingsSchema": "src/visuals/player-stats/settings.schema.json" }
+      },
+      {
+        "id": "teamPreviewLive",
+        "path": "dist/visuals/team-preview-live.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": { "role": "renderer-module", "moduleFormat": "esm", "defaultSize": [420, 170], "settingsSchema": "src/visuals/team-events/settings.schema.json" }
+      },
+      {
+        "id": "cageStats",
+        "path": "dist/visuals/cage-stats.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": { "role": "renderer-module", "moduleFormat": "esm", "defaultSize": [760, 260], "settingsSchema": "src/visuals/cage-stats/settings.schema.json" }
+      },
+      {
+        "id": "statistics",
+        "path": "dist/visuals/statistics.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": { "role": "renderer-module", "moduleFormat": "esm", "defaultSize": [900, 420], "settingsSchema": "src/visuals/statistics/settings.schema.json" }
+      },
+      {
+        "id": "fullscreenStats",
+        "path": "dist/visuals/fullscreen-stats.js",
+        "type": "application/javascript",
+        "visibility": "public",
+        "metadata": { "role": "renderer-module", "moduleFormat": "esm", "defaultSize": [1920, 1080], "settingsSchema": "src/visuals/fullscreen-stats/settings.schema.json" }
+      }
+    ],
+    "contributions": [
+      {
+        "id": "scoreboard",
+        "target": "bakingrl.layout-studio/visual",
+        "kind": "visual",
+        "title": "Scoreboard",
+        "description": "Live score, clock and series state.",
+        "dataSchema": "src/contracts/layout-visual-contribution.schema.json",
+        "resources": ["scoreboard"],
+        "metadata": { "category": "Match", "defaultSize": [760, 128], "remoteCompatible": true, "renderer": { "kind": "resource-module", "resource": "scoreboard", "moduleFormat": "esm", "export": "default" } }
+      },
+      {
+        "id": "goal-animation",
+        "target": "bakingrl.layout-studio/visual",
+        "kind": "visual",
+        "title": "Goal animation",
+        "description": "Fullscreen goal event visual.",
+        "dataSchema": "src/contracts/layout-visual-contribution.schema.json",
+        "resources": ["goalAnimation"],
+        "metadata": { "category": "Events", "defaultSize": [1920, 1080], "remoteCompatible": true, "renderer": { "kind": "resource-module", "resource": "goalAnimation", "moduleFormat": "esm", "export": "default" } }
+      },
+      {
+        "id": "victory-animation",
+        "target": "bakingrl.layout-studio/visual",
+        "kind": "visual",
+        "title": "Victory animation",
+        "description": "Fullscreen series victory visual.",
+        "dataSchema": "src/contracts/layout-visual-contribution.schema.json",
+        "resources": ["victoryAnimation"],
+        "metadata": { "category": "Events", "defaultSize": [1920, 1080], "remoteCompatible": true, "renderer": { "kind": "resource-module", "resource": "victoryAnimation", "moduleFormat": "esm", "export": "default" } }
+      },
+      {
+        "id": "player-boost",
+        "target": "bakingrl.layout-studio/visual",
+        "kind": "visual",
+        "title": "Player boost",
+        "description": "Live boost gauge for the observed player.",
+        "dataSchema": "src/contracts/layout-visual-contribution.schema.json",
+        "resources": ["playerBoost"],
+        "metadata": { "category": "Players", "defaultSize": [220, 120], "remoteCompatible": true, "renderer": { "kind": "resource-module", "resource": "playerBoost", "moduleFormat": "esm", "export": "default" } }
+      },
+      {
+        "id": "player-stat-live",
+        "target": "bakingrl.layout-studio/visual",
+        "kind": "visual",
+        "title": "Player statistics",
+        "description": "Compact live player statistics.",
+        "dataSchema": "src/contracts/layout-visual-contribution.schema.json",
+        "resources": ["playerStatLive"],
+        "metadata": { "category": "Players", "defaultSize": [360, 110], "remoteCompatible": true, "renderer": { "kind": "resource-module", "resource": "playerStatLive", "moduleFormat": "esm", "export": "default" } }
+      },
+      {
+        "id": "team-preview-live",
+        "target": "bakingrl.layout-studio/visual",
+        "kind": "visual",
+        "title": "Team events",
+        "description": "Live team event and roster panel.",
+        "dataSchema": "src/contracts/layout-visual-contribution.schema.json",
+        "resources": ["teamPreviewLive"],
+        "metadata": { "category": "Teams", "defaultSize": [420, 170], "remoteCompatible": true, "renderer": { "kind": "resource-module", "resource": "teamPreviewLive", "moduleFormat": "esm", "export": "default" } }
+      },
+      {
+        "id": "cage-stats",
+        "target": "bakingrl.layout-studio/visual",
+        "kind": "visual",
+        "title": "Cage statistics",
+        "description": "Goal, save and crossbar location map.",
+        "dataSchema": "src/contracts/layout-visual-contribution.schema.json",
+        "resources": ["cageStats"],
+        "metadata": { "category": "Statistics", "defaultSize": [760, 260], "remoteCompatible": true, "renderer": { "kind": "resource-module", "resource": "cageStats", "moduleFormat": "esm", "export": "default" } }
+      },
+      {
+        "id": "statistics",
+        "target": "bakingrl.layout-studio/visual",
+        "kind": "visual",
+        "title": "Match statistics",
+        "description": "Team and player statistics panel.",
+        "dataSchema": "src/contracts/layout-visual-contribution.schema.json",
+        "resources": ["statistics"],
+        "metadata": { "category": "Statistics", "defaultSize": [900, 420], "remoteCompatible": true, "renderer": { "kind": "resource-module", "resource": "statistics", "moduleFormat": "esm", "export": "default" } }
+      },
+      {
+        "id": "fullscreen-stats",
+        "target": "bakingrl.layout-studio/visual",
+        "kind": "visual",
+        "title": "Fullscreen statistics",
+        "description": "Regie-driven fullscreen statistics scenes.",
+        "dataSchema": "src/contracts/layout-visual-contribution.schema.json",
+        "resources": ["fullscreenStats"],
+        "metadata": { "category": "Statistics", "defaultSize": [1920, 1080], "remoteCompatible": true, "renderer": { "kind": "resource-module", "resource": "fullscreenStats", "moduleFormat": "esm", "export": "default" } }
+      }
+    ]
+  }
+}

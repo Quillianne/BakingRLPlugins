@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "required": ["id", "kind", "resources", "metadata"],
+  "properties": {
+    "id": { "type": "string" },
+    "kind": { "type": "string", "const": "visual" },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "resources": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["renderer", "defaultSize"],
+      "properties": {
+        "category": { "type": "string" },
+        "defaultSize": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "remoteCompatible": { "type": "boolean" },
+        "renderer": {
+          "type": "object",
+          "required": ["kind", "resource"],
+          "properties": {
+            "kind": { "type": "string", "const": "resource-module" },
+            "resource": { "type": "string" },
+            "moduleFormat": { "type": "string", "const": "esm" },
+            "export": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

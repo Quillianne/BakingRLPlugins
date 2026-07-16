@@ -15,85 +15,171 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-plugins:
-    runs-on: ubuntu-latest
+  validate:
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     steps:
       - name: Checkout plugins
         uses: actions/checkout@v6
-        with:
-          path: BakingRLPlugins
 
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: BakingRLPlugins/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install plugin dependencies
-        working-directory: BakingRLPlugins
+      - name: Install dependencies
         run: npm ci
 
       - name: Check plugins
-        working-directory: BakingRLPlugins
         run: npm run check
 
       - name: Build plugins
-        working-directory: BakingRLPlugins
         run: npm run build
 
-      - name: Validate plugins
-        working-directory: BakingRLPlugins
+      - name: Validate plugins and product contracts
         run: npm run validate
 
       - name: Validate marketplace listings
-        working-directory: BakingRLPlugins
         run: npm run validate:listing
 
+      - name: Smoke product runtime
+        run: npm run validate:runtime-poc
+
+  pack-portable:
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      BAKINGRL_PLUGIN_SIGNING_KEY: ${{ runner.temp }}/bakingrl-plugin-signing-key.json
+
+    steps:
+      - name: Checkout plugins
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build portable plugins
+        run: npm run build:release-portable
+
       - name: Write plugin signing key
-        run: |
-          if [ -z "${BAKINGRL_PLUGIN_SIGNING_KEY_JSON:-}" ]; then
-            echo "::error::Missing BAKINGRL_PLUGIN_SIGNING_KEY_JSON secret."
-            exit 1
-          fi
-          key_path="$RUNNER_TEMP/bakingrl-plugin-signing-key.json"
-          printf '%s' "$BAKINGRL_PLUGIN_SIGNING_KEY_JSON" > "$key_path"
-          chmod 600 "$key_path"
-          echo "BAKINGRL_PLUGIN_SIGNING_KEY=$key_path" >> "$GITHUB_ENV"
         env:
           BAKINGRL_PLUGIN_SIGNING_KEY_JSON: ${{ secrets.BAKINGRL_PLUGIN_SIGNING_KEY_JSON }}
+        run: >-
+          node -e "if (!process.env.BAKINGRL_PLUGIN_SIGNING_KEY_JSON) throw new Error('Missing BAKINGRL_PLUGIN_SIGNING_KEY_JSON secret.'); require('node:fs').writeFileSync(process.env.BAKINGRL_PLUGIN_SIGNING_KEY, process.env.BAKINGRL_PLUGIN_SIGNING_KEY_JSON, { mode: 0o600 })"
 
-      - name: Pack signed plugin bundles
-        working-directory: BakingRLPlugins
-        run: npm run pack --workspaces --if-present -- --sign "$BAKINGRL_PLUGIN_SIGNING_KEY"
+      - name: Pack portable plugin bundles
+        run: npm run pack:release-portable
 
       - name: Remove plugin signing key
         if: always()
-        run: |
-          if [ -n "${BAKINGRL_PLUGIN_SIGNING_KEY:-}" ] && [ -f "$BAKINGRL_PLUGIN_SIGNING_KEY" ]; then
-            rm -f -- "$BAKINGRL_PLUGIN_SIGNING_KEY"
-          fi
+        run: >-
+          node -e "require('node:fs').rmSync(process.env.BAKINGRL_PLUGIN_SIGNING_KEY, { force: true })"
 
-      - name: List plugin bundles
-        working-directory: BakingRLPlugins
-        run: find . -path "*/dist-bundles/*.brlp" -type f -print
-
-      - name: Upload plugin bundles
+      - name: Upload portable bundles
         uses: actions/upload-artifact@v7
         with:
-          name: BakingRL-plugins-${{ github.ref_name }}
-          path: BakingRLPlugins/*/dist-bundles/*.brlp
+          name: BakingRL-plugins-portable
+          path: "*/dist-bundles/*.brlp"
           if-no-files-found: error
           retention-days: 14
 
+  pack-obs:
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux-x64
+          - os: windows-2025
+            platform: windows-x64
+          - os: macos-15
+            platform: darwin-arm64
+          - os: macos-15-intel
+            platform: darwin-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      BAKINGRL_PLUGIN_SIGNING_KEY: ${{ runner.temp }}/bakingrl-plugin-signing-key.json
+
+    steps:
+      - name: Checkout plugins
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build OBS Gateway
+        run: npm run build --workspace @bakingrl-plugins/obs-gateway
+
+      - name: Write plugin signing key
+        env:
+          BAKINGRL_PLUGIN_SIGNING_KEY_JSON: ${{ secrets.BAKINGRL_PLUGIN_SIGNING_KEY_JSON }}
+        run: >-
+          node -e "if (!process.env.BAKINGRL_PLUGIN_SIGNING_KEY_JSON) throw new Error('Missing BAKINGRL_PLUGIN_SIGNING_KEY_JSON secret.'); require('node:fs').writeFileSync(process.env.BAKINGRL_PLUGIN_SIGNING_KEY, process.env.BAKINGRL_PLUGIN_SIGNING_KEY_JSON, { mode: 0o600 })"
+
+      - name: Pack OBS Gateway
+        run: npm run pack:release-obs
+
+      - name: Stage platform bundle
+        run: npm run stage:release-obs -- ${{ matrix.platform }}
+
+      - name: Remove plugin signing key
+        if: always()
+        run: >-
+          node -e "require('node:fs').rmSync(process.env.BAKINGRL_PLUGIN_SIGNING_KEY, { force: true })"
+
+      - name: Upload OBS Gateway bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: BakingRL-plugins-obs-${{ matrix.platform }}
+          path: release-assets/*.brlp
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [pack-portable, pack-obs]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Download plugin bundles
+        uses: actions/download-artifact@v8
+        with:
+          pattern: BakingRL-plugins-*
+          merge-multiple: true
+          path: release-assets
+
+      - name: List release assets
+        run: find release-assets -type f -name '*.brlp' -print
+
       - name: Publish plugin release assets
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: BakingRLPlugins/*/dist-bundles/*.brlp
+          files: release-assets/*.brlp
           fail_on_unmatched_files: true

@@ -11,61 +11,40 @@ const extensionSource = readFileSync(resolve(rootDir, "obs-gateway/src/extension
 const sidecarSource = readFileSync(resolve(rootDir, "obs-gateway/sidecar/src/main.rs"), "utf8");
 const configWebview = manifest.contributes?.webviews?.find((webview) => webview.id === "obsGatewayConfig");
 
-assert.equal(configWebview?.kind, "settings", "obs-gateway config UI must be a settings webview.");
-assert.equal(configWebview?.entry, "dist/webviews/config.js", "obs-gateway config UI must build as a webview entry.");
-assert.match(viteConfig, /"webviews\/config": "src\/webviews\/config\/index\.ts"/, "obs-gateway Vite config should build the settings webview entry.");
-assert.doesNotMatch(viteConfig, /visuals\/config/, "obs-gateway settings UI should not use the legacy visuals/config entry.");
+assert.equal(configWebview?.kind, "settings", "OBS Gateway config UI must be a settings webview.");
+assert.equal(configWebview?.entry, "dist/webviews/config.js", "OBS Gateway config UI must build as a webview entry.");
+assert.match(viteConfig, /"webviews\/config": "src\/webviews\/config\/index\.ts"/, "OBS Gateway must build its settings webview.");
 
+assert.ok(
+  manifest.dependencies?.some((dependency) => dependency.packageId === "bakingrl.layout-studio"),
+  "OBS Gateway must depend on Layout Studio."
+);
+assert.ok(
+  manifest.permissions?.bus?.read?.includes("plugin.bakingrl.layout-studio.changed"),
+  "OBS Gateway must subscribe to Layout Studio changes."
+);
 assert.match(
   extensionSource,
-  /context\.resources\.list\(\{\s*visibility:\s*"public"\s*\}\)/,
-  "obs-gateway extension should discover public resources through the SDK."
+  /context\.services\.call<LayoutSnapshot>\(LAYOUT_SERVICE_REF, "snapshot"/,
+  "OBS Gateway must consume the Layout Studio snapshot service."
 );
 assert.match(
   extensionSource,
-  /renderer-module/,
-  "obs-gateway extension should build layouts from renderer-module resources."
+  /context\.bus\.subscribe\(LAYOUT_CHANGED_EVENT/,
+  "OBS Gateway must refresh when a saved layout changes."
 );
 assert.doesNotMatch(
   extensionSource,
-  /Host-owned overlay layout discovery/,
-  "obs-gateway extension should not advertise a missing host-owned layout discovery path."
+  /resources\.list|rendererLayoutFor|renderer-module/,
+  "OBS Gateway must not synthesize layouts from renderer resources."
 );
 
-assert.doesNotMatch(
-  sidecarSource,
-  /overlays\/list/,
-  "obs-gateway sidecar should not call the old host-owned overlays/list API."
-);
-assert.doesNotMatch(
-  sidecarSource,
-  /pages\/list/,
-  "obs-gateway sidecar should not call the old host-owned pages/list API."
-);
-assert.doesNotMatch(
-  sidecarSource,
-  /visuals\/readSource/,
-  "obs-gateway sidecar should not call the old host-owned visuals/readSource API."
-);
-assert.match(
-  sidecarSource,
-  /host_layout_catalog/,
-  "obs-gateway sidecar should serve layouts from host data supplied by the extension."
-);
-assert.match(
-  sidecarSource,
-  /resources\/list/,
-  "obs-gateway sidecar should enrich runtime packages with public resources."
-);
-assert.match(
-  sidecarSource,
-  /resources\/read/,
-  "obs-gateway sidecar should read renderer modules through the host-mediated resources API."
-);
-assert.match(
-  sidecarSource,
-  /packageResourceUrl/,
-  "obs-gateway overlay runtime should import renderer modules through resource URLs."
-);
+assert.doesNotMatch(sidecarSource, /overlays\/list|pages\/list|visuals\/readSource/, "OBS Gateway must not use removed host APIs.");
+assert.match(sidecarSource, /host_layout_catalog/, "OBS Gateway must serve host data supplied by the extension.");
+assert.match(sidecarSource, /resources\/list/, "OBS Gateway must expose installed public renderer resources.");
+assert.match(sidecarSource, /resources\/read/, "OBS Gateway must read public renderer modules through the host.");
+assert.match(sidecarSource, /packageResourceUrl/, "The OBS runtime must import renderer modules through resource URLs.");
+assert.match(sidecarSource, /layoutLayers\(layout\)/, "The OBS runtime must preserve Layout Studio layers.");
+assert.doesNotMatch(sidecarSource, /legacy_snapshot_route|legacy-main/, "OBS Gateway must not retain removed layout compatibility paths.");
 
-console.log("obs-gateway resource contract validation passed.");
+console.log("OBS Gateway Layout Studio contract validation passed.");

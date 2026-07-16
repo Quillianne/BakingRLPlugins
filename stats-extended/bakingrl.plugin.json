@@ -1,0 +1,126 @@
+{
+  "schemaVersion": "bakingrl.plugin/4",
+  "bakingrlApi": "2.3.0",
+  "permissions": {
+    "bus": {
+      "read": [
+        "UpdateState",
+        "BallHit",
+        "ClockUpdatedSeconds",
+        "CountdownBegin",
+        "CrossbarHit",
+        "GoalScored",
+        "GoalReplayEnd",
+        "GoalReplayStart",
+        "MatchCreated",
+        "MatchDestroyed",
+        "MatchInitialized",
+        "MatchEnded",
+        "MatchPaused",
+        "MatchUnpaused",
+        "PodiumStart",
+        "ReplayCreated",
+        "RoundStarted",
+        "StatfeedEvent",
+        "plugin.bakingrl.stats-extended.*"
+      ],
+      "publish": [
+        "plugin.bakingrl.stats-extended.*"
+      ]
+    },
+    "registry": {
+      "read": [
+        "plugin.bakingrl.stats-extended.*"
+      ],
+      "write": [
+        "plugin.bakingrl.stats-extended.*"
+      ]
+    },
+    "network": {
+      "http": [],
+      "websocket": [],
+      "listen": []
+    },
+    "storage": {
+      "read": [
+        "series-state.json",
+        "player-stats-state.json",
+        "cage-stats-state.json"
+      ],
+      "write": [
+        "series-state.json",
+        "player-stats-state.json",
+        "cage-stats-state.json"
+      ]
+    }
+  },
+  "id": "bakingrl.stats-extended",
+  "name": "Extended Statistics",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "runtime": {
+    "node": {
+      "entry": "dist/extension/index.js"
+    },
+    "sidecars": []
+  },
+  "contributes": {
+    "services": [
+      {
+        "id": "boTracker",
+        "runtime": "node",
+        "methods": [
+          "snapshot",
+          "configure",
+          "start",
+          "stop",
+          "adjustScore",
+          "award",
+          "undo",
+          "reset"
+        ],
+        "schema": "src/services/bo-tracker/methods.schema.json"
+      },
+      {
+        "id": "gameSequence",
+        "runtime": "node",
+        "methods": [
+          "snapshot",
+          "reset"
+        ],
+        "schema": "src/services/game-sequence/methods.schema.json"
+      },
+      {
+        "id": "playerStatsTracker",
+        "runtime": "node",
+        "methods": [
+          "snapshot",
+          "reset"
+        ],
+        "schema": "src/services/player-stats/methods.schema.json"
+      },
+      {
+        "id": "cageStats",
+        "runtime": "node",
+        "methods": [
+          "snapshot",
+          "configure",
+          "reset"
+        ],
+        "schema": "src/services/cage-stats/methods.schema.json"
+      }
+    ],
+    "webviews": [
+      {
+        "id": "statisticsDashboard",
+        "entry": "dist/webviews/dashboard.js",
+        "title": "Extended Statistics",
+        "kind": "tool",
+        "defaultSize": [
+          1180,
+          760
+        ]
+      }
+    ]
+  }
+}

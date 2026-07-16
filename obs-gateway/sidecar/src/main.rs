@@ -793,9 +793,7 @@ fn handle_client(mut stream: TcpStream, shared: Arc<SharedGateway>, host_rpc: Ho
         return;
     }
 
-    if request.method == "GET"
-        && (request.path == routes.gateway_api || request.path == legacy_snapshot_route(&routes))
-    {
+    if request.method == "GET" && request.path == routes.gateway_api {
         let _ = write_json_value(
             &mut stream,
             200,
@@ -1526,18 +1524,8 @@ fn normalize_host_layout(input: HostLayoutInput) -> Option<HostLayout> {
 fn host_snapshot_unavailable(error: Option<String>) -> Value {
     json!({
         "ok": false,
-        "error": error.unwrap_or_else(|| "Host snapshot API is not available to obs-gateway yet.".to_string()),
-        "expectedHostContract": {
-            "extensionApi": "Provide a host overlay/layout snapshot API reachable from ExtensionContext.",
-            "pluginMethod": "obsGateway.updateHostData({ layouts, snapshot, hostApiAvailable })",
-            "apiEndpoint": "GET /overlay/api/snapshot returns the latest host-provided snapshot once available."
-        }
+        "error": error.unwrap_or_else(|| "Layout Studio snapshot is unavailable.".to_string())
     })
-}
-
-fn legacy_snapshot_route(routes: &RouteMap) -> String {
-    let prefix = routes.health.strip_suffix("/health").unwrap_or_default();
-    join_route(prefix, "/snapshot")
 }
 
 fn overlay_html(routes: &RouteMap, layout_id: Option<&str>) -> String {
@@ -1612,8 +1600,7 @@ async function fetchJson(path, options) {
 }
 
 function layoutLayers(layout) {
-  const fallback = [{ id: "legacy-main", name: "Main", kind: "normal", visible: true, locked: false, order: 0, items: layout.items || [] }];
-  return [...((layout.layers && layout.layers.length) ? layout.layers : fallback)].sort((a, b) => {
+  return [...(layout.layers || [])].sort((a, b) => {
     if (a.kind === "event" && b.kind !== "event") return 1;
     if (a.kind !== "event" && b.kind === "event") return -1;
     return Number(a.order || 0) - Number(b.order || 0);

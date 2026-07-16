@@ -15,7 +15,13 @@ const pocDirs = [
   "poc-sidecar",
   "poc-overlay-studio",
   "poc-visual-pack",
-  "poc-content-pack"
+  "poc-content-pack",
+  "stats-extended",
+  "layout-studio",
+  "broadcast-visuals",
+  "player-streak",
+  "deja-vu",
+  "obs-gateway"
 ];
 const packageIds = {
   simple: "bakingrl.poc-simple-node",
@@ -253,9 +259,9 @@ try {
     BAKINGRL_POC_ROOT_DIR: packagesDir,
     BAKINGRL_POC_SKIP_FRESHNESS: "1"
   });
-  assert.match(smokeOutput, /Runtime POC smoke passed\./);
+  assert.match(smokeOutput, /Runtime POC and product smoke passed\./);
 
-  console.log(`POC local install validation passed in ${packagesDir}.`);
+  console.log(`POC and product local install validation passed in ${packagesDir}.`);
 } finally {
   rmSync(packagesDir, { recursive: true, force: true });
 }

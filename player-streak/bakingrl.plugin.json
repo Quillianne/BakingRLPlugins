@@ -8,8 +8,8 @@
         "MatchInitialized",
         "MatchEnded",
         "MatchDestroyed",
-        "plugin.com.bakingrl.cast-package.sequence",
-        "plugin.com.bakingrl.cast-package.player-stats",
+        "plugin.bakingrl.stats-extended.sequence",
+        "plugin.bakingrl.stats-extended.player-stats",
         "plugin.com.bakingrl.player-streak.state"
       ],
       "publish": [
@@ -18,8 +18,8 @@
     },
     "registry": {
       "read": [
-        "plugin.com.bakingrl.cast-package.sequence",
-        "plugin.com.bakingrl.cast-package.player-stats",
+        "plugin.bakingrl.stats-extended.sequence",
+        "plugin.bakingrl.stats-extended.player-stats",
         "plugin.com.bakingrl.player-streak.state"
       ],
       "write": [
@@ -42,13 +42,16 @@
   },
   "id": "com.bakingrl.player-streak",
   "name": "PlayerStreak",
-  "version": "1.0.5",
+  "version": "2.0.0",
   "author": "BakingRL",
   "dependencies": [
     {
-      "packageId": "com.bakingrl.cast-package",
-      "version": "^1.0.0",
-      "optional": true
+      "packageId": "bakingrl.stats-extended",
+      "version": "^1.0.0"
+    },
+    {
+      "packageId": "bakingrl.layout-studio",
+      "version": "^1.0.0"
     }
   ],
   "runtime": {
@@ -86,6 +89,28 @@
             120
           ],
           "settingsSchema": "src/visuals/player-streak/settings.schema.json"
+        }
+      }
+    ],
+    "contributions": [
+      {
+        "id": "player-streak",
+        "target": "bakingrl.layout-studio/visual",
+        "kind": "visual",
+        "title": "Player streak",
+        "description": "Session and global win/loss streak for a selected player.",
+        "dataSchema": "src/contracts/layout-visual-contribution.schema.json",
+        "resources": ["playerStreak"],
+        "metadata": {
+          "category": "Players",
+          "defaultSize": [420, 120],
+          "remoteCompatible": true,
+          "renderer": {
+            "kind": "resource-module",
+            "resource": "playerStreak",
+            "moduleFormat": "esm",
+            "export": "default"
+          }
         }
       }
     ]

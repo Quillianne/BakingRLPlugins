@@ -10,6 +10,12 @@ const sidecarPackageId = "bakingrl.poc-sidecar";
 const overlayPackageId = "bakingrl.poc-overlay-studio";
 const visualPackageId = "bakingrl.poc-visual-pack";
 const contentPackageId = "bakingrl.poc-content-pack";
+const statsPackageId = "bakingrl.stats-extended";
+const layoutPackageId = "bakingrl.layout-studio";
+const broadcastPackageId = "bakingrl.broadcast-visuals";
+const playerStreakPackageId = "com.bakingrl.player-streak";
+const dejaVuPackageId = "com.bakingrl.deja-vu";
+const obsGatewayPackageId = "bakingrl.obs-gateway";
 const rootDir = resolve(process.env.BAKINGRL_POC_ROOT_DIR ?? resolve(dirname(fileURLToPath(import.meta.url)), ".."));
 const skipFreshnessCheck = process.env.BAKINGRL_POC_SKIP_FRESHNESS === "1";
 const pocSpecs = [
@@ -19,6 +25,14 @@ const pocSpecs = [
   { dir: "poc-overlay-studio", packageId: overlayPackageId },
   { dir: "poc-visual-pack", packageId: visualPackageId },
   { dir: "poc-content-pack", packageId: contentPackageId }
+];
+const productSpecs = [
+  { dir: "stats-extended", packageId: statsPackageId },
+  { dir: "layout-studio", packageId: layoutPackageId },
+  { dir: "broadcast-visuals", packageId: broadcastPackageId },
+  { dir: "player-streak", packageId: playerStreakPackageId },
+  { dir: "deja-vu", packageId: dejaVuPackageId },
+  { dir: "obs-gateway", packageId: obsGatewayPackageId }
 ];
 const webviewSettingsServiceRef = `${webviewSettingsPackageId}/pocWebviewSettings`;
 const webviewSettingsCommandRef = `${webviewSettingsPackageId}/openSettings`;
@@ -226,6 +240,11 @@ function createManifestRuntimeHost(
   const settingSubscribers = new Map();
   const sidecarServices = new Map();
   const sidecarStates = new Map();
+  const busSubscribers = new Map();
+  const registryValues = new Map();
+  const storageValues = new Map();
+  const stateValues = new Map();
+  const secretValues = new Map();
   const calls = {
     contributions: [],
     pluginsList: [],
@@ -253,6 +272,21 @@ function createManifestRuntimeHost(
         methods: service.methods ?? []
       });
     }
+  }
+
+  function subscribeBus(eventName, callback) {
+    if (!busSubscribers.has(eventName)) busSubscribers.set(eventName, new Set());
+    busSubscribers.get(eventName).add(callback);
+    return () => busSubscribers.get(eventName)?.delete(callback);
+  }
+
+  function emitBus(eventName, payload) {
+    const frame = { Event: eventName, Data: cloneJson(payload ?? null) };
+    for (const callback of busSubscribers.get(eventName) ?? []) void callback(frame);
+  }
+
+  function scopedKey(packageId, key) {
+    return `${packageId}:${key}`;
   }
 
   function setActive(packageIds) {
@@ -515,6 +549,14 @@ function createManifestRuntimeHost(
         exitCode: 42
       };
     }
+    if (["configure", "updateHostData", "setConnectionState", "snapshot"].includes(method)) {
+      return {
+        ok: true,
+        method,
+        ref,
+        ...cloneJson(params ?? {})
+      };
+    }
     throw new Error(`Unknown sidecar method: ${ref}.${method}`);
   }
 
@@ -680,11 +722,21 @@ function createManifestRuntimeHost(
           return cloneJson(settingsFor(packageId));
         }
       },
-      telemetryHub: {
-        subscribe() {
-          return () => {};
+      bus: {
+        subscribe(eventName, callback) {
+          return subscribeBus(eventName, callback);
         },
-        publish() {},
+        emit(eventName, payload) {
+          emitBus(eventName, payload);
+        }
+      },
+      telemetryHub: {
+        subscribe(eventName, callback) {
+          return subscribeBus(eventName, callback);
+        },
+        publish(eventName, payload) {
+          emitBus(eventName, payload);
+        },
         snapshot() {
           return latestTelemetryEvent;
         },
@@ -693,13 +745,85 @@ function createManifestRuntimeHost(
         }
       },
       state: {
-        async get() {
-          return null;
+        async get(key) {
+          return cloneJson(stateValues.get(scopedKey(packageId, key)) ?? null);
         },
-        async set() {}
+        async set(key, value) {
+          stateValues.set(scopedKey(packageId, key), cloneJson(value));
+        }
+      },
+      stateHub: {
+        async read(key) {
+          return cloneJson(stateValues.get(key) ?? null);
+        },
+        async write(key, value) {
+          stateValues.set(key, cloneJson(value));
+          return value;
+        },
+        snapshot() {
+          return Object.fromEntries(stateValues);
+        },
+        getSnapshot() {
+          return Object.fromEntries(stateValues);
+        }
       },
       registry: {
-        async get() {
+        async get(key) {
+          return cloneJson(registryValues.get(key) ?? null);
+        },
+        async set(key, value) {
+          registryValues.set(key, cloneJson(value));
+        },
+        async entries() {
+          return Object.fromEntries(registryValues);
+        }
+      },
+      storage: {
+        async readText(path) {
+          const key = scopedKey(packageId, path);
+          if (!storageValues.has(key)) throw new Error(`Storage path not found: ${path}`);
+          return storageValues.get(key);
+        },
+        async writeText(path, contents) {
+          storageValues.set(scopedKey(packageId, path), String(contents));
+        },
+        async readJson(path) {
+          return JSON.parse(await this.readText(path));
+        },
+        async writeJson(path, value) {
+          await this.writeText(path, JSON.stringify(value));
+        },
+        async list(prefix = "") {
+          const scope = `${packageId}:`;
+          return [...storageValues.keys()]
+            .filter((key) => key.startsWith(scope))
+            .map((key) => key.slice(scope.length))
+            .filter((path) => path.startsWith(prefix));
+        },
+        async delete(path) {
+          return storageValues.delete(scopedKey(packageId, path));
+        },
+        async usage() {
+          const paths = await this.list();
+          const usedBytes = paths.reduce((total, path) => total + Buffer.byteLength(storageValues.get(scopedKey(packageId, path)) ?? ""), 0);
+          return { usedBytes, quotaBytes: 16 * 1024 * 1024 };
+        }
+      },
+      secrets: {
+        async get(key) {
+          return secretValues.get(scopedKey(packageId, key));
+        },
+        async configured(key) {
+          return secretValues.has(scopedKey(packageId, key));
+        }
+      },
+      assets: {
+        url(ref) {
+          return `bakingrl-asset://${packageId}/${ref}`;
+        }
+      },
+      telemetry: {
+        async event() {
           return null;
         }
       },
@@ -1576,4 +1700,99 @@ try {
 await assertMissingApiFails(visualExtension, { resources: host.createRuntimeContext(visualPackageId).resources }, /requires host extensions\.contributions/);
 await assertMissingApiFails(visualExtension, { extensions: host.createRuntimeContext(visualPackageId).extensions }, /requires host resources\.list/);
 
-console.log("Runtime POC smoke passed.");
+const productPackageList = productSpecs.map(loadPackage);
+const productPackages = new Map(productPackageList.map((pkg) => [pkg.id, pkg]));
+const productHost = createManifestRuntimeHost(productPackageList, undefined, initialTelemetryFrame, {
+  [obsGatewayPackageId]: {
+    enabled: true,
+    listenAddress: "127.0.0.1",
+    listenPort: 17844,
+    routePrefix: "/overlay"
+  }
+});
+const productExtensions = new Map();
+
+for (const spec of productSpecs) {
+  const pkg = requirePackage(productPackages, spec.packageId);
+  productExtensions.set(spec.packageId, await loadExtension(pkg));
+}
+
+const activatedProducts = [];
+try {
+  for (const packageId of [
+    statsPackageId,
+    layoutPackageId,
+    broadcastPackageId,
+    playerStreakPackageId,
+    dejaVuPackageId,
+    obsGatewayPackageId
+  ]) {
+    const extension = productExtensions.get(packageId);
+    await extension.activate(productHost.createRuntimeContext(packageId));
+    activatedProducts.push(extension);
+  }
+
+  const statsSnapshot = await productHost.callService(`${statsPackageId}/playerStatsTracker`, "snapshot");
+  assert.equal(statsSnapshot.version, 1);
+  assert.ok(Array.isArray(statsSnapshot.matches));
+
+  const layoutSnapshot = await productHost.callService(`${layoutPackageId}/layoutStudio`, "snapshot", {});
+  assert.equal(layoutSnapshot.layouts.length, 1);
+  assert.equal(layoutSnapshot.catalog.length, 11);
+  for (const packageId of [broadcastPackageId, playerStreakPackageId, dejaVuPackageId]) {
+    assert.ok(
+      layoutSnapshot.catalog.some((item) => item.packageId === packageId),
+      `Layout Studio should discover a visual from ${packageId}.`
+    );
+  }
+
+  const scoreboard = layoutSnapshot.catalog.find((item) => item.packageId === broadcastPackageId && item.resourceId === "scoreboard");
+  assert.ok(scoreboard, "Broadcast Visuals should contribute the scoreboard resource.");
+  const source = await productHost.callService(`${layoutPackageId}/layoutStudio`, "resourceSource", {
+    ref: scoreboard.resourceRef
+  });
+  assert.match(source.source, /Scoreboard|scoreboard/i);
+
+  const layout = layoutSnapshot.layouts[0];
+  layout.layers[0].items.push({
+    id: "smoke-scoreboard",
+    name: "Scoreboard",
+    kind: "visual",
+    packageId: broadcastPackageId,
+    resourceId: scoreboard.resourceId,
+    resourceRef: scoreboard.resourceRef,
+    exportName: "default",
+    x: 580,
+    y: 40,
+    width: 760,
+    height: 128,
+    zIndex: 0,
+    visible: true,
+    locked: false,
+    opacity: 1,
+    settings: {}
+  });
+  await productHost.callService(`${layoutPackageId}/layoutStudio`, "save", { layout });
+
+  const savedSnapshot = await productHost.callService(`${layoutPackageId}/layoutStudio`, "snapshot", {});
+  assert.equal(savedSnapshot.layouts[0].layers[0].items.length, 1);
+  assert.ok(
+    productHost.calls.sidecarCalls.some(
+      (call) => call.packageId === obsGatewayPackageId
+        && call.method === "updateHostData"
+        && call.params?.snapshot?.layouts?.[0]?.layers?.[0]?.items?.[0]?.id === "smoke-scoreboard"
+    ),
+    "OBS Gateway should receive the saved Layout Studio document after a change event."
+  );
+
+  const regieSnapshot = await productHost.callService(`${broadcastPackageId}/regieController`, "snapshot", {});
+  assert.equal(regieSnapshot.version, 1);
+  const streakSnapshot = await productHost.callService(`${playerStreakPackageId}/playerStreak`, "snapshot", {});
+  assert.equal(streakSnapshot.version, 1);
+  const dejaVuSnapshot = await productHost.callService(`${dejaVuPackageId}/dejaVu`, "snapshot", {});
+  assert.equal(dejaVuSnapshot.version, 1);
+} finally {
+  for (const extension of activatedProducts.reverse()) await extension.deactivate();
+}
+
+console.log("Runtime POC and product smoke passed.");

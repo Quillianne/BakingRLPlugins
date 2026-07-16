@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "bakingrl.plugin/4",
+  "bakingrlApi": "2.3.0",
+  "permissions": {
+    "bus": {
+      "read": [
+        "UpdateState"
+      ],
+      "publish": [
+        "plugin.bakingrl.layout-studio.changed"
+      ]
+    },
+    "registry": {
+      "read": [
+        "plugin.bakingrl.stats-extended.*",
+        "plugin.bakingrl.broadcast-visuals.*"
+      ],
+      "write": []
+    },
+    "network": {
+      "http": [],
+      "websocket": [],
+      "listen": []
+    },
+    "storage": {
+      "read": [
+        "layouts.json"
+      ],
+      "write": [
+        "layouts.json"
+      ]
+    }
+  },
+  "id": "bakingrl.layout-studio",
+  "name": "Layout Studio",
+  "version": "1.0.0",
+  "author": "BakingRL",
+  "dependencies": [
+    {
+      "packageId": "bakingrl.stats-extended",
+      "version": "^1.0.0"
+    }
+  ],
+  "runtime": {
+    "node": {
+      "entry": "dist/extension/index.js"
+    },
+    "sidecars": []
+  },
+  "contributes": {
+    "services": [
+      {
+        "id": "layoutStudio",
+        "runtime": "node",
+        "methods": [
+          "snapshot",
+          "catalog",
+          "list",
+          "get",
+          "save",
+          "remove",
+          "duplicate",
+          "setActive",
+          "resourceSource"
+        ],
+        "schema": "src/services/layout-studio/methods.schema.json"
+      }
+    ],
+    "webviews": [
+      {
+        "id": "studio",
+        "entry": "dist/webviews/studio.js",
+        "title": "Layout Studio",
+        "kind": "tool",
+        "defaultSize": [
+          1380,
+          860
+        ]
+      }
+    ],
+    "extensionPoints": [
+      {
+        "id": "visual",
+        "version": "1.0.0",
+        "title": "Layout visual",
+        "description": "Contributes a public renderer module to the Layout Studio catalogue.",
+        "schema": "src/contracts/layout-visual.schema.json",
+        "service": "layoutStudio"
+      }
+    ]
+  }
+}
