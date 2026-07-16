@@ -181,5 +181,7 @@ jobs:
       - name: Publish plugin release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: release-assets/*.brlp
+          files: |
+            release-assets/*.brlp
+            release-assets/*/dist-bundles/*.brlp
           fail_on_unmatched_files: true
