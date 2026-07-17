@@ -47,4 +47,6 @@ npm run build
 ```
 
 The platform sidecar is copied to the manifest path
-`bin/obs-gateway-sidecar`; generated binaries and bundles are not committed.
+`bin/obs-gateway-sidecar.exe`. The suffix is retained on every platform so the
+same manifest path remains directly executable on Windows; generated binaries
+and bundles are not committed.

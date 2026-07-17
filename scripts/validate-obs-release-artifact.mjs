@@ -33,10 +33,9 @@ const nodeEntry = bundledManifest.runtime?.node?.entry;
 
 assert.ok(sidecar, "OBS Gateway bundle must declare the gateway sidecar.");
 assert.equal(typeof nodeEntry, "string", "OBS Gateway bundle must declare its Node runtime entry.");
-assert.equal(sidecar.bin, "bin/obs-gateway-sidecar", "OBS Gateway sidecar path must stay platform-neutral.");
-assert.ok(!sidecar.bin.endsWith(".exe"), "OBS Gateway manifest path must stay extensionless.");
+assert.equal(sidecar.bin, "bin/obs-gateway-sidecar.exe", "OBS Gateway sidecar path must stay Windows-executable.");
 assert.ok(entries.has(sidecar.bin), `OBS Gateway bundle is missing ${sidecar.bin}.`);
-assert.ok(!entries.has(`${sidecar.bin}.exe`), "OBS Gateway bundle must not leak a second .exe entry.");
+assert.ok(!entries.has("bin/obs-gateway-sidecar"), "OBS Gateway bundle must not leak the obsolete extensionless sidecar.");
 
 const bundledBinary = requireEntry(entries, sidecar.bin);
 const workspaceBinary = readFileSync(resolve(packageDir, sidecar.bin));

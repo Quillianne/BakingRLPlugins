@@ -30,7 +30,7 @@
   },
   "id": "bakingrl.obs-gateway",
   "name": "OBS Gateway",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "author": "BakingRL",
   "dependencies": [
     {
@@ -45,7 +45,7 @@
     "sidecars": [
       {
         "id": "gateway",
-        "bin": "bin/obs-gateway-sidecar",
+        "bin": "bin/obs-gateway-sidecar.exe",
         "protocol": "jsonrpc-stdio",
         "activation": "onStartup"
       }
