@@ -14,11 +14,20 @@ const sidecarSource = readFileSync(resolve(rootDir, "obs-gateway/sidecar/src/mai
 const readme = readFileSync(resolve(rootDir, "obs-gateway/README.md"), "utf8");
 const configWebview = manifest.contributes?.webviews?.find((webview) => webview.id === "obsGatewayConfig");
 const defaultListenPort = settingsSchema.properties?.listenPort?.default;
+const accessTokenSetting = settingsSchema.properties?.["obs.gateway.accessToken"];
 
 assert.equal(configWebview?.kind, "settings", "OBS Gateway config UI must be a settings webview.");
 assert.equal(configWebview?.entry, "dist/webviews/config.js", "OBS Gateway config UI must build as a webview entry.");
 assert.match(viteConfig, /"webviews\/config": "src\/webviews\/config\/index\.ts"/, "OBS Gateway must build its settings webview.");
 assert.equal(defaultListenPort, 17844, "OBS Gateway must use the dedicated BakingRL port by default.");
+assert.equal(accessTokenSetting?.type, "string", "OBS Gateway must declare its host-owned access token.");
+assert.equal(accessTokenSetting?.format, "password", "The OBS access token must use a password field.");
+assert.equal(accessTokenSetting?.["x-bakingrl-secret"], true, "The OBS access token must be stored as a host secret.");
+assert.equal(
+  Object.hasOwn(accessTokenSetting ?? {}, "default"),
+  false,
+  "The OBS access token must never declare a default value."
+);
 assert.match(
   configWebviewSource,
   new RegExp(`const DEFAULT_LISTEN_PORT = ${defaultListenPort}`),
@@ -50,6 +59,21 @@ assert.match(
   /context\.bus\.subscribe\(LAYOUT_CHANGED_EVENT/,
   "OBS Gateway must refresh when a saved layout changes."
 );
+assert.match(
+  extensionSource,
+  /context\.secrets\.get\(DEFAULT_SECRET_KEY_REF\)/,
+  "OBS Gateway must read its access token only through the extension host secret reader."
+);
+assert.match(
+  configWebviewSource,
+  /configuration\.secrets\.set\(ACCESS_TOKEN_KEY, value\)/,
+  "OBS Gateway settings must write the access token directly to the host vault."
+);
+assert.match(
+  configWebviewSource,
+  /configuration\.secrets\.clear\(ACCESS_TOKEN_KEY\)/,
+  "OBS Gateway settings must clear the access token through the host vault."
+);
 assert.doesNotMatch(
   extensionSource,
   /resources\.list|rendererLayoutFor|renderer-module/,
@@ -63,5 +87,9 @@ assert.match(sidecarSource, /resources\/read/, "OBS Gateway must read public ren
 assert.match(sidecarSource, /packageResourceUrl/, "The OBS runtime must import renderer modules through resource URLs.");
 assert.match(sidecarSource, /layoutLayers\(layout\)/, "The OBS runtime must preserve Layout Studio layers.");
 assert.doesNotMatch(sidecarSource, /legacy_snapshot_route|legacy-main/, "OBS Gateway must not retain removed layout compatibility paths.");
+assert.ok(
+  sidecarSource.indexOf("if !authorized(&shared") < sidecarSource.indexOf('request.path == routes.health'),
+  "OBS Gateway health details must be protected before they can expose authenticated URLs."
+);
 
 console.log("OBS Gateway Layout Studio contract validation passed.");

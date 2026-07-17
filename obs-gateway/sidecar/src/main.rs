@@ -359,7 +359,12 @@ impl SharedGateway {
                 listening,
                 address: config.listen_address.clone(),
                 port: config.listen_port,
-                health_url: listening.then(|| format!("{base}{}", route_map.health)),
+                health_url: listening.then(|| {
+                    append_auth_query(
+                        &format!("{base}{}", route_map.health),
+                        auth_query.as_deref(),
+                    )
+                }),
                 gateway_api_url: listening.then(|| {
                     append_auth_query(
                         &format!("{base}{}", route_map.gateway_api),
@@ -494,14 +499,13 @@ impl Runtime {
                     .map(|item| item.trim().to_string())
                     .filter(|item| !item.is_empty())
                     .collect::<Vec<_>>();
-                if !origins.is_empty() {
-                    state.config.allowed_origins = origins;
-                }
+                state.config.allowed_origins = origins;
             }
             state.access_token = input.access_token.filter(|token| !token.is_empty());
             state.token_configured = input
                 .token_configured
-                .unwrap_or(state.access_token.is_some());
+                .unwrap_or(state.access_token.is_some())
+                && state.access_token.is_some();
             state.last_state_change_at_ms = now_ms();
         }
         self.sync_server()?;
@@ -577,6 +581,19 @@ impl Runtime {
             if !state.config.enabled {
                 state.last_error = None;
                 return Ok(());
+            }
+            if auth_required(&state)
+                && state
+                    .access_token
+                    .as_deref()
+                    .map_or(true, |token| token.is_empty())
+            {
+                let error = format!(
+                    "OBS Gateway authentication is required, but host secret '{}' is missing or unavailable. The server was not started.",
+                    state.config.secret_key_ref
+                );
+                state.last_error = Some(error.clone());
+                return Err(error);
             }
         }
 
@@ -735,26 +752,27 @@ fn handle_client(mut stream: TcpStream, shared: Arc<SharedGateway>, host_rpc: Ho
         return;
     }
 
+    if !authorized(&shared, request.header("authorization"), &request.query) {
+        let _ = write_json(
+            &mut stream,
+            401,
+            json!({ "ok": false, "error": "Bearer token is required" }),
+        );
+        return;
+    }
+
     if request.method == "GET" && request.path == routes.health {
+        let snapshot = shared.snapshot();
         let _ = write_json(
             &mut stream,
             200,
             json!({
                 "ok": true,
                 "service": "obsGateway",
-                "connected": shared.snapshot().connected,
-                "auth": shared.snapshot().auth,
-                "server": shared.snapshot().server
+                "connected": snapshot.connected,
+                "auth": snapshot.auth,
+                "server": snapshot.server
             }),
-        );
-        return;
-    }
-
-    if !authorized(&shared, request.header("authorization"), &request.query) {
-        let _ = write_json(
-            &mut stream,
-            401,
-            json!({ "ok": false, "error": "Bearer token is required" }),
         );
         return;
     }
@@ -1155,7 +1173,10 @@ fn handle_api_request(
         Ok(ApiResponse::Json(value)) => {
             let _ = write_json_value(stream, 200, value);
         }
-        Ok(ApiResponse::Bytes { contents, content_type }) => {
+        Ok(ApiResponse::Bytes {
+            contents,
+            content_type,
+        }) => {
             let _ = write_response(
                 stream,
                 200,
@@ -1337,7 +1358,9 @@ fn handle_dynamic_api_request(
             .map(ApiResponse::Json);
     }
 
-    Err(format!("OBS gateway API route '/{api_path}' is not supported."))
+    Err(format!(
+        "OBS gateway API route '/{api_path}' is not supported."
+    ))
 }
 
 fn api_subpath<'a>(routes: &RouteMap, path: &'a str) -> Option<&'a str> {
@@ -1452,7 +1475,7 @@ fn authorized(
         .as_deref()
         .filter(|value| !value.is_empty())
     else {
-        return true;
+        return false;
     };
     authorization == Some(&format!("Bearer {token}"))
         || query.get("token").is_some_and(|value| value == token)
@@ -1462,11 +1485,7 @@ fn authorized(
 }
 
 fn auth_required(state: &GatewayState) -> bool {
-    state
-        .access_token
-        .as_deref()
-        .is_some_and(|value| !value.is_empty())
-        && (state.config.require_token || !is_local_bind_address(&state.config.listen_address))
+    state.config.require_token || !is_local_bind_address(&state.config.listen_address)
 }
 
 fn auth_query(state: &GatewayState) -> Option<String> {
@@ -2052,4 +2071,111 @@ fn now_ms() -> u64 {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_millis() as u64)
         .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn shared_with_auth(
+        listen_address: &str,
+        require_token: bool,
+        credential: Option<&str>,
+    ) -> SharedGateway {
+        let shared = SharedGateway::new();
+        {
+            let mut state = shared
+                .state
+                .lock()
+                .expect("gateway state should be available");
+            state.config.listen_address = listen_address.to_string();
+            state.config.require_token = require_token;
+            state.access_token = credential.map(str::to_string);
+            state.token_configured = credential.is_some();
+        }
+        shared
+    }
+
+    #[test]
+    fn auth_is_required_by_configuration_even_when_the_credential_is_missing() {
+        let local = shared_with_auth("127.0.0.1", true, None);
+        let network = shared_with_auth("0.0.0.0", false, None);
+
+        assert!(auth_required(
+            &local.state.lock().expect("local state should be available")
+        ));
+        assert!(auth_required(
+            &network
+                .state
+                .lock()
+                .expect("network state should be available")
+        ));
+        assert!(!authorized(&local, None, &HashMap::new()));
+        assert!(!authorized(&network, None, &HashMap::new()));
+    }
+
+    #[test]
+    fn local_access_without_requested_authentication_remains_available() {
+        let shared = shared_with_auth("localhost", false, None);
+
+        assert!(!auth_required(
+            &shared
+                .state
+                .lock()
+                .expect("gateway state should be available")
+        ));
+        assert!(authorized(&shared, None, &HashMap::new()));
+    }
+
+    #[test]
+    fn server_refuses_to_listen_when_required_authentication_has_no_credential() {
+        let runtime = Runtime::new();
+        {
+            let mut state = runtime
+                .shared
+                .state
+                .lock()
+                .expect("gateway state should be available");
+            state.config.enabled = true;
+            state.config.require_token = true;
+        }
+
+        let error = runtime
+            .sync_server()
+            .expect_err("the gateway must fail closed without a credential");
+        let snapshot = runtime.shared.snapshot();
+
+        assert!(error.contains("authentication is required"));
+        assert!(!snapshot.server.listening);
+        assert_eq!(snapshot.last_error.as_deref(), Some(error.as_str()));
+    }
+
+    #[test]
+    fn empty_origin_allowlist_rejects_origin_headers_but_keeps_direct_requests() {
+        let mut config = GatewayConfig::default();
+        config.allowed_origins.clear();
+
+        assert!(origin_allowed(&config, None));
+        assert!(!origin_allowed(&config, Some("http://127.0.0.1")));
+    }
+
+    #[test]
+    fn required_authentication_accepts_only_the_matching_bearer_or_query_credential() {
+        let credential = ["fixture", "credential"].join("-");
+        let shared = shared_with_auth("127.0.0.1", true, Some(&credential));
+        let bearer = format!("Bearer {credential}");
+        let mut matching_query = HashMap::new();
+        matching_query.insert("token".to_string(), credential.clone());
+        let mut wrong_query = HashMap::new();
+        wrong_query.insert("access_token".to_string(), "different-fixture".to_string());
+
+        assert!(authorized(&shared, Some(&bearer), &HashMap::new()));
+        assert!(authorized(&shared, None, &matching_query));
+        assert!(!authorized(
+            &shared,
+            Some("Bearer different-fixture"),
+            &HashMap::new()
+        ));
+        assert!(!authorized(&shared, None, &wrong_query));
+    }
 }

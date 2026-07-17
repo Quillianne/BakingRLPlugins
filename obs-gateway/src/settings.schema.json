@@ -36,9 +36,16 @@
     },
     "secretKeyRef": {
       "type": "string",
-      "title": "Secret reference used for OBS auth",
-      "description": "The key name used by the host secret store (do not store the secret value here).",
+      "title": "Host secret reference used for OBS authentication",
+      "description": "Fixed reference to the declared host-owned access token. This is a key name, never the secret value.",
       "default": "obs.gateway.accessToken"
+    },
+    "obs.gateway.accessToken": {
+      "type": "string",
+      "title": "OBS Gateway access token",
+      "description": "Stored exclusively in the BakingRL host secret vault. Required for network access and optional for localhost.",
+      "format": "password",
+      "x-bakingrl-secret": true
     },
     "requireToken": {
       "type": "boolean",

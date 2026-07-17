@@ -1,6 +1,6 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.3.0",
+  "bakingrlApi": "2.4.0",
   "permissions": {
     "bus": {
       "read": [
@@ -32,6 +32,13 @@
   "name": "OBS Gateway",
   "version": "2.0.2",
   "author": "BakingRL",
+  "presentation": {
+    "categories": ["integration"],
+    "primaryAction": {
+      "kind": "webview",
+      "target": "obsGatewayConfig"
+    }
+  },
   "dependencies": [
     {
       "packageId": "bakingrl.layout-studio",

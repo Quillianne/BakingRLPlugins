@@ -13,7 +13,6 @@ type ObsGatewaySettings = {
   routePrefix?: unknown;
   streamPath?: unknown;
   streamLayoutId?: unknown;
-  secretKeyRef?: unknown;
   requireToken?: unknown;
   heartbeatMs?: unknown;
   allowedOrigins?: unknown;
@@ -45,10 +44,6 @@ function settingsObject(context: ExtensionContext): ObsGatewaySettings {
   return values && typeof values === "object" && !Array.isArray(values) ? values : {};
 }
 
-function cleanString(value: unknown) {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -73,12 +68,13 @@ async function logSafely(context: ExtensionContext, message: string) {
   }
 }
 
-async function readSecret(context: ExtensionContext, settings: ObsGatewaySettings) {
-  const secretKeyRef = cleanString(settings.secretKeyRef) ?? DEFAULT_SECRET_KEY_REF;
-  const tokenConfigured = await context.secrets.configured(secretKeyRef).catch(() => false);
-  const accessToken = tokenConfigured ? await context.secrets.get(secretKeyRef).catch(() => undefined) : undefined;
+async function readSecret(context: ExtensionContext) {
+  const tokenConfigured = await context.secrets.configured(DEFAULT_SECRET_KEY_REF).catch(() => false);
+  const accessToken = tokenConfigured
+    ? await context.secrets.get(DEFAULT_SECRET_KEY_REF).catch(() => undefined)
+    : undefined;
   return {
-    secretKeyRef,
+    secretKeyRef: DEFAULT_SECRET_KEY_REF,
     tokenConfigured,
     accessToken: accessToken ?? null
   };
@@ -148,7 +144,7 @@ async function configureGateway(context: ExtensionContext, overrides: ObsGateway
     ...settingsObject(context),
     ...overrides
   };
-  const secret = await readSecret(context, settings);
+  const secret = await readSecret(context);
 
   await context.sidecars.start(SIDECAR_NAME);
   const configured = await context.sidecars.call(SIDECAR_NAME, "configure", {

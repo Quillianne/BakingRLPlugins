@@ -35,10 +35,14 @@ items and public visual modules.
 
 ## Security
 
-Settings contain only non-secret metadata. `secretKeyRef` points to the host
-secret store. Local addresses do not require a token by default; non-local
-binds and explicit `requireToken` settings require authentication. Allowed
-origins are checked before route handling.
+The settings schema declares `obs.gateway.accessToken` as a host-owned secret;
+its value never enters settings JSON and the extension reads it only through
+the host secret API. Local addresses do not require a token by default.
+Non-local binds and explicit `requireToken` settings require authentication,
+and the sidecar refuses to listen when the required token is missing or
+unavailable. Allowed origins are checked before route handling; an empty list
+rejects every request carrying an `Origin` header while direct OBS requests
+without that header remain available.
 
 ## Build
 
