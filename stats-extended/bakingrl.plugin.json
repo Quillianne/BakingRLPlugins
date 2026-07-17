@@ -56,7 +56,7 @@
   },
   "id": "bakingrl.stats-extended",
   "name": "Extended Statistics",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "BakingRL",
   "runtime": {
     "node": {
