@@ -25,6 +25,8 @@
     "validate:poc-chain": "node scripts/validate-poc-chain.mjs",
     "validate:product-chain": "node scripts/validate-product-chain.mjs",
     "validate:obs-gateway": "node scripts/validate-obs-gateway.mjs",
+    "validate:release-obs": "node scripts/validate-obs-release-artifact.mjs",
+    "validate:release-portable": "node scripts/validate-portable-release-artifacts.mjs",
     "validate:listing": "node scripts/validate-listings.mjs",
     "validate:runtime-poc": "node scripts/smoke-runtime-poc.mjs",
     "validate:local-install": "node scripts/validate-local-install.mjs",

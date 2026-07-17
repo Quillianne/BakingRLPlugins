@@ -16,8 +16,12 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
 
     steps:
       - name: Checkout plugins
@@ -50,6 +54,10 @@ jobs:
 
       - name: Smoke product runtime
         run: npm run validate:runtime-poc
+
+      - name: Validate installed plugin bundles
+        if: runner.os != 'Windows'
+        run: npm run validate:local-install
 
   pack-portable:
     needs: validate
@@ -96,6 +104,29 @@ jobs:
           path: "*/dist-bundles/*.brlp"
           if-no-files-found: error
           retention-days: 14
+
+  smoke-portable-windows:
+    needs: pack-portable
+    runs-on: windows-2025
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout plugins
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Download portable bundles
+        uses: actions/download-artifact@v8
+        with:
+          name: BakingRL-plugins-portable
+          path: portable-artifacts
+
+      - name: Import exact portable release artifacts
+        run: npm run validate:release-portable -- portable-artifacts
 
   pack-obs:
     needs: validate
@@ -145,6 +176,9 @@ jobs:
       - name: Pack OBS Gateway
         run: npm run pack:release-obs
 
+      - name: Validate OBS Gateway release artifact
+        run: npm run validate:release-obs -- ${{ matrix.platform }}
+
       - name: Stage platform bundle
         run: npm run stage:release-obs -- ${{ matrix.platform }}
 
@@ -163,7 +197,7 @@ jobs:
 
   publish-release:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [pack-portable, pack-obs]
+    needs: [pack-portable, smoke-portable-windows, pack-obs]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
