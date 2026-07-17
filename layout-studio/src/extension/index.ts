@@ -201,7 +201,15 @@ async function loadState(context: ExtensionContext) {
 
 function persistState(context: ExtensionContext) {
   const serialized = JSON.stringify(state, null, 2);
-  writeChain = writeChain.then(() => context.storage.writeText(STORAGE_PATH, serialized));
+  writeChain = writeChain
+    .then(() => context.storage.writeText(STORAGE_PATH, serialized))
+    .catch(async (error) => {
+      try {
+        await context.diagnostics.warn("Layout Studio could not persist layouts.", error);
+      } catch {
+        // A diagnostic transport failure must not poison the persistence queue.
+      }
+    });
   return writeChain;
 }
 
@@ -411,7 +419,11 @@ const extension = defineExtension({
     const serviceRegistration = registerService(context);
     registrations = [{ dispose: telemetryCleanup }, serviceRegistration];
     context.subscriptions.push(...registrations);
-    context.logger.info(`Layout Studio activated with ${state.layouts.length} layout(s).`);
+    try {
+      await context.logger.info(`Layout Studio activated with ${state.layouts.length} layout(s).`);
+    } catch {
+      // Logging is best effort and must not turn a successful activation into a failure.
+    }
   },
   deactivate
 });

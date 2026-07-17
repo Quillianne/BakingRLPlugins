@@ -345,8 +345,14 @@ function markUpdated() {
 function persistState(context: PluginRuntimeContext) {
   const snapshot = storedState();
   saveChain = saveChain
-    .catch(() => undefined)
-    .then(() => context.storage.writeText(STORAGE_URI, JSON.stringify(snapshot, null, 2)));
+    .then(() => context.storage.writeText(STORAGE_URI, JSON.stringify(snapshot, null, 2)))
+    .catch(async (error) => {
+      try {
+        await context.diagnostics.warn("PlayerStreak could not persist state.", error);
+      } catch {
+        // A diagnostic transport failure must not poison the persistence queue.
+      }
+    });
 }
 
 async function loadState(context: PluginRuntimeContext) {
@@ -361,7 +367,15 @@ async function publishState(options: { persist?: boolean } = {}) {
   const context = serviceContext;
   const snapshot = publicState();
   if (!context) return snapshot;
-  context.registry.set(STATE_KEY, snapshot);
+  void Promise.resolve()
+    .then(() => context.registry.set(STATE_KEY, snapshot))
+    .catch(async (error) => {
+      try {
+        await context.diagnostics.warn("PlayerStreak could not publish registry state.", error);
+      } catch {
+        // A diagnostic transport failure must not escape a detached registry update.
+      }
+    });
   context.bus.emit(STATE_EVENT, snapshot);
   if (options.persist) persistState(context);
   return snapshot;
@@ -468,14 +482,22 @@ async function ensureLatestCastRegistries(context: PluginRuntimeContext, preferr
   try {
     syncSequenceState(await context.registry.get(CAST_SEQUENCE_KEY));
   } catch (error) {
-    context.diagnostics.warn("Unable to read Cast Package sequence state for PlayerStreak.", error);
+    try {
+      await context.diagnostics.warn("Unable to read Cast Package sequence state for PlayerStreak.", error);
+    } catch {
+      // Registry recovery must not fail because its diagnostic transport is unavailable.
+    }
   }
 
   try {
     const castState = castPlayerStatsStateFromValue(await context.registry.get(CAST_PLAYER_STATS_KEY));
     if (castState) syncCurrentMatchFromCastStats(castState, preferredMatchGuid);
   } catch (error) {
-    context.diagnostics.warn("Unable to read Cast Package player stats state for PlayerStreak.", error);
+    try {
+      await context.diagnostics.warn("Unable to read Cast Package player stats state for PlayerStreak.", error);
+    } catch {
+      // Registry recovery must not fail because its diagnostic transport is unavailable.
+    }
   }
 }
 

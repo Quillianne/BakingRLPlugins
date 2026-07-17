@@ -62,7 +62,15 @@ function publish(command?: RegieCommand) {
   const context = serviceContext;
   const state = snapshot();
   if (!context) return state;
-  context.registry.set(REGIE_KEY, state);
+  void Promise.resolve()
+    .then(() => context.registry.set(REGIE_KEY, state))
+    .catch(async (error) => {
+      try {
+        await context.diagnostics.warn("Broadcast Visuals could not publish regie registry state.", error);
+      } catch {
+        // A diagnostic transport failure must not escape a detached registry update.
+      }
+    });
   if (command) context.bus.emit(REGIE_EVENT, command);
   return state;
 }

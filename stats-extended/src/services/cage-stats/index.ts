@@ -320,11 +320,25 @@ async function publishState() {
   const context = serviceContext;
   const snapshot = publicState();
   if (!context) return snapshot;
-  context.registry.set(CAGE_STATS_KEY, snapshot);
+  void Promise.resolve()
+    .then(() => context.registry.set(CAGE_STATS_KEY, snapshot))
+    .catch(async (error) => {
+      try {
+        await context.diagnostics.warn("Extended Statistics could not publish cage statistics registry state.", error);
+      } catch {
+        // A diagnostic transport failure must not escape a detached registry update.
+      }
+    });
   context.bus.emit(CAGE_STATS_EVENT, snapshot);
   saveChain = saveChain
-    .catch(() => undefined)
-    .then(() => context.storage.writeText(STORAGE_URI, JSON.stringify(state, null, 2)));
+    .then(() => context.storage.writeText(STORAGE_URI, JSON.stringify(state, null, 2)))
+    .catch(async (error) => {
+      try {
+        await context.diagnostics.warn("Extended Statistics could not persist cage statistics.", error);
+      } catch {
+        // A diagnostic transport failure must not poison the persistence queue.
+      }
+    });
   return snapshot;
 }
 

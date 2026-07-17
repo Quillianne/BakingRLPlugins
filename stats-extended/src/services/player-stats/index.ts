@@ -1077,8 +1077,14 @@ function restoreState(value: unknown): InternalState {
 function persistState(context: PluginRuntimeContext) {
   const snapshot = storedState();
   saveChain = saveChain
-    .catch(() => undefined)
-    .then(() => context.storage.writeText(STORAGE_URI, JSON.stringify(snapshot, null, 2)));
+    .then(() => context.storage.writeText(STORAGE_URI, JSON.stringify(snapshot, null, 2)))
+    .catch(async (error) => {
+      try {
+        await context.diagnostics.warn("Extended Statistics could not persist player statistics.", error);
+      } catch {
+        // A diagnostic transport failure must not poison the persistence queue.
+      }
+    });
 }
 
 async function loadState(context: PluginRuntimeContext) {
@@ -1093,7 +1099,15 @@ async function publishState(options: { persist?: boolean } = {}) {
   const context = serviceContext;
   const snapshot = publicState();
   if (!context) return snapshot;
-  context.registry.set(PLAYER_STATS_KEY, snapshot);
+  void Promise.resolve()
+    .then(() => context.registry.set(PLAYER_STATS_KEY, snapshot))
+    .catch(async (error) => {
+      try {
+        await context.diagnostics.warn("Extended Statistics could not publish player statistics registry state.", error);
+      } catch {
+        // A diagnostic transport failure must not escape a detached registry update.
+      }
+    });
   context.bus.emit(PLAYER_STATS_EVENT, snapshot);
   if (options.persist) persistState(context);
   return snapshot;
@@ -1155,7 +1169,11 @@ async function syncBoRegistry(context: PluginRuntimeContext) {
     const boState = await context.registry.get(BO_STATE_KEY);
     if (isBoState(boState)) syncBoState(boState);
   } catch (error) {
-    context.diagnostics.warn("Unable to read BO tracker state for player stats.", error);
+    try {
+      await context.diagnostics.warn("Unable to read BO tracker state for player stats.", error);
+    } catch {
+      // Registry recovery must not fail because its diagnostic transport is unavailable.
+    }
   }
 }
 
@@ -1164,7 +1182,11 @@ async function syncSequenceRegistry(context: PluginRuntimeContext) {
     const value = await context.registry.get(GAME_SEQUENCE_KEY);
     if (isGameSequenceState(value)) sequenceState = value;
   } catch (error) {
-    context.diagnostics.warn("Unable to read sequence state for player stats.", error);
+    try {
+      await context.diagnostics.warn("Unable to read sequence state for player stats.", error);
+    } catch {
+      // Registry recovery must not fail because its diagnostic transport is unavailable.
+    }
   }
 }
 

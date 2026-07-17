@@ -985,6 +985,168 @@ async function loadExtension(pkg) {
   return extension;
 }
 
+async function captureUnhandledRejections(callback) {
+  const reasons = [];
+  const onUnhandledRejection = (reason) => reasons.push(reason);
+  process.on("unhandledRejection", onUnhandledRejection);
+  try {
+    await callback();
+    await new Promise((resolvePromise) => setImmediate(resolvePromise));
+    await new Promise((resolvePromise) => setImmediate(resolvePromise));
+  } finally {
+    process.off("unhandledRejection", onUnhandledRejection);
+  }
+  return reasons;
+}
+
+async function assertRuntimeWriteFailuresAreContained(
+  host,
+  packageId,
+  extension,
+  storagePaths,
+  registryKeys,
+  trigger
+) {
+  const context = host.createRuntimeContext(packageId);
+  const writeAttempts = new Map();
+  const registryAttempts = new Map();
+  const recordWarning = context.diagnostics.warn.bind(context.diagnostics);
+  context.diagnostics.warn = (message, data) => {
+    recordWarning(message, data);
+    return Promise.reject(new Error(`Forced ${packageId} diagnostic transport failure.`));
+  };
+  context.logger.info = async () => {
+    throw new Error(`Forced ${packageId} logger transport failure.`);
+  };
+  context.registry.set = async (key) => {
+    registryAttempts.set(key, (registryAttempts.get(key) ?? 0) + 1);
+    throw new Error(`Forced ${packageId} registry write failure for ${key}.`);
+  };
+  context.storage.readText = async () => {
+    throw new Error(`Forced ${packageId} storage read failure.`);
+  };
+  context.storage.writeText = async (path) => {
+    const attempts = (writeAttempts.get(path) ?? 0) + 1;
+    writeAttempts.set(path, attempts);
+    if (attempts === 1) throw new Error(`Forced ${packageId} storage write failure for ${path}.`);
+  };
+
+  const unhandledRejections = await captureUnhandledRejections(async () => {
+    try {
+      await extension.activate(context);
+      await trigger?.();
+    } finally {
+      await extension.deactivate();
+    }
+  });
+
+  for (const path of storagePaths) {
+    assert.ok(
+      (writeAttempts.get(path) ?? 0) >= 2,
+      `${packageId} storage queue must recover and retry ${path} after a rejected write.`
+    );
+  }
+  for (const key of registryKeys) {
+    assert.ok(
+      (registryAttempts.get(key) ?? 0) >= 1,
+      `${packageId} must attempt the expected detached registry update for ${key}.`
+    );
+  }
+  assert.deepEqual(unhandledRejections, [], `${packageId} must contain rejected runtime writes.`);
+  assert.ok(
+    storagePaths.length === 0 ||
+      context.diagnostics.diagnostics.some(
+        (diagnostic) => diagnostic.severity === "warning" && /persist/i.test(diagnostic.message)
+      ),
+    `${packageId} must diagnose rejected storage writes.`
+  );
+  assert.ok(
+    registryKeys.length === 0 ||
+      context.diagnostics.diagnostics.some(
+        (diagnostic) => diagnostic.severity === "warning" && /registry/i.test(diagnostic.message)
+      ),
+    `${packageId} must diagnose rejected registry writes.`
+  );
+}
+
+async function assertObsStartupFailureIsContained(host, extension) {
+  const context = host.createRuntimeContext(obsGatewayPackageId);
+  const recordWarning = context.diagnostics.warn.bind(context.diagnostics);
+  context.diagnostics.warn = (message, data) => {
+    recordWarning(message, data);
+    return Promise.reject(new Error("Forced OBS Gateway diagnostic transport failure."));
+  };
+  context.sidecars.call = async (_sidecarName, method) => {
+    throw new Error(`Forced OBS Gateway ${method} failure.`);
+  };
+
+  const unhandledRejections = await captureUnhandledRejections(async () => {
+    try {
+      await extension.activate(context);
+    } finally {
+      await extension.deactivate();
+    }
+  });
+
+  assert.deepEqual(unhandledRejections, [], "OBS Gateway startup failure must not escape the extension runtime.");
+  assert.ok(
+    context.diagnostics.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.severity === "warning" && /could not start or configure its local server/i.test(diagnostic.message)
+    ),
+    "OBS Gateway must diagnose a sidecar configure failure."
+  );
+}
+
+async function assertObsRefreshFailuresAreContained(host, extension) {
+  const context = host.createRuntimeContext(obsGatewayPackageId);
+  const recordWarning = context.diagnostics.warn.bind(context.diagnostics);
+  const recordLog = context.diagnostics.log.bind(context.diagnostics);
+  const callSidecar = context.sidecars.call.bind(context.sidecars);
+  context.diagnostics.warn = (message, data) => {
+    recordWarning(message, data);
+    return Promise.reject(new Error("Forced OBS Gateway warning transport failure."));
+  };
+  context.diagnostics.log = (message, data) => {
+    recordLog(message, data);
+    return Promise.reject(new Error("Forced OBS Gateway log transport failure."));
+  };
+  context.sidecars.call = async (sidecarName, method, params) => {
+    if (method === "updateHostData") throw new Error("Forced OBS Gateway layout refresh failure.");
+    return callSidecar(sidecarName, method, params);
+  };
+
+  const unhandledRejections = await captureUnhandledRejections(async () => {
+    try {
+      await extension.activate(context);
+      context.bus.emit("plugin.bakingrl.layout-studio.changed", {});
+      await new Promise((resolvePromise) => setImmediate(resolvePromise));
+    } finally {
+      await extension.deactivate();
+    }
+  });
+
+  assert.deepEqual(unhandledRejections, [], "OBS Gateway refresh diagnostics must not escape the extension runtime.");
+  assert.ok(
+    context.diagnostics.diagnostics.some(
+      (diagnostic) => diagnostic.severity === "warning" && /layout refresh failed/i.test(diagnostic.message)
+    ),
+    "OBS Gateway must diagnose its initial Layout Studio refresh failure."
+  );
+  assert.ok(
+    context.diagnostics.diagnostics.some(
+      (diagnostic) => diagnostic.severity === "warning" && /could not apply a layout change/i.test(diagnostic.message)
+    ),
+    "OBS Gateway must diagnose a later Layout Studio refresh failure."
+  );
+  assert.ok(
+    context.diagnostics.diagnostics.some(
+      (diagnostic) => diagnostic.severity === "info" && /configured from Layout Studio/i.test(diagnostic.message)
+    ),
+    "OBS Gateway must attempt its successful configuration diagnostic."
+  );
+}
+
 async function loadWebview(pkg, webviewId) {
   const entryPath = requireFreshWebviewBuild(pkg, webviewId);
   const href = `${pathToFileURL(entryPath).href}?mtime=${statSync(entryPath).mtimeMs}`;
@@ -1794,5 +1956,73 @@ try {
 } finally {
   for (const extension of activatedProducts.reverse()) await extension.deactivate();
 }
+
+const resilienceHost = createManifestRuntimeHost(productPackageList, undefined, initialTelemetryFrame);
+for (const spec of [
+  {
+    packageId: statsPackageId,
+    storagePaths: ["series-state.json", "player-stats-state.json", "cage-stats-state.json"],
+    registryKeys: [
+      "plugin.bakingrl.stats-extended.series",
+      "plugin.bakingrl.stats-extended.sequence",
+      "plugin.bakingrl.stats-extended.player-stats",
+      "plugin.bakingrl.stats-extended.cage-stats"
+    ],
+    async trigger() {
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        await resilienceHost.callService(`${statsPackageId}/boTracker`, "reset", {});
+        await resilienceHost.callService(`${statsPackageId}/playerStatsTracker`, "reset", {});
+        await resilienceHost.callService(`${statsPackageId}/cageStats`, "reset", {});
+      }
+    }
+  },
+  {
+    packageId: layoutPackageId,
+    storagePaths: ["layouts.json"],
+    registryKeys: [],
+    async trigger() {
+      const snapshot = await resilienceHost.callService(`${layoutPackageId}/layoutStudio`, "snapshot", {});
+      await resilienceHost.callService(`${layoutPackageId}/layoutStudio`, "save", { layout: snapshot.layouts[0] });
+    }
+  },
+  {
+    packageId: broadcastPackageId,
+    storagePaths: [],
+    registryKeys: ["plugin.bakingrl.broadcast-visuals.regie"],
+    async trigger() {
+      await resilienceHost.callService(`${broadcastPackageId}/regieController`, "trigger", {
+        cue: "statistics",
+        durationMs: 60_000
+      });
+      await resilienceHost.callService(`${broadcastPackageId}/regieController`, "clear", { cue: "statistics" });
+    }
+  },
+  {
+    packageId: playerStreakPackageId,
+    storagePaths: ["player-streak-state.json"],
+    registryKeys: ["plugin.com.bakingrl.player-streak.state"],
+    async trigger() {
+      await resilienceHost.callService(`${playerStreakPackageId}/playerStreak`, "reset", { scope: "all" });
+      await resilienceHost.callService(`${playerStreakPackageId}/playerStreak`, "reset", { scope: "all" });
+    }
+  },
+  {
+    packageId: dejaVuPackageId,
+    storagePaths: ["deja-vu-state.json"],
+    registryKeys: ["plugin.com.bakingrl.deja-vu.state"],
+    trigger: () => resilienceHost.callService(`${dejaVuPackageId}/dejaVu`, "reset", {})
+  }
+]) {
+  await assertRuntimeWriteFailuresAreContained(
+    resilienceHost,
+    spec.packageId,
+    productExtensions.get(spec.packageId),
+    spec.storagePaths,
+    spec.registryKeys,
+    spec.trigger
+  );
+}
+await assertObsStartupFailureIsContained(resilienceHost, productExtensions.get(obsGatewayPackageId));
+await assertObsRefreshFailuresAreContained(resilienceHost, productExtensions.get(obsGatewayPackageId));
 
 console.log("Runtime POC and product smoke passed.");

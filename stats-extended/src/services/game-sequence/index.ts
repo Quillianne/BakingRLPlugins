@@ -222,7 +222,15 @@ function publishState(force = false) {
   lastPublishedSignature = signatureFor(nextSnapshot);
 
   if (context) {
-    context.registry.set(GAME_SEQUENCE_KEY, nextSnapshot);
+    void Promise.resolve()
+      .then(() => context.registry.set(GAME_SEQUENCE_KEY, nextSnapshot))
+      .catch(async (error) => {
+        try {
+          await context.diagnostics.warn("Extended Statistics could not publish game sequence registry state.", error);
+        } catch {
+          // A diagnostic transport failure must not escape a detached registry update.
+        }
+      });
     context.bus.emit(GAME_SEQUENCE_EVENT, nextSnapshot);
   }
 
