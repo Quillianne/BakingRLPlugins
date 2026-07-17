@@ -42,7 +42,7 @@
   },
   "id": "com.bakingrl.player-streak",
   "name": "PlayerStreak",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "author": "BakingRL",
   "presentation": {
     "categories": ["visuals"]
