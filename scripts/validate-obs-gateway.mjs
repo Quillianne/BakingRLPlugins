@@ -6,14 +6,31 @@ import { fileURLToPath } from "node:url";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(readFileSync(resolve(rootDir, "obs-gateway/bakingrl.plugin.json"), "utf8"));
+const settingsSchema = JSON.parse(readFileSync(resolve(rootDir, "obs-gateway/src/settings.schema.json"), "utf8"));
 const viteConfig = readFileSync(resolve(rootDir, "obs-gateway/vite.config.ts"), "utf8");
 const extensionSource = readFileSync(resolve(rootDir, "obs-gateway/src/extension/index.ts"), "utf8");
+const configWebviewSource = readFileSync(resolve(rootDir, "obs-gateway/src/webviews/config/index.ts"), "utf8");
 const sidecarSource = readFileSync(resolve(rootDir, "obs-gateway/sidecar/src/main.rs"), "utf8");
+const readme = readFileSync(resolve(rootDir, "obs-gateway/README.md"), "utf8");
 const configWebview = manifest.contributes?.webviews?.find((webview) => webview.id === "obsGatewayConfig");
+const defaultListenPort = settingsSchema.properties?.listenPort?.default;
 
 assert.equal(configWebview?.kind, "settings", "OBS Gateway config UI must be a settings webview.");
 assert.equal(configWebview?.entry, "dist/webviews/config.js", "OBS Gateway config UI must build as a webview entry.");
 assert.match(viteConfig, /"webviews\/config": "src\/webviews\/config\/index\.ts"/, "OBS Gateway must build its settings webview.");
+assert.equal(defaultListenPort, 17844, "OBS Gateway must use the dedicated BakingRL port by default.");
+assert.match(
+  configWebviewSource,
+  new RegExp(`const DEFAULT_LISTEN_PORT = ${defaultListenPort}`),
+  "OBS Gateway settings webview must share the schema default port."
+);
+assert.match(
+  sidecarSource,
+  new RegExp(`const DEFAULT_LISTEN_PORT: u16 = ${String(defaultListenPort).replace(/(?=\d{3}$)/, "_")}`),
+  "OBS Gateway sidecar must share the schema default port."
+);
+assert.match(sidecarSource, /listen_port: DEFAULT_LISTEN_PORT/, "OBS Gateway sidecar config must use the shared default port.");
+assert.match(readme, new RegExp(`127\\.0\\.0\\.1:${defaultListenPort}`), "OBS Gateway README must document the default endpoint.");
 
 assert.ok(
   manifest.dependencies?.some((dependency) => dependency.packageId === "bakingrl.layout-studio"),

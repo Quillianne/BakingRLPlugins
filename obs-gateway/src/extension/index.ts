@@ -57,6 +57,22 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
+async function warnSafely(context: ExtensionContext, message: string, error: unknown) {
+  try {
+    await context.diagnostics.warn(message, error);
+  } catch {
+    // Diagnostics are best effort and must never break the extension runtime.
+  }
+}
+
+async function logSafely(context: ExtensionContext, message: string) {
+  try {
+    await context.diagnostics.log(message);
+  } catch {
+    // Diagnostics are best effort and must never break the extension runtime.
+  }
+}
+
 async function readSecret(context: ExtensionContext, settings: ObsGatewaySettings) {
   const secretKeyRef = cleanString(settings.secretKeyRef) ?? DEFAULT_SECRET_KEY_REF;
   const tokenConfigured = await context.secrets.configured(secretKeyRef).catch(() => false);
@@ -139,11 +155,11 @@ async function configureGateway(context: ExtensionContext, overrides: ObsGateway
     ...settings,
     ...secret
   });
-  const refreshed = await updateHostData(context).catch((error) => {
-    context.diagnostics.warn("OBS Gateway layout refresh failed.", error);
+  const refreshed = await updateHostData(context).catch(async (error) => {
+    await warnSafely(context, "OBS Gateway layout refresh failed.", error);
     return configured;
   });
-  context.diagnostics.log("OBS Gateway configured from Layout Studio.");
+  await logSafely(context, "OBS Gateway configured from Layout Studio.");
   return refreshed;
 }
 
@@ -176,14 +192,24 @@ export async function activate(context: ExtensionContext) {
   activeContext = context;
   const serviceRegistration = registerService(context);
   const stopLayoutSubscription = context.bus.subscribe(LAYOUT_CHANGED_EVENT, () => {
-    void updateHostData(context).catch((error) => context.diagnostics.warn("OBS Gateway could not apply a layout change.", error));
+    void updateHostData(context).catch((error) =>
+      warnSafely(context, "OBS Gateway could not apply a layout change.", error)
+    );
   });
   registrations = [
     serviceRegistration,
     { dispose: stopLayoutSubscription }
   ];
   context.subscriptions.push(...registrations);
-  await configureGateway(context);
+  try {
+    await configureGateway(context);
+  } catch (error) {
+    await warnSafely(
+      context,
+      "OBS Gateway could not start or configure its local server. Check sidecar runtime diagnostics and port settings.",
+      error
+    );
+  }
 }
 
 export async function deactivate() {

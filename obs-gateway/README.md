@@ -3,6 +3,10 @@
 OBS Gateway serves Layout Studio documents to OBS browser sources through a
 local Rust HTTP sidecar.
 
+The local gateway listens on `http://127.0.0.1:17844` by default. This dedicated
+port avoids conflicting with OBS WebSocket; it can be changed from the plugin
+settings when another local service already uses it.
+
 ## Contract
 
 The Node extension depends on Layout Studio, calls

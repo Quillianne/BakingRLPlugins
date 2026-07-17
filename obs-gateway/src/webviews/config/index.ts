@@ -1,6 +1,7 @@
 import { definePluginWebview, type PluginWebviewContext } from "../webviewModule";
 
 const SERVICE_REF = "bakingrl.obs-gateway/obsGateway";
+const DEFAULT_LISTEN_PORT = 17844;
 
 type GatewaySettings = {
   enabled: boolean;
@@ -73,7 +74,7 @@ function readSettings(settings: Record<string, unknown>): GatewaySettings {
   return {
     enabled: settings.enabled !== false,
     listenAddress: stringSetting(settings, "listenAddress", "127.0.0.1"),
-    listenPort: numberSetting(settings, "listenPort", 4455),
+    listenPort: numberSetting(settings, "listenPort", DEFAULT_LISTEN_PORT),
     routePrefix: stringSetting(settings, "routePrefix", "/overlay"),
     streamPath: stringSetting(settings, "streamPath", "/stream"),
     streamLayoutId: typeof settings.streamLayoutId === "string" ? settings.streamLayoutId : "",

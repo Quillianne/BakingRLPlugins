@@ -17,7 +17,7 @@
       "title": "Listen Port",
       "minimum": 1024,
       "maximum": 65535,
-      "default": 4455
+      "default": 17844
     },
     "routePrefix": {
       "type": "string",

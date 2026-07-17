@@ -15,6 +15,7 @@ use sha1::{Digest, Sha1};
 const WEBSOCKET_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 const MAX_HEADER_BYTES: usize = 32 * 1024;
 const MAX_BODY_BYTES: usize = 64 * 1024;
+const DEFAULT_LISTEN_PORT: u16 = 17_844;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -36,7 +37,7 @@ impl Default for GatewayConfig {
         Self {
             enabled: false,
             listen_address: "127.0.0.1".to_string(),
-            listen_port: 4455,
+            listen_port: DEFAULT_LISTEN_PORT,
             route_prefix: "/overlay".to_string(),
             stream_path: "/stream".to_string(),
             stream_layout_id: String::new(),
