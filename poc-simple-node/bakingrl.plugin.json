@@ -1,6 +1,6 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.3.0",
+  "bakingrlApi": "2.4.0",
   "permissions": {
     "bus": {
       "read": [
@@ -30,6 +30,9 @@
   "name": "POC Simple Node",
   "version": "1.0.0",
   "author": "BakingRL",
+  "presentation": {
+    "categories": ["development"]
+  },
   "runtime": {
     "node": {
       "entry": "dist/extension/index.js"

@@ -1,6 +1,6 @@
 {
   "schemaVersion": "bakingrl.plugin/4",
-  "bakingrlApi": "2.3.0",
+  "bakingrlApi": "2.4.0",
   "permissions": {
     "bus": {
       "read": [
@@ -58,6 +58,13 @@
   "name": "Extended Statistics",
   "version": "1.0.1",
   "author": "BakingRL",
+  "presentation": {
+    "categories": ["statistics"],
+    "primaryAction": {
+      "kind": "webview",
+      "target": "statisticsDashboard"
+    }
+  },
   "runtime": {
     "node": {
       "entry": "dist/extension/index.js"

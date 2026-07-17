@@ -5,7 +5,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const runtimeApi = "2.3.0";
+const runtimeApi = "2.4.0";
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
@@ -47,6 +47,17 @@ assert.ok(hasDependency(layouts, stats.manifest.id), "Layout Studio must install
 const visualPoint = layouts.manifest.contributes.extensionPoints.find((point) => point.id === "visual");
 assert.equal(visualPoint?.service, "layoutStudio", "Layout Studio visual contributions must be service-backed.");
 assert.ok(layouts.manifest.contributes.services[0].methods.includes("resourceSource"));
+const layoutStudioWebviewSource = readFileSync(resolve(layouts.packageDir, "src/webviews/studio/index.ts"), "utf8");
+assert.doesNotMatch(
+  layoutStudioWebviewSource,
+  /mountVisualPreviews|URL\.createObjectURL|new Blob|@vite-ignore|"resourceSource"/,
+  "Layout Studio must never load or evaluate contributed renderer modules inside its editor webview."
+);
+assert.match(
+  layoutStudioWebviewSource,
+  /Preview disabled in editor/,
+  "Layout Studio must explain its inert plugin-visual placeholder."
+);
 
 assert.equal(visuals.manifest.id, "bakingrl.broadcast-visuals");
 assert.ok(hasDependency(visuals, stats.manifest.id), "Broadcast Visuals must depend on Extended Statistics.");

@@ -4,17 +4,17 @@
   "properties": {
     "title": {
       "type": "string",
-      "title": "Title",
-      "default": "BO Tracker"
+      "title": "Titre",
+      "default": "Régie de match"
     },
     "subtitle": {
       "type": "string",
-      "title": "Subtitle",
-      "default": "Control et regie"
+      "title": "Sous-titre",
+      "default": "Préparation et direct"
     },
     "defaultBestOf": {
       "type": "integer",
-      "title": "Default BO Format",
+      "title": "Format de BO par défaut",
       "default": 5,
       "oneOf": [
         { "const": 1, "title": "BO1" },
@@ -25,12 +25,12 @@
     },
     "showHistory": {
       "type": "boolean",
-      "title": "Show Match History",
+      "title": "Afficher l’historique des matchs",
       "default": true
     },
     "historyLimit": {
       "type": "integer",
-      "title": "History Rows",
+      "title": "Nombre de matchs dans l’historique",
       "default": 6,
       "minimum": 0,
       "maximum": 12

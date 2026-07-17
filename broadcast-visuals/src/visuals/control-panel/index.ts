@@ -1,6 +1,5 @@
 import { type BakingRLEvent } from "@bakingrl/plugin-sdk";
 import { PLAYER_STATS_EVENT } from "../../shared/events";
-import { fitVisualScale } from "../fitVisualScale";
 import { defineVisual, type VisualContext } from "../visualModule";
 import templateHtml from "./template.html?raw";
 import styleCss from "./style.css?raw";
@@ -96,8 +95,8 @@ function isBestOf(value: unknown): value is BestOf {
 
 function readSettings(settings: Record<string, unknown>): ControlPanelSettings {
   return {
-    title: typeof settings.title === "string" && settings.title.trim() ? settings.title.trim() : "BO Tracker",
-    subtitle: typeof settings.subtitle === "string" ? settings.subtitle.trim() : "Control et regie",
+    title: typeof settings.title === "string" && settings.title.trim() ? settings.title.trim() : "Régie de match",
+    subtitle: typeof settings.subtitle === "string" ? settings.subtitle.trim() : "Préparation et direct",
     defaultBestOf: isBestOf(settings.defaultBestOf) ? settings.defaultBestOf : 5,
     showHistory: settings.showHistory !== false,
     historyLimit: typeof settings.historyLimit === "number" && Number.isFinite(settings.historyLimit)
@@ -163,7 +162,7 @@ function phaseLabel(phase: Phase) {
     case "tracking":
       return "Suivi actif";
     case "complete":
-      return "Termine";
+      return "Terminé";
     default:
       return "Inactif";
   }
@@ -197,7 +196,7 @@ function renderBestOfButtonsTemplate() {
 
 function renderHistoryTemplate(rows: BoTrackerState["history"], state: BoTrackerState | null, side0Text: string, side1Text: string) {
   if (!rows.length) {
-    return `<div class="history-row"><span>-</span><strong>Aucun match compte</strong><span>-</span></div>`;
+    return `<div class="history-row"><span>-</span><strong>Aucun match compté</strong><span>-</span></div>`;
   }
   return rows
     .map((record) => {
@@ -247,7 +246,6 @@ function renderControlPanelTemplate(settings: ControlPanelSettings) {
 export default defineVisual({
   async mount(context: VisualContext) {
     let settings = readSettings(context.settings);
-    const cleanupScale = fitVisualScale(context.root, 1200, 900);
     let state: BoTrackerState | null = null;
     let statsState: PlayerStatsState | null = null;
     let selectedBestOf: BestOf = settings.defaultBestOf;
@@ -303,6 +301,7 @@ export default defineVisual({
     function render() {
       syncSettingsChrome();
       const disabled = busy || !state;
+      const phase = state?.phase ?? "idle";
       const bestOf = configDirty ? selectedBestOf : state?.bestOf ?? selectedBestOf;
       const side0 = state ? sideForTeamNum(state, 0) : "left";
       const side1 = state ? sideForTeamNum(state, 1) : "right";
@@ -323,15 +322,22 @@ export default defineVisual({
         button.classList.toggle("active", Number(button.dataset.bestOf) === bestOf);
       }
       for (const button of context.root.querySelectorAll<HTMLButtonElement>("button")) {
-        button.disabled = busy || !state;
+        button.disabled = disabled;
+      }
+      for (const button of context.root.querySelectorAll<HTMLButtonElement>("[data-award]")) {
+        button.disabled = disabled || phase === "complete";
       }
 
-      const phase = state?.phase ?? "idle";
       const tracking = phase === "tracking" || phase === "waiting_for_start";
       if (trackingToggle) {
-        trackingToggle.textContent = tracking ? "Stop" : phase === "complete" ? "Reset + Start" : "Start";
+        trackingToggle.textContent = tracking
+          ? "Arrêter le suivi"
+          : phase === "complete"
+            ? "Réinitialiser d’abord"
+            : "Démarrer le suivi";
         trackingToggle.classList.toggle("green", !tracking);
         trackingToggle.classList.toggle("orange", tracking);
+        trackingToggle.disabled = busy || !state || phase === "complete";
       }
       if (phaseChip) {
         phaseChip.textContent = busy ? "Chargement" : phaseLabel(phase);
@@ -340,7 +346,7 @@ export default defineVisual({
       }
       if (boChip) boChip.textContent = `BO${bestOf}`;
       if (matchupBo) matchupBo.textContent = `BO${bestOf}`;
-      if (required) required.textContent = `First to ${Math.floor(bestOf / 2) + 1}`;
+      if (required) required.textContent = `Premier à ${Math.floor(bestOf / 2) + 1}`;
       if (leaderChip) {
         const winner = state?.winner ? state.teams[state.winner].name : null;
         leaderChip.textContent = winner ? `Winner: ${winner}` : `${side0Score} - ${side1Score}`;
@@ -364,7 +370,7 @@ export default defineVisual({
       if (regieTeam) regieTeam.innerHTML = renderTeamOptions(teams, regieTeam.value || "0");
       if (regieStatus) {
         const matchCount = statsState?.matches.length ?? 0;
-        regieStatus.textContent = `${players.length} players tracked · ${matchCount} matches`;
+        regieStatus.textContent = `${players.length} joueurs suivis · ${matchCount} matchs`;
       }
 
       panel.toggleAttribute("aria-busy", busy);
@@ -379,7 +385,7 @@ export default defineVisual({
       }
     });
 
-    async function callService(method: string, input: unknown = {}) {
+    async function callService(method: string, input: unknown = {}, commitsPreparation = false) {
       busy = true;
       message = "";
       render();
@@ -387,8 +393,10 @@ export default defineVisual({
         const output = await context.services.call(BO_SERVICE_REF, method, input);
         if (isBoTrackerState(output)) {
           state = output;
-          selectedBestOf = output.bestOf;
-          configDirty = false;
+          if (commitsPreparation) {
+            selectedBestOf = output.bestOf;
+            configDirty = false;
+          }
         }
       } catch (error) {
         message = errorMessage(error);
@@ -481,13 +489,38 @@ export default defineVisual({
       };
     }
 
-    async function adjustScore(teamNum: number, delta: number) {
+    function requireSavedPreparation() {
+      if (!configDirty) return true;
+      message = "Enregistrez la préparation avant d’agir sur le direct.";
+      render();
+      return false;
+    }
+
+    async function awardWin(teamNum: number) {
       if (!state) return;
+      if (state.phase === "complete") {
+        message = "La série est terminée. Réinitialisez-la avant d’ajouter une nouvelle victoire.";
+        render();
+        return;
+      }
+      if (!requireSavedPreparation()) return;
+      await callService("award", { side: sideForTeamNum(state, teamNum) });
+    }
+
+    async function correctScore(teamNum: number, delta: number) {
+      if (!state || delta === 0) return;
+      if (!requireSavedPreparation()) return;
       const side = sideForTeamNum(state, teamNum);
       const current = winsForTeamNum(state, teamNum);
+      const next = Math.max(0, current + delta);
+      if (next === current) return;
+      const teamName = teamNameForTeamNum(state, teamNum);
+      if (!window.confirm(`Corriger le score de ${teamName} à ${next} ? Cette correction efface l’historique des résultats et ne peut pas être annulée.`)) {
+        return;
+      }
       await callService("adjustScore", {
-        leftWins: side === "left" ? Math.max(0, current + delta) : state.leftWins,
-        rightWins: side === "right" ? Math.max(0, current + delta) : state.rightWins
+        leftWins: side === "left" ? next : state.leftWins,
+        rightWins: side === "right" ? next : state.rightWins
       });
     }
 
@@ -510,18 +543,28 @@ export default defineVisual({
       });
     }
 
-    for (const button of context.root.querySelectorAll<HTMLButtonElement>("[data-adjust]")) {
+    for (const button of context.root.querySelectorAll<HTMLButtonElement>("[data-award]")) {
       button.addEventListener("click", () => {
-        const [teamNum, delta] = (button.dataset.adjust ?? "").split(":").map(Number);
-        if (Number.isFinite(teamNum) && Number.isFinite(delta)) void adjustScore(teamNum, delta);
+        const teamNum = Number(button.dataset.award);
+        if (Number.isFinite(teamNum)) void awardWin(teamNum);
+      });
+    }
+
+    for (const button of context.root.querySelectorAll<HTMLButtonElement>("[data-correct]")) {
+      button.addEventListener("click", () => {
+        const [teamNum, delta] = (button.dataset.correct ?? "").split(":").map(Number);
+        if (Number.isFinite(teamNum) && Number.isFinite(delta)) void correctScore(teamNum, delta);
       });
     }
 
     context.root.querySelector<HTMLButtonElement>(".apply-config")?.addEventListener("click", () => {
-      void callService("configure", configInput(false));
+      void callService("configure", configInput(false), true);
     });
     context.root.querySelector<HTMLButtonElement>(".reset-series")?.addEventListener("click", () => {
-      void callService("configure", configInput(true));
+      if (!window.confirm("Réinitialiser le score et l’historique de la série ? La préparation enregistrée sera conservée et le suivi restera arrêté.")) {
+        return;
+      }
+      void callService("reset", { keepConfig: true });
     });
     trackingToggle?.addEventListener("click", () => {
       if (!state) return;
@@ -529,7 +572,8 @@ export default defineVisual({
         void callService("stop");
         return;
       }
-      void callService("configure", { ...configInput(state.phase === "complete"), start: "now" });
+      if (!requireSavedPreparation() || state.phase === "complete") return;
+      void callService("start", { mode: "now" });
     });
     context.root.querySelector<HTMLButtonElement>(".undo")?.addEventListener("click", () => {
       void callService("undo");
@@ -574,7 +618,6 @@ export default defineVisual({
 
     return () => {
       instances.delete(context.root);
-      cleanupScale();
       for (const cleanup of cleanups) cleanup();
     };
   },

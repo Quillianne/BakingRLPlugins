@@ -1,6 +1,6 @@
 # BakingRLPlugins
 
-First-party plugins for the BakingRL Runtime API 2.3 platform.
+First-party plugins for the BakingRL Runtime API 2.4 platform.
 
 ## Product plugins
 

@@ -1,10 +1,11 @@
 <div class="bo-control">
   <header class="topbar">
     <div class="title-block">
+      <span class="product-label">Console opérateur</span>
       <h1>{{title}}</h1>
       <span class="subtitle">{{subtitle}}</span>
     </div>
-    <div class="status">
+    <div class="status" aria-label="État de la série">
       <span class="chip phase-chip">Inactif</span>
       <span class="chip bo-chip">BO5</span>
       <span class="chip leader-chip">0 - 0</span>
@@ -14,138 +15,154 @@
   <div class="dashboard">
     <section class="panel setup-panel">
       <div class="panel-head">
-        <h2>BO Setup</h2>
-        <span>Match format</span>
+        <div class="step-heading">
+          <span class="step-number">1</span>
+          <span><strong>Préparer la série</strong><small>À faire avant le direct</small></span>
+        </div>
       </div>
+
       <div class="team-fields">
         <div class="field">
-          <label for="side0-name">Equipe Side 0</label>
+          <label for="side0-name">Équipe côté bleu</label>
           <input id="side0-name" autocomplete="off" />
         </div>
         <div class="field">
-          <label for="side1-name">Equipe Side 1</label>
+          <label for="side1-name">Équipe côté orange</label>
           <input id="side1-name" autocomplete="off" />
         </div>
       </div>
+
       <div class="field">
-        <span class="field-label">Format BO</span>
+        <span class="field-label">Format de la série</span>
         <div class="segmented bo-buttons">
           {{bestOfButtons}}
         </div>
       </div>
-      <div class="actions">
-        <button type="button" class="primary apply-config">Appliquer</button>
-        <button type="button" class="reset-series">Reset</button>
-        <button type="button" class="green tracking-toggle">Start</button>
+
+      <div class="actions setup-actions">
+        <button type="button" class="primary apply-config">Enregistrer la préparation</button>
+        <button type="button" class="danger reset-series">Réinitialiser le BO</button>
       </div>
-      <div class="message"></div>
+      <div class="message" role="status"></div>
     </section>
 
     <section class="panel score-panel">
       <div class="panel-head">
-        <h2>Score</h2>
-        <span>Series state</span>
+        <div class="step-heading">
+          <span class="step-number">2</span>
+          <span><strong>Piloter le score</strong><small>Pendant la série</small></span>
+        </div>
       </div>
+
       <div class="matchup">
         <div class="side-score left">
-          <span class="field-label side0-label">Side 0</span>
+          <span class="field-label side0-label">Côté 0</span>
           <span class="side-name side0-display">Blue</span>
           <div class="score-row">
-            <button type="button" data-adjust="0:-1">-</button>
+            <button type="button" data-correct="0:-1" aria-label="Corriger une victoire côté bleu">Corriger -1</button>
             <span class="score-value side0-wins">0</span>
-            <button type="button" data-adjust="0:1">+</button>
+            <button type="button" data-award="0" aria-label="Attribuer une victoire côté bleu">Victoire +1</button>
           </div>
         </div>
+
         <div class="versus">
           <span class="bo-badge matchup-bo">BO5</span>
-          <span class="required">First to 3</span>
+          <span class="required">Premier à 3</span>
         </div>
+
         <div class="side-score right">
-          <span class="field-label side1-label">Side 1</span>
+          <span class="field-label side1-label">Côté 1</span>
           <span class="side-name side1-display">Orange</span>
           <div class="score-row">
-            <button type="button" data-adjust="1:-1">-</button>
+            <button type="button" data-correct="1:-1" aria-label="Corriger une victoire côté orange">Corriger -1</button>
             <span class="score-value side1-wins">0</span>
-            <button type="button" data-adjust="1:1">+</button>
+            <button type="button" data-award="1" aria-label="Attribuer une victoire côté orange">Victoire +1</button>
           </div>
         </div>
       </div>
+
       <div class="score-actions">
-        <button type="button" class="undo">Undo</button>
+        <button type="button" class="primary green tracking-toggle">Démarrer le suivi</button>
+        <button type="button" class="undo">Annuler le dernier résultat</button>
       </div>
       {{history}}
     </section>
 
     <section class="panel regie-panel">
       <div class="panel-head">
-        <h2>Regie</h2>
-        <span class="regie-status">0 players tracked · 0 matches</span>
+        <div class="step-heading">
+          <span class="step-number">3</span>
+          <span><strong>Envoyer à l’antenne</strong><small>Déclenchements temporaires</small></span>
+        </div>
+        <span class="regie-status">0 joueurs suivis · 0 matchs</span>
       </div>
 
       <div class="regie-toolbar">
         <div class="field">
-          <label for="regie-scope">Scope</label>
+          <label for="regie-scope">Données utilisées</label>
           <select id="regie-scope" class="regie-scope">
-            <option value="lastMatch">Last match</option>
-            <option value="bo">BO</option>
+            <option value="lastMatch">Dernier match</option>
+            <option value="bo">Série complète</option>
           </select>
         </div>
         <div class="field">
-          <label for="regie-duration">Duration ms</label>
-          <input id="regie-duration" class="regie-duration" type="number" value="8000" min="500" max="60000" step="500" />
+          <label for="regie-duration">Durée à l’écran</label>
+          <select id="regie-duration" class="regie-duration">
+            <option value="5000">5 secondes</option>
+            <option value="8000" selected>8 secondes</option>
+            <option value="12000">12 secondes</option>
+            <option value="20000">20 secondes</option>
+          </select>
         </div>
-        <button type="button" class="red clear-regie">Clear Event</button>
+        <button type="button" class="danger clear-regie">Retirer l’élément à l’écran</button>
       </div>
 
       <div class="regie-sections">
         <article class="regie-card h2h-card">
           <div class="regie-card-head">
-            <h3>Head to Head</h3>
-            <span>Player comparison</span>
+            <div><h3>Face-à-face</h3><span>Comparer deux joueurs</span></div>
           </div>
           <div class="team-fields">
             <div class="field">
-              <label>Left Player</label>
-              <select class="h2h-left" aria-label="Left player"></select>
+              <label>Joueur à gauche</label>
+              <select class="h2h-left" aria-label="Joueur à gauche"></select>
             </div>
             <div class="field">
-              <label>Right Player</label>
-              <select class="h2h-right" aria-label="Right player"></select>
+              <label>Joueur à droite</label>
+              <select class="h2h-right" aria-label="Joueur à droite"></select>
             </div>
           </div>
           <div class="actions single">
-            <button type="button" class="primary trigger-h2h">Trigger Head to Head</button>
+            <button type="button" class="primary trigger-h2h">Afficher le face-à-face</button>
           </div>
         </article>
 
         <article class="regie-card cage-card">
           <div class="regie-card-head">
-            <h3>Cage Stats</h3>
-            <span>Shot map fullscreen</span>
+            <div><h3>Carte des tirs</h3><span>Vue plein écran des cages</span></div>
           </div>
+          <p class="card-description">Affiche les tirs, buts et arrêts enregistrés sur les deux cages.</p>
           <div class="actions single">
-            <button type="button" class="primary trigger-cage-stats">Trigger Cage Stats</button>
+            <button type="button" class="primary trigger-cage-stats">Afficher la carte des tirs</button>
           </div>
         </article>
 
         <article class="regie-card statistics-card">
           <div class="regie-card-head">
-            <h3>Statistics</h3>
-            <span>Team and player stats</span>
+            <div><h3>Statistiques</h3><span>Équipes et joueurs</span></div>
           </div>
           <div class="actions">
-            <button type="button" class="trigger-stats-detail">Team Details</button>
-            <button type="button" class="trigger-stats-summary">Summary</button>
+            <button type="button" class="trigger-stats-detail">Détails des équipes</button>
+            <button type="button" class="trigger-stats-summary">Résumé de la série</button>
           </div>
           <div class="team-fields action-row">
             <div class="field">
-              <label for="regie-team">Team</label>
+              <label for="regie-team">Équipe</label>
               <select id="regie-team" class="regie-team"></select>
             </div>
-            <button type="button" class="trigger-stats-team field-button">Show Team</button>
+            <button type="button" class="trigger-stats-team field-button">Afficher cette équipe</button>
           </div>
         </article>
-
       </div>
     </section>
   </div>
